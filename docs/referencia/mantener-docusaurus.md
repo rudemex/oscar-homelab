@@ -54,6 +54,19 @@ SITE_URL=https://docs-oscar.example.com
 
 Si todavía no hay dominio definitivo, el sitio funciona igualmente; `SITE_URL` afecta principalmente URLs absolutas, metadata y canonical links.
 
+## Troubleshooting del build
+
+**`yarn build` falla con `RealContentHashPlugin` / "Some kind of unexpected caching problem occurred"** — es caché de webpack corrupta (típico tras un build interrumpido a la mitad, o al cambiar de rama sin limpiar), no un problema del contenido. Solución:
+
+```bash
+yarn clear   # borra build/, .docusaurus/ y node_modules/.cache
+yarn build
+```
+
+Si persiste, borrar `node_modules/.cache` a mano (a veces `docusaurus clear` no lo limpia si el proceso anterior murió a mitad de escritura) y reintentar.
+
+**`yarn typecheck` falla con `Cannot find module '@site/...'`** — el `tsconfig.json` del proyecto debe declarar `"baseUrl": "."` explícitamente; heredarlo solo de `@docusaurus/tsconfig` no alcanza, porque TypeScript resuelve `baseUrl` relativo a dónde se *define*, no a dónde se hereda.
+
 ## Dependencias
 
 Dependabot revisa el ecosistema npm, lo cual también cubre dependencias gestionadas con Yarn.
