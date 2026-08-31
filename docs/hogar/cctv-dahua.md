@@ -7,6 +7,10 @@ sidebar_position: 2
 
 El DVR de cuatro canales forma parte del rack y debe tratarse como una zona de red de menor confianza.
 
+:::note Por qué está en el rack
+El DVR no es un componente que O.S.C.A.R. "necesite" — ya lo tenía antes de armar el rack, y se integra ahí simplemente para no dejarlo suelto con cables colgando. Si no tenés un DVR/CCTV propio, esta sección entera es opcional y no bloquea nada del resto de la arquitectura.
+:::
+
 ## Objetivos
 
 - cableado ordenado mediante patch panel/balunera;

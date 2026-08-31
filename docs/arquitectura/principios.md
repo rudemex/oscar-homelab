@@ -1,6 +1,6 @@
 ---
 title: Principios de diseño
-sidebar_position: 2
+sidebar_position: 3
 ---
 
 # Principios de diseño

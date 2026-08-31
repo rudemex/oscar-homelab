@@ -6,7 +6,7 @@ slug: /intro
 
 # O.S.C.A.R. HomeLab
 
-**O.S.C.A.R. — Operational System for Computing, Automation & Research.**
+**O.S.C.A.R. — Operations, Services, Compute, Automation & Routing.**
 
 O.S.C.A.R. es un laboratorio doméstico pensado como una **plataforma de infraestructura**, no solamente como una computadora que ejecuta contenedores. El objetivo es disponer de un entorno propio para aprender, experimentar, automatizar y operar servicios reales usando tecnologías de virtualización, networking, contenedores, Kubernetes, GitOps, observabilidad, seguridad e inteligencia artificial.
 
@@ -31,8 +31,14 @@ La documentación usa tres estados conceptuales:
 | **Objetivo** | Componente que forma parte de la arquitectura deseada pero todavía puede estar pendiente de implementación. |
 | **Laboratorio** | Tecnología o prueba deliberadamente opcional que no debe transformarse en una dependencia crítica. |
 
+La mayoría de esta guía describe **Objetivo** con el mismo nivel de detalle que si ya existiera — es deliberado (ver [por qué](./arquitectura/estado-actual.md#por-qué-esta-página-existe)), pero significa que hay que revisar [estado actual](./arquitectura/estado-actual.md) para saber qué de todo esto está realmente instalado hoy.
+
 :::important
 Nunca tomes un bloque marcado como **ejemplo** y lo copies sin revisar direcciones IP, nombres, contraseñas, discos, interfaces o rutas. Los ejemplos muestran el patrón; el inventario de O.S.C.A.R. es la fuente de verdad.
+:::
+
+:::note El hardware de esta guía es el mío, no una receta
+El Dell OptiPlex, las Raspberry Pi, el rack GeeekPi, el DVR Dahua, etc. son **mi** inventario real ([hardware.yaml](../inventory/hardware.yaml)), no una lista de compras recomendada. Si estás construyendo tu propio O.S.C.A.R. con otro hardware, usá [requisitos mínimos](./referencia/requisitos-minimos.md) para dimensionar el tuyo — ahí está separado qué necesita cada componente de la arquitectura de qué SKU específico tengo yo. Algunas piezas de mi inventario (el DVR es el ejemplo más claro) están en el rack simplemente porque ya las tenía y prefiero no dejarlas sueltas, no porque CCTV sea un requisito de un homelab.
 :::
 
 ## Objetivos técnicos

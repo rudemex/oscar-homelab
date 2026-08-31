@@ -1,6 +1,6 @@
 ---
 title: Topología lógica
-sidebar_position: 3
+sidebar_position: 4
 ---
 
 # Topología lógica objetivo

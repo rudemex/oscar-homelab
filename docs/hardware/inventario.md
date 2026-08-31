@@ -7,6 +7,10 @@ sidebar_position: 1
 
 Este documento representa el inventario conocido y debe mantenerse alineado con `inventory/hardware.yaml`.
 
+:::note Esto es lo que tengo yo, no lo que hace falta tener
+Este es mi inventario real, no una lista de compras. Parte de él está acá por conveniencia personal, no porque la arquitectura de O.S.C.A.R. lo requiera — el caso más claro es el DVR: lo tengo desde antes del proyecto y lo integro al rack para no dejarlo suelto, no porque CCTV sea parte de un homelab mínimo. Para dimensionar tu propio hardware (con otras marcas/modelos), usá [requisitos mínimos](../referencia/requisitos-minimos.md) en vez de replicar esta lista.
+:::
+
 ## Rack
 
 - GeeekPi RackMate T2, formato 10", 12U.
