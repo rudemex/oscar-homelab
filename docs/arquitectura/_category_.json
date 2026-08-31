@@ -1,10 +1,10 @@
 {
   "label": "Arquitectura",
-  "position": 2,
+  "position": 3,
   "collapsible": true,
   "collapsed": true,
   "link": {
     "type": "generated-index",
-    "description": "La visión técnica, principios y dependencias de O.S.C.A.R."
+    "description": "La visi\u00f3n t\u00e9cnica, principios y dependencias de O.S.C.A.R."
   }
 }

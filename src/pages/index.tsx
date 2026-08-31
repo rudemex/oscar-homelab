@@ -22,7 +22,7 @@ function HomepageHeader() {
           k3s, GitOps, observabilidad, backups, automatización y una capa de IA encima de todo.
         </p>
         <div className={styles.buttons}>
-          <Link className="button button--primary button--lg" to="/docs/intro">
+          <Link className="button button--primary button--lg" to="/docs/guia-rapida">
             Empezar a construir
           </Link>
           <Link className="button button--secondary button--lg" to="/docs/arquitectura/vision-general">

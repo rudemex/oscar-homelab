@@ -1,10 +1,10 @@
 {
   "label": "Primeros pasos",
-  "position": 3,
+  "position": 4,
   "collapsible": true,
   "collapsed": false,
   "link": {
     "type": "generated-index",
-    "description": "Terminal, SSH y las herramientas que el resto de la guía asume que ya conocés."
+    "description": "Terminal, SSH y las herramientas que el resto de la gu\u00eda asume que ya conoc\u00e9s."
   }
 }

@@ -1,10 +1,10 @@
 {
   "label": "Servidores de juegos",
-  "position": 13,
+  "position": 14,
   "collapsible": true,
   "collapsed": true,
   "link": {
     "type": "generated-index",
-    "description": "Minecraft y Counter-Strike 2 — laboratorio, no infraestructura crítica."
+    "description": "Minecraft y Counter-Strike 2 \u2014 laboratorio, no infraestructura cr\u00edtica."
   }
 }

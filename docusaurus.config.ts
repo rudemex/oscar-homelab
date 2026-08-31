@@ -112,7 +112,8 @@ const config: Config = {
         {
           title: 'Construcción',
           items: [
-            {label: 'Empezar', to: '/docs/intro'},
+            {label: 'Guía rápida', to: '/docs/guia-rapida'},
+            {label: 'Introducción', to: '/docs/intro'},
             {label: 'Estado actual', to: '/docs/arquitectura/estado-actual'},
             {label: 'Arquitectura', to: '/docs/arquitectura/vision-general'},
             {label: 'Roadmap', to: '/docs/roadmap/roadmap-general'},

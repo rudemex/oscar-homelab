@@ -10,6 +10,10 @@ slug: /intro
 
 O.S.C.A.R. es un laboratorio doméstico pensado como una **plataforma de infraestructura**, no solamente como una computadora que ejecuta contenedores. El objetivo es disponer de un entorno propio para aprender, experimentar, automatizar y operar servicios reales usando tecnologías de virtualización, networking, contenedores, Kubernetes, GitOps, observabilidad, seguridad e inteligencia artificial.
 
+:::tip ¿Querés arrancar ya?
+La [guía rápida](./guia-rapida.md) te lleva de cero a un servidor con Proxmox, Docker y un primer servicio andando, en un solo recorrido, sin importar tu experiencia previa ni el hardware específico que tengas. El resto de este sitio es la versión profunda — arquitectura, seguridad, backups, Kubernetes — para cuando quieras ir más allá.
+:::
+
 Esta documentación está escrita para que el entorno pueda construirse desde cero y para que, meses después, siga siendo posible responder preguntas como:
 
 - ¿qué corre en cada equipo?
@@ -32,10 +36,6 @@ La documentación usa tres estados conceptuales:
 | **Laboratorio** | Tecnología o prueba deliberadamente opcional que no debe transformarse en una dependencia crítica. |
 
 La mayoría de esta guía describe **Objetivo** con el mismo nivel de detalle que si ya existiera — es deliberado (ver [por qué](./arquitectura/estado-actual.md#por-qué-esta-página-existe)), pero significa que hay que revisar [estado actual](./arquitectura/estado-actual.md) para saber qué de todo esto está realmente instalado hoy.
-
-:::tip ¿Primera vez con Linux/terminal?
-Esta guía da el comando completo en cada paso, no solo la idea — no hace falta saber Linux de antes. Si nunca usaste una terminal o SSH, arrancá por [herramientas básicas](./primeros-pasos/herramientas-basicas.md) antes de tocar el hardware.
-:::
 
 :::important
 Nunca tomes un bloque marcado como **ejemplo** y lo copies sin revisar direcciones IP, nombres, contraseñas, discos, interfaces o rutas. Los ejemplos muestran el patrón; el inventario de O.S.C.A.R. es la fuente de verdad.

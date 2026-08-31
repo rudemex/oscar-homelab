@@ -13,10 +13,10 @@ type FeatureItem = {
 
 const FeatureList: FeatureItem[] = [
   {
-    title: 'Construcción',
+    title: 'Guía rápida',
     eyebrow: 'START HERE',
-    description: <>Del rack vacío a una plataforma funcional, siguiendo gates y checklists reproducibles.</>,
-    to: '/docs/roadmap/roadmap-general',
+    description: <>De cero a Proxmox + Docker + tu primer servicio andando, en un solo recorrido.</>,
+    to: '/docs/guia-rapida',
   },
   {
     title: 'Arquitectura',
