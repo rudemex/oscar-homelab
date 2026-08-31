@@ -63,13 +63,13 @@ qm set 9000 --ipconfig0 ip=dhcp
 qm template 9000
 ```
 
-Clonar el template para cada VM real (clon completo, no linked, para no depender del template en producción):
+Clonar el template para cada VM real es siempre clon completo (`--full`), no linked — para no depender del template en producción:
 
 ```bash
-qm clone 9000 101 --name core01 --full
-qm set 101 --ipconfig0 ip=192.168.20.11/24,gw=192.168.20.1   # ejemplo — usar el plan de direccionamiento real
-qm start 101
+qm clone 9000 <vmid-nuevo> --name <nombre> --full
 ```
+
+El procedimiento completo para la primera VM real (IP, clave SSH, sizing, validación) está en [crear VM core01](./crear-vm-core01.md) — no lo repetimos acá para no mantener el mismo comando en dos lugares.
 
 ## Después
 
