@@ -18,7 +18,7 @@ Al momento de escribir esto, **no hay ningún servicio de software corriendo**. 
 | Componente | Estado | Nota |
 |---|---|---|
 | Rack GeeekPi RackMate T2 (10", 12U) | Actual | — |
-| Dell OptiPlex 7060 Micro (i7 8ª gen, 16 GB, NVMe 512 GB + SATA 1 TB) | Actual | Todavía sin Proxmox instalado. |
+| Dell OptiPlex 7060 Micro (i7 8ª gen, 32 GB RAM, NVMe 1 TB + SATA 1 TB) | Actual | RAM y M.2 ya ampliados (16→32 GB, 512 GB→1 TB). Todavía sin Proxmox instalado. |
 | 2× Raspberry Pi 3, 3× Pi Zero W | Actual | Sin rol asignado todavía. |
 | Router/mesh TP-Link Archer AX55 | Actual | Es el gateway hoy — no hay firewall dedicado. |
 | Switch TP-Link TL-SF1008D (8p/100 Mbps) | Actual, marcado para reemplazo | Bloquea VLAN y gigabit real. |

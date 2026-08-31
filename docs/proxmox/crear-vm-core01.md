@@ -9,7 +9,7 @@ sidebar_position: 7
 
 ## Sizing inicial
 
-Con el Dell aún en 16 GB RAM:
+Con el Dell en 32 GB RAM (ver [distribución con 32 GB](../hardware/dell-7060.md#distribución-con-32-gb)):
 
 ```text
 vCPU: 2
@@ -17,6 +17,8 @@ RAM: 4 GB
 Disk: 60 GB (expandible)
 NIC: VirtIO
 ```
+
+Este sizing de `core01` no cambia por tener más RAM disponible — sigue siendo la VM de servicios livianos (n8n, Uptime Kuma, dashboards). El margen extra de RAM se usa para sumar VMs nuevas (observabilidad dedicada, k3s con más recursos), no para inflar esta.
 
 No asignar toda la RAM física entre VMs; Proxmox y filesystem necesitan margen.
 

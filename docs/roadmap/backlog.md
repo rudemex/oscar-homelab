@@ -11,10 +11,13 @@ sidebar_position: 2
 - **destino off-site de backup** — no requiere NAS ni hardware nuevo, alcanza con una cuenta de object storage barata; hoy es el mayor riesgo activo porque todo vive en un solo Dell (ver [estrategia 3-2-1](../backup-dr/estrategia-321.md));
 - switch >8 puertos definitivo para RackMate T2 (cualquier gigabit gestionable que entre en 10" resuelve esto — no requiere tanta deliberación como las demás decisiones de esta lista).
 
+## Resueltas recientemente
+
+- **RAM del Dell**: ampliada de 16 GB a 32 GB (ambos slots ocupados — sin margen para ampliar más sin reemplazar módulos), y de paso el M.2 de 512 GB a 1 TB (slot único, reemplazo en vez de suma). Desbloquea separar observabilidad en su propia VM — ver [distribución con 32 GB](../hardware/dell-7060.md#distribución-con-32-gb).
+
 ## Decisiones pendientes
 
 - hardware N100/OPNsense;
-- RAM final del Dell — antes de separar observabilidad en su propia VM (ver [requisitos mínimos](../referencia/requisitos-minimos.md));
 - NAS (Raspberry Pi vs equipo dedicado vs comercial);
 - plataforma Git local (ADR: Forgejo vs. alternativas);
 - motor de CI runner (depende de la plataforma Git elegida — ver [CI Runner](../servicios/ci-runner.md));

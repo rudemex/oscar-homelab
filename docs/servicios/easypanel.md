@@ -12,7 +12,7 @@ sidebar_position: 3
 **Persistencia:** configuración de plataforma, volúmenes de apps y bases de datos
 
 :::info Laboratorio, no Objetivo
-Con 16 GB de RAM en `pve01`, correr EasyPanel **además** de Docker Compose manual **y** k3s + Argo CD es redundante: los tres resuelven "cómo llevo una app a producción". El stack GitOps (Nexus → Argo CD → k3s) ya es el camino objetivo para despliegues serios; EasyPanel se documenta como laboratorio para comparar experiencia de desarrollador, no como plataforma paralela permanente. Si tras probarlo no aporta algo que Compose/k3s no den, se descarta.
+Aunque `pve01` ya tiene 32 GB de RAM y hay margen de sobra, correr EasyPanel **además** de Docker Compose manual **y** k3s + Argo CD sigue siendo redundante: los tres resuelven "cómo llevo una app a producción", y tener más RAM no cambia que sea el mismo problema resuelto tres veces. El stack GitOps (Nexus → Argo CD → k3s) ya es el camino objetivo para despliegues serios; EasyPanel se documenta como laboratorio para comparar experiencia de desarrollador, no como plataforma paralela permanente. Si tras probarlo no aporta algo que Compose/k3s no den, se descarta.
 :::
 
 ## Rol dentro de O.S.C.A.R.

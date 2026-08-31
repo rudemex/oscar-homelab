@@ -25,9 +25,10 @@ Este es mi inventario real, no una lista de compras. Parte de él está acá por
 ### Dell OptiPlex 7060 Micro
 
 - CPU: Intel Core i7 de 8ª generación.
-- RAM actual: 16 GB DDR4, con capacidad de ampliación según configuración física.
-- M.2: 512 GB.
+- RAM: 32 GB DDR4 (ampliada desde 16 GB — ambos slots SO-DIMM ocupados, sin margen para ampliar más sin reemplazar módulos).
+- M.2: 1 TB (reemplazó al M.2 de 512 GB original — el equipo tiene un solo slot M.2).
 - SSD SATA: 1 TB.
+- Storage total: 2 TB.
 - Rol objetivo: host Proxmox principal.
 
 ### Raspberry Pi
@@ -58,7 +59,6 @@ Este es mi inventario real, no una lista de compras. Parte de él está acá por
 
 - modelo final del switch gestionable >8 puertos;
 - hardware de firewall OPNsense;
-- ampliación definitiva de RAM del Dell;
 - NAS y discos;
-- Pi 5 y NVMe;
+- Pi 5;
 - medición real de consumo eléctrico y térmico.

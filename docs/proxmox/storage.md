@@ -12,7 +12,7 @@ Aprovechar los discos existentes sin convertir el diseño temprano en una migrac
 Una distribución de referencia:
 
 ```text
-M.2 512 GB
+M.2 1 TB
 ├── Proxmox
 └── VM disks sensibles a I/O
 

@@ -10,10 +10,12 @@ compute:
     model: Dell OptiPlex 7060 Micro
     role: proxmox-host
     cpu: Intel Core i7 8th Gen
-    ram_gb: 16
+    ram_gb: 32
+    ram_note: "upgraded from 16GB (2x8) to 32GB, both SO-DIMM slots populated"
     storage:
       - type: m2
-        size_gb: 512
+        size_gb: 1000
+        note: "upgraded from the original 512GB M.2, single slot so it replaced it (not added)"
       - type: sata-ssd
         size_gb: 1000
     status: current

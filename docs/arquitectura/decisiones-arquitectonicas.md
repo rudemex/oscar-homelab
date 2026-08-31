@@ -42,12 +42,12 @@ Esta página funciona como un índice liviano de ADRs (Architecture Decision Rec
 
 **Status:** Aceptado.
 
-**Context:** se quiere aprender Kubernetes real (Deployments, Services, Ingress, GitOps) sin el overhead operativo de una distribución completa, sobre un único nodo inicial con recursos acotados (16 GB RAM compartidos con el resto de O.S.C.A.R.).
+**Context:** se quiere aprender Kubernetes real (Deployments, Services, Ingress, GitOps) sin el overhead operativo de una distribución completa, sobre un único nodo inicial con recursos compartidos con el resto de O.S.C.A.R. (16 GB RAM al momento de esta decisión, ampliado luego a 32 GB — ver [Dell OptiPlex 7060](../hardware/dell-7060.md)).
 
 **Decision:** usar k3s (Rancher/SUSE) como distribución de Kubernetes.
 
 **Alternatives considered:**
-- Kubernetes "completo" (kubeadm) — mismo control plane pero mucho mayor consumo de recursos base, más piezas para mantener manualmente (etcd, componentes del control plane por separado); no se justifica en un nodo único de 16 GB.
+- Kubernetes "completo" (kubeadm) — mismo control plane pero mucho mayor consumo de recursos base, más piezas para mantener manualmente (etcd, componentes del control plane por separado); no se justifica en un nodo único de homelab, con 16 o con 32 GB — el problema no es la RAM disponible sino la carga operativa de mantener un control plane completo a mano.
 - k0s / MicroK8s — alternativas livianas válidas; se descartan por menor adopción/documentación relativa a k3s en el ecosistema homelab, no por una limitación técnica concreta.
 
 **Consequences:**

@@ -18,7 +18,16 @@ Los números son pisos técnicos razonables para un homelab de un solo operador,
 | Disco de sistema/VMs | 1 disco SSD/NVMe ≥250 GB | HDD mecánico funciona pero castiga la latencia de todas las VMs a la vez; evitarlo si es posible. |
 | Red | 1 NIC gigabit | Segunda NIC es conveniente (separar management de tráfico), no obligatoria para empezar. |
 
-Con 16 GB reales, contar con que Proxmox reserva ~2 GB y que el resto se reparte entre pocas VMs — ver la distribución de referencia en [Dell OptiPlex 7060](../hardware/dell-7060.md#distribución-inicial-orientativa), que aplica igual a cualquier host con esta RAM.
+Con 16 GB reales, contar con que Proxmox reserva ~2 GB y que el resto se reparte entre pocas VMs — una distribución de referencia para ese punto de partida:
+
+| Componente | RAM | Comentario |
+|---|---:|---|
+| Proxmox host | ~2 GB | no sobreasignar memoria al principio |
+| VM Docker Core | 4 GB | servicios livianos, observabilidad incluida acá (ver nota abajo) |
+| VM DevOps | 4 GB | Nexus, Git, runner |
+| VM k3s | 4 GB | laboratorio, no siempre encendida |
+
+Total: **~14 de 16 GB**, dejando ~2 GB de margen — ajustado pero funcional. El autor de esta guía arrancó exactamente en este punto con 16 GB antes de ampliar a 32 GB (ver [Dell OptiPlex 7060](../hardware/dell-7060.md) para cómo queda la distribución con más RAM disponible).
 
 ## Por VM/rol (sobre el hypervisor de arriba)
 

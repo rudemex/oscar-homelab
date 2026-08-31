@@ -13,7 +13,7 @@ Todo lo demás en [servicios](../servicios/catalogo.md) existe para operar o apr
 
 - **no necesitan alta disponibilidad**: si se caen un sábado a la noche, se reinician y listo, no hace falta un runbook de incident response;
 - **su "backup" es mucho más simple**: en Minecraft importa el mundo (irreemplazable si hay horas de construcción); en CS2 no hay casi nada que respaldar, el juego se re-descarga solo;
-- **compiten por RAM/CPU con todo lo demás** en un host de 16 GB — ver la nota de sizing en cada página antes de prenderlos junto con el resto del stack.
+- **compiten por RAM/CPU con todo lo demás** — ver la nota de sizing en cada página antes de prenderlos junto con el resto del stack, sobre todo si vas a jugar mientras el resto de O.S.C.A.R. sigue corriendo.
 
 ## Requisitos de RAM por servidor
 
@@ -22,7 +22,7 @@ Todo lo demás en [servicios](../servicios/catalogo.md) existe para operar o apr
 | [Minecraft Java](./minecraft.md) | 2 GB | 4 GB+ | crece con mods/plugins y con la distancia de renderizado |
 | [Counter-Strike 2](./counter-strike.md) | 4 GB | 6 GB+ | sensible a CPU además de RAM; tickrate alto pide más núcleo dedicado |
 
-Con 16 GB totales en el Dell y ya repartidos entre Proxmox + `core01` + `devops01` + `k3s01` (ver [distribución inicial](../hardware/dell-7060.md#distribución-inicial-orientativa)), **no hay margen para tener ambos corriendo permanentemente además del resto**. La forma razonable de usarlos: prenderlos on-demand (`qm start`/`docker compose up -d` cuando se va a jugar, `down`/`stop` después) en vez de dejarlos como servicio 24/7, al menos hasta que exista la ampliación de RAM.
+Con los 32 GB actuales del Dell (ver [distribución con 32 GB](../hardware/dell-7060.md#distribución-con-32-gb)) ya repartidos entre Proxmox + `core01` + `devops01` + `k3s01` + observabilidad, queda margen para uno de los dos corriendo de forma más permanente sin apretar — pero **no ambos a la vez, todo el tiempo, además del resto del stack**. La forma más segura de usarlos sigue siendo on-demand (`qm start`/`docker compose up -d` cuando se va a jugar, `down`/`stop` después), reservando "dejarlo prendido siempre" para uno solo de los dos y solo si se valida que no genera presión sobre el resto de servicios.
 
 ## Dónde corren
 
