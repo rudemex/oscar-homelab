@@ -49,14 +49,20 @@ network:
 
 power:
   ups:
-    status: decision-pending
+    status: current-not-integrated
+    location: fuera del rack (uso general, no dedicado al rack todavía)
+    model: decision-pending
     note: >-
-      Sin UPS definido todavía. Requerido antes de dar por buena la
-      estrategia de apagado limpio de pve01 y de los paneles UPS del
-      Control Center y de las alertas de "corte eléctrico"/"UPS en
-      batería". Elegir por capacidad (VA) suficiente para Dell + switch +
-      router + patch panel activo, con salida NUT/USB monitoreable desde
-      Proxmox u otro host.
+      Existe físicamente (junto con un estabilizador de tensión), pero
+      no está dedicado al rack ni monitoreado. Pendiente: confirmar
+      capacidad (VA) real contra el consumo de Dell + switch + router +
+      patch panel activo, reubicarlo cerca del rack o tender una toma
+      protegida hasta él, y conectar salida NUT/USB a pve01 (o a otro
+      host) para que el apagado limpio y el panel UPS del Control
+      Center dejen de ser teóricos.
+  stabilizer:
+    status: current-not-integrated
+    location: fuera del rack (mismo circuito que el UPS)
 
 cctv:
   dvr:

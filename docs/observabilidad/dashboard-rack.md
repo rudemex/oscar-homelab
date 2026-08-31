@@ -26,7 +26,7 @@ La pantalla 1280×720 del rack debe mostrar **estado**, no un dashboard que obli
 └───────────────────┴──────────────────────────────────────────┘
 ```
 
-El panel UPS y el panel CCTV solo tienen sentido una vez que exista un UPS ([pendiente de decisión](../../inventory/hardware.yaml)) y el DVR Dahua esté conectado a la red de monitoreo; hasta entonces el dashboard puede mostrar esas dos filas en gris "no disponible" en vez de omitirlas, para dejar explícito que son componentes previstos y no descartados.
+El UPS y el DVR ya existen físicamente ([inventario](../../inventory/hardware.yaml)), pero el panel UPS solo puede mostrar datos reales una vez que el UPS esté reubicado/cableado al rack y monitoreado por NUT, y el panel CCTV una vez que el DVR esté conectado a la red de monitoreo. Hasta entonces el dashboard puede mostrar esas dos filas en gris "no disponible" en vez de omitirlas, para dejar explícito que son componentes previstos y no descartados.
 
 ## Reglas de UX
 

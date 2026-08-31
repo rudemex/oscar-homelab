@@ -6,7 +6,7 @@ sidebar_position: 11
 # Corte eléctrico / UPS
 
 :::caution Estado actual vs. objetivo
-El UPS todavía es [decisión pendiente](../../inventory/hardware.yaml) — hoy no existe. Sin UPS, un corte eléctrico es directamente un apagado sucio de `pve01`: no hay autonomía ni aviso previo, y los pasos 1-5 de abajo no aplican hasta que exista el hardware. Mientras tanto, lo único accionable ante un corte es el paso 6 (recuperación al volver la energía) y verificar que Proxmox arrancó sin corrupción de filesystem. Este runbook describe el procedimiento completo para cuando el UPS esté instalado.
+El UPS y el estabilizador **existen físicamente**, pero hoy están fuera del rack, sin dedicar a `pve01` y sin salida de monitoreo (NUT/USB) conectada — ver [inventario](../../inventory/hardware.yaml). Hasta que se reubiquen y conecten, un corte eléctrico sigue siendo un apagado sucio de `pve01`: no hay autonomía ni aviso automático de "batería baja" para disparar los pasos 1-5. Priorizar la integración (reubicar + conectar NUT) es de las tareas más baratas del roadmap — es hardware que ya está pagado, solo falta cablear y configurar software. Mientras tanto, lo único accionable ante un corte es el paso 6 (recuperación al volver la energía) y verificar que Proxmox arrancó sin corrupción de filesystem.
 :::
 
 ## Objetivo
