@@ -1,10 +1,10 @@
 {
   "label": "Observabilidad",
-  "position": 9,
+  "position": 10,
   "collapsible": true,
   "collapsed": true,
   "link": {
     "type": "generated-index",
-    "description": "Métricas, logs, disponibilidad, alertas y dashboards."
+    "description": "M\u00e9tricas, logs, disponibilidad, alertas y dashboards."
   }
 }

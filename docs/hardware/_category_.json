@@ -1,10 +1,10 @@
 {
   "label": "Hardware y rack",
-  "position": 3,
+  "position": 4,
   "collapsible": true,
   "collapsed": true,
   "link": {
     "type": "generated-index",
-    "description": "Inventario, capacidad, montaje físico, energía y refrigeración."
+    "description": "Inventario, capacidad, montaje f\u00edsico, energ\u00eda y refrigeraci\u00f3n."
   }
 }

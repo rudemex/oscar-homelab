@@ -1,10 +1,10 @@
 {
   "label": "Backup y Disaster Recovery",
-  "position": 14,
+  "position": 16,
   "collapsible": true,
   "collapsed": true,
   "link": {
     "type": "generated-index",
-    "description": "Estrategia 3-2-1, restores y recuperación ante desastres."
+    "description": "Estrategia 3-2-1, restores y recuperaci\u00f3n ante desastres."
   }
 }

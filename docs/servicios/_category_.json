@@ -1,10 +1,10 @@
 {
   "label": "Servicios",
-  "position": 6,
+  "position": 7,
   "collapsible": true,
   "collapsed": true,
   "link": {
     "type": "generated-index",
-    "description": "Catálogo de servicios y fichas operativas de cada componente."
+    "description": "Cat\u00e1logo de servicios y fichas operativas de cada componente."
   }
 }

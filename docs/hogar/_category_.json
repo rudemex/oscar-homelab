@@ -1,10 +1,10 @@
 {
   "label": "Servicios del hogar",
-  "position": 11,
+  "position": 12,
   "collapsible": true,
   "collapsed": true,
   "link": {
     "type": "generated-index",
-    "description": "Home Assistant, DNS, CCTV y servicios domésticos."
+    "description": "Home Assistant, DNS, CCTV y servicios dom\u00e9sticos."
   }
 }

@@ -1,10 +1,10 @@
 {
   "label": "Troubleshooting",
-  "position": 18,
+  "position": 20,
   "collapsible": true,
   "collapsed": true,
   "link": {
     "type": "generated-index",
-    "description": "Diagnóstico sistemático y problemas frecuentes."
+    "description": "Diagn\u00f3stico sistem\u00e1tico y problemas frecuentes."
   }
 }

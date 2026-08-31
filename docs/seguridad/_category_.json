@@ -1,10 +1,10 @@
 {
   "label": "Seguridad",
-  "position": 13,
+  "position": 15,
   "collapsible": true,
   "collapsed": true,
   "link": {
     "type": "generated-index",
-    "description": "Hardening, secretos, identidades, segmentación y exposición."
+    "description": "Hardening, secretos, identidades, segmentaci\u00f3n y exposici\u00f3n."
   }
 }

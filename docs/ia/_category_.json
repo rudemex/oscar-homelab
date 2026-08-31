@@ -1,10 +1,10 @@
 {
   "label": "Capa de IA",
-  "position": 12,
+  "position": 14,
   "collapsible": true,
   "collapsed": true,
   "link": {
     "type": "generated-index",
-    "description": "Agentes, MCP, LLM locales/remotos y automatización asistida."
+    "description": "Agentes, MCP, LLM locales/remotos y automatizaci\u00f3n asistida."
   }
 }
