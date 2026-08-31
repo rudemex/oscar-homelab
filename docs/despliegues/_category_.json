@@ -1,0 +1,10 @@
+{
+  "label": "Ejemplos de despliegue",
+  "position": 15,
+  "collapsible": true,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "description": "Aplicaciones de ejemplo en Docker y Kubernetes."
+  }
+}

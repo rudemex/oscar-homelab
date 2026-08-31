@@ -1,0 +1,10 @@
+{
+  "label": "Kubernetes y GitOps",
+  "position": 8,
+  "collapsible": true,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "description": "k3s, Helm, Argo CD y patrones de despliegue."
+  }
+}

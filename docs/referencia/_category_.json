@@ -1,0 +1,10 @@
+{
+  "label": "Referencia",
+  "position": 20,
+  "collapsible": true,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "description": "Puertos, naming, convenciones, glosario y cheatsheets."
+  }
+}

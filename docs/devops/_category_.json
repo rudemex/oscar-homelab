@@ -1,0 +1,10 @@
+{
+  "label": "DevOps",
+  "position": 7,
+  "collapsible": true,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "description": "Git, registry, runners, CI/CD y promoción de artefactos."
+  }
+}

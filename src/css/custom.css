@@ -1,0 +1,68 @@
+:root {
+  --ifm-color-primary: #1e8eff;
+  --ifm-color-primary-dark: #087fff;
+  --ifm-color-primary-darker: #0078f5;
+  --ifm-color-primary-darkest: #0063ca;
+  --ifm-color-primary-light: #3b9dff;
+  --ifm-color-primary-lighter: #4aa5ff;
+  --ifm-color-primary-lightest: #74b9ff;
+  --ifm-code-font-size: 92%;
+  --ifm-font-family-base: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --oscar-border: rgba(20, 42, 64, .15);
+  --oscar-card-bg: rgba(12, 28, 42, .025);
+  --oscar-card-hover: rgba(30, 142, 255, .055);
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #62b0ff;
+  --ifm-color-primary-dark: #42a0ff;
+  --ifm-color-primary-darker: #3298ff;
+  --ifm-color-primary-darkest: #007df2;
+  --ifm-color-primary-light: #82c0ff;
+  --ifm-color-primary-lighter: #92c8ff;
+  --ifm-color-primary-lightest: #c2e0ff;
+  --ifm-background-color: #081018;
+  --ifm-background-surface-color: #0d1721;
+  --ifm-navbar-background-color: rgba(8, 16, 24, .92);
+  --ifm-footer-background-color: #060c12;
+  --oscar-border: rgba(142, 174, 204, .16);
+  --oscar-card-bg: rgba(255, 255, 255, .025);
+  --oscar-card-hover: rgba(98, 176, 255, .075);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.navbar {
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--oscar-border);
+  box-shadow: none;
+}
+
+.navbar__title {
+  letter-spacing: .03em;
+}
+
+.theme-doc-sidebar-container {
+  border-right-color: var(--oscar-border) !important;
+}
+
+.markdown table {
+  display: table;
+  width: 100%;
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3 {
+  letter-spacing: -.02em;
+}
+
+.theme-code-block {
+  border: 1px solid var(--oscar-border);
+}
+
+.footer {
+  border-top: 1px solid var(--oscar-border);
+}

@@ -1,0 +1,10 @@
+{
+  "label": "Automatización",
+  "position": 10,
+  "collapsible": true,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "description": "n8n, jobs, webhooks y operaciones automatizadas."
+  }
+}

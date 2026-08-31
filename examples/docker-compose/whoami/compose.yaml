@@ -1,0 +1,11 @@
+# Excepción intencional: este servicio publica en todas las interfaces (no 127.0.0.1)
+# porque es un smoke-test pensado para validar red/puertos desde OTRO cliente de la LAN
+# (ver docs/proxmox/crear-vm-core01.md). No usar este binding como patrón por defecto:
+# servicios con estado o paneles administrativos deben publicar solo en 127.0.0.1
+# detrás de un reverse proxy (ver docs/servicios/docker-compose.md).
+services:
+  whoami:
+    image: traefik/whoami:v1.11.0
+    restart: unless-stopped
+    ports:
+      - "8080:80"

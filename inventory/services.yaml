@@ -1,0 +1,62 @@
+# Estado lógico. Completar hostname/IP solo cuando se implemente.
+services:
+  - id: proxmox
+    status: planned-install
+    criticality: C0
+    target: pve01
+  - id: docker-core
+    status: planned
+    criticality: C1
+    target: core01
+  - id: pihole
+    status: planned
+    criticality: C1
+    target: raspberry-or-lxc
+  - id: uptime-kuma
+    status: planned
+    criticality: C2
+    target: core01
+  - id: n8n
+    status: planned
+    criticality: C2
+    target: core01
+  - id: prometheus
+    status: planned
+    criticality: C2
+    target: observability
+  - id: grafana
+    status: planned
+    criticality: C2
+    target: observability
+  - id: loki
+    status: planned
+    criticality: C2
+    target: observability
+  - id: nexus
+    status: planned
+    criticality: C2
+    target: devops01
+  - id: git
+    status: decision-pending
+    criticality: C2
+    target: devops01
+  - id: gitlab-runner
+    status: planned
+    criticality: C3
+    target: devops01
+  - id: k3s
+    status: planned
+    criticality: C3
+    target: k3s01
+  - id: argocd
+    status: planned
+    criticality: C3
+    target: k3s
+  - id: home-assistant
+    status: planned
+    criticality: C2
+    target: raspberry-pi-5-or-vm
+  - id: ai-operator
+    status: future
+    criticality: C4
+    target: hybrid

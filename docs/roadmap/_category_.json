@@ -1,0 +1,10 @@
+{
+  "label": "Roadmap",
+  "position": 19,
+  "collapsible": true,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "description": "Fases, hitos, prioridades y definición de terminado."
+  }
+}

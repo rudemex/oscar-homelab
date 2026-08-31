@@ -1,0 +1,10 @@
+{
+  "label": "Laboratorios",
+  "position": 16,
+  "collapsible": true,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "description": "Ejercicios progresivos para aprender sin afectar servicios críticos."
+  }
+}

@@ -1,0 +1,81 @@
+# Fuente de verdad NO sensible. No agregar seriales, MACs o datos que no sea necesario publicar.
+rack:
+  name: oscar-rack
+  model: GeeekPi RackMate T2
+  width_inches: 10
+  units: 12
+
+compute:
+  - id: pve01
+    model: Dell OptiPlex 7060 Micro
+    role: proxmox-host
+    cpu: Intel Core i7 8th Gen
+    ram_gb: 16
+    storage:
+      - type: m2
+        size_gb: 512
+      - type: sata-ssd
+        size_gb: 1000
+    status: current
+
+raspberry_pi:
+  - model: Raspberry Pi 3
+    quantity: 2
+    status: current
+  - model: Raspberry Pi Zero W
+    quantity: 3
+    status: current
+  - model: Raspberry Pi 5 8GB
+    quantity: 1
+    status: planned
+
+network:
+  router:
+    model: TP-Link Archer AX55
+    status: current
+  switch_current:
+    model: TP-Link TL-SF1008D
+    ports: 8
+    speed: 100Mbps
+    status: replace
+  switch_target:
+    requirements:
+      min_ports: 10
+      speed: 1Gbps
+      managed: true
+      vlan_8021q: true
+      rack_10_inch_fit: true
+    status: decision-pending
+
+power:
+  ups:
+    status: decision-pending
+    note: >-
+      Sin UPS definido todavía. Requerido antes de dar por buena la
+      estrategia de apagado limpio de pve01 y de los paneles UPS del
+      Control Center y de las alertas de "corte eléctrico"/"UPS en
+      batería". Elegir por capacidad (VA) suficiente para Dell + switch +
+      router + patch panel activo, con salida NUT/USB monitoreable desde
+      Proxmox u otro host.
+
+cctv:
+  dvr:
+    vendor: Dahua
+    channels: 4
+    dimensions_mm:
+      width: 197
+      depth: 192
+      height: 41
+    status: current
+
+rack_accessories:
+  - item: GeeekPi 9-inch 1280x720 Touch LCD
+    units: 3U
+  - item: CAT6 12-port patch panel
+    units: 0.5U
+  - item: brush cable management panel
+    quantity: 2
+    units_each: 1U
+  - item: ventilation panel
+    quantity: 2
+    units_each: 2U

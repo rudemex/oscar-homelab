@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Docusaurus build output/cache
+.docusaurus/
+build/
+
+# Local env files (nunca secretos en Git — ver SECURITY.md)
+.env
+.env.local
+
+# Editor/OS
+.DS_Store
+*.swp
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

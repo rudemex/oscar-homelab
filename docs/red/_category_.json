@@ -1,0 +1,10 @@
+{
+  "label": "Red y conectividad",
+  "position": 4,
+  "collapsible": true,
+  "collapsed": true,
+  "link": {
+    "type": "generated-index",
+    "description": "LAN, VLAN, firewall, DNS, acceso remoto y cableado."
+  }
+}
