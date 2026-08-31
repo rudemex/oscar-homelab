@@ -20,6 +20,34 @@ Las VLAN no se agregan para hacer el diagrama más complejo; se agregan cuando p
 | GUEST | LAN | denegado |
 | LAB | producción | denegado por defecto |
 
+```mermaid
+flowchart LR
+  MGMT((MGMT))
+  SERVERS((SERVERS))
+  CLIENTS((CLIENTS))
+  IOT((IOT))
+  CCTV((CCTV))
+  GUEST((GUEST))
+  LAB((LAB))
+  WAN((Internet))
+
+  MGMT -->|admin| SERVERS
+  MGMT -->|admin| CLIENTS
+  MGMT -->|admin| IOT
+  MGMT -->|admin| CCTV
+  CLIENTS -->|solo publicados| SERVERS
+  IOT -.->|denegado| CLIENTS
+  IOT -->|según necesidad| WAN
+  CCTV -->|selectivo| SERVERS
+  CCTV -.->|denegado salvo excepción| WAN
+  GUEST -.->|denegado| SERVERS
+  LAB -.->|denegado por defecto| SERVERS
+
+  linkStyle 5,8,9,10 stroke:#c0392b,stroke-dasharray:4 3
+```
+
+Flechas sólidas = permitido; punteadas rojas = denegado por defecto. El diagrama es una simplificación de la tabla de arriba — la tabla manda si hay diferencia.
+
 ## Cuándo implementarlas
 
 Se requieren tres piezas coherentes:

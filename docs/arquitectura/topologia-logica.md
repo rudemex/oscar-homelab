@@ -22,22 +22,44 @@ flowchart LR
   PVE --> VM3[VM k3s]
 ```
 
-## Etapa inicial sin firewall dedicado
+## Etapa 1 · sin firewall dedicado (estado actual)
 
-Mientras OPNsense no exista, el Archer AX55 puede seguir siendo gateway. La documentación debe permitir una transición ordenada en lugar de forzar una migración prematura.
+Mientras OPNsense no exista, el Archer AX55 sigue siendo gateway y no hay segmentación: todo comparte una sola red plana. La documentación debe permitir una transición ordenada en lugar de forzar una migración prematura.
 
-```text
-Internet -> ONT -> Archer AX55 -> switch -> homelab
+```mermaid
+flowchart LR
+  INTERNET((Internet)) --> ONT[ONT fibra]
+  ONT --> AX55[Archer AX55<br/>gateway + Wi-Fi]
+  AX55 --> SW[Switch no gestionado]
+  SW --> PVE[Dell / futuro Proxmox]
+  SW --> PI[Raspberry Pi]
+  SW --> CLIENTS[Clientes cableados/Wi-Fi]
+
+  classDef flat fill:#3b3,stroke:#333,color:#fff;
+  class AX55,SW flat
 ```
 
-Cuando incorporemos OPNsense:
+Una sola red significa que todo puede hablarle a todo — es el estado real hoy, no un diseño recomendado.
 
-```text
-Internet -> ONT -> OPNsense -> switch -> LAN/VLAN
-                               -> Archer AX55 en rol AP/mesh
+## Etapa 2 · con OPNsense y VLANs (objetivo)
+
+```mermaid
+flowchart LR
+  INTERNET((Internet)) --> ONT[ONT fibra]
+  ONT --> FW[OPNsense]
+  FW -->|trunk 802.1Q| SW[Switch gestionable]
+  SW -->|VLAN 10 MGMT| PVE[Dell / Proxmox]
+  SW -->|VLAN 20 SERVERS| VMS[VMs / servicios]
+  SW -->|VLAN 30 IOT| PI[Raspberry Pi / sensores]
+  SW -->|VLAN 40 CCTV| DVR[DVR Dahua]
+  SW -->|VLAN 50 CLIENTS| CLIENTS[PCs / móviles]
+  AX55[Archer AX55] -.rol AP/mesh.-> SW
+
+  classDef target fill:#26538d,stroke:#333,color:#fff;
+  class FW,SW target
 ```
 
-La viabilidad exacta del modo AP/mesh debe validarse con la configuración final de los AX55.
+La viabilidad exacta del modo AP/mesh de los AX55 (como puntos de acceso puros, sin routing propio) debe validarse con su configuración final — no todos los routers de consumo soportan bien un modo "solo AP" con VLANs tageadas.
 
 ## Separación lógica objetivo
 

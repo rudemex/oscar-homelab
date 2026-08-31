@@ -28,6 +28,54 @@ La tabla resume el rol previsto. **Objetivo** no significa “instalar ya”: ca
 | [Restic](./restic.md) | Objetivo · Backup | clientes/VMs que necesiten backup de archivos | backup de configs |
 | [MinIO](./minio.md) | Laboratorio · Object Storage | VM/storage de laboratorio | aprender API S3 |
 
+## Mapa de dependencias
+
+```mermaid
+flowchart TB
+  subgraph DEVOPS["DevOps → GitOps"]
+    GIT[Git / Forgejo] --> CI[CI Runner]
+    CI --> NEXUS[Nexus]
+    NEXUS --> ARGOCD[Argo CD]
+    ARGOCD --> K3S[k3s]
+  end
+
+  DOCKER[Docker Core]
+
+  subgraph OBS["Observabilidad"]
+    PROM[Prometheus] --> GRAF[Grafana]
+    LOKI[Loki] --> GRAF
+  end
+  KUMA[Uptime Kuma]
+
+  subgraph AUTOM["Automatización / Hogar"]
+    N8N[n8n] --> PGN8N[(Postgres)]
+    MQTT[Mosquitto] --> HA[Home Assistant]
+  end
+
+  subgraph IALOCAL["IA local · laboratorio"]
+    OLLAMA[Ollama] --> WEBUI[Open WebUI]
+  end
+
+  DOCKER --> N8N
+  DOCKER --> KUMA
+  DOCKER --> MQTT
+  DOCKER --> WEBUI
+  DOCKER --> OLLAMA
+
+  PROM -.observa.-> DOCKER
+  PROM -.observa.-> K3S
+  KUMA -.chequea.-> DOCKER
+  KUMA -.chequea.-> N8N
+
+  TUNNEL[Cloudflare Tunnel + Access] --> GRAF
+  TUNNEL --> N8N
+
+  RESTIC[Restic] -.respalda.-> DOCKER
+  RESTIC -.respalda.-> NEXUS
+```
+
+Flechas sólidas = "necesita para funcionar"; punteadas = "observa/respalda sin ser una dependencia dura" (el servicio observado sigue funcionando si Prometheus o Restic están caídos, al revés no). EasyPanel y MinIO quedan fuera del mapa a propósito: son laboratorios independientes, sin integrarse todavía al resto.
+
 ## Criterio de adopción
 
 Antes de sumar un servicio, responder:
