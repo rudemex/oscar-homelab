@@ -10,6 +10,7 @@ sidebar_position: 4
 - [ ] inventario revisado;
 - [ ] backup de datos del Dell;
 - [ ] switch final o transición planificada;
+- [ ] UPS/estabilizador reubicado y conectado al equipo que va a quedar encendido (ver [corte eléctrico](../runbooks/corte-electrico.md));
 - [ ] patch panel etiquetado;
 - [ ] USB Proxmox preparado;
 - [ ] IP/gateway/DNS anotados;

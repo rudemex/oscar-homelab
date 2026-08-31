@@ -31,16 +31,17 @@ flowchart LR
 
 **Gate:** sabemos qué tenemos y qué falta.
 
-## Fase 1 · Rack y red
+## Fase 1 · Rack, red y energía
 
 - montar patch panel;
 - instalar switch gigabit gestionable;
 - etiquetar puertos;
 - medir enlaces;
 - organizar energía/ventilación;
+- **reubicar y conectar el UPS/estabilizador existente** (no hay que comprar nada — es cableado + configurar NUT, ver [corte eléctrico](../runbooks/corte-electrico.md)); tratarlo como parte de esta fase y no como una mejora futura, porque protege todo lo que se construya después;
 - documentar red actual.
 
-**Gate:** todos los enlaces negocian correctamente y el cableado es trazable.
+**Gate:** todos los enlaces negocian correctamente, el cableado es trazable, y un corte de luz simulado dispara un apagado limpio (no solo teórico) del equipo que esté encendido en ese momento.
 
 ## Fase 2 · Proxmox
 
@@ -71,11 +72,12 @@ flowchart LR
 - Grafana;
 - exporters;
 - alertas mínimas;
-- backups automáticos;
+- backups automáticos locales;
+- **destino off-site resuelto** (aunque sea la opción más simple de [estrategia 3-2-1](../backup-dr/estrategia-321.md)) — no avanzar a Fase 5/6 solo con backup local: hoy todo el homelab vive en un único Dell, y sin una copia fuera de esa caja, un backup "exitoso" en el mismo disco no protege contra la falla que más importa;
 - primer restore drill;
 - dashboard pantalla 9".
 
-**Gate:** una falla controlada genera señal y se puede recuperar desde backup.
+**Gate:** una falla controlada genera señal, se puede recuperar desde backup, y esa recuperación se probó desde la copia off-site al menos una vez (no solo desde la copia local).
 
 ## Fase 5 · DevOps
 
