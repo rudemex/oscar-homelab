@@ -96,17 +96,7 @@ const config: Config = {
           position: 'left',
           label: 'Documentación',
         },
-        {
-          type: 'dropdown',
-          label: 'Operar',
-          position: 'left',
-          items: [
-            {to: '/docs/roadmap/roadmap-general', label: 'Roadmap'},
-            {to: '/docs/runbooks/indice-runbooks', label: 'Runbooks'},
-            {to: '/docs/laboratorios/indice', label: 'Labs'},
-            {to: '/bitacora', label: 'Bitácora'},
-          ],
-        },
+        {to: '/bitacora', label: 'Bitácora', position: 'left'},
         {
           href: 'https://github.com/rudemex/oscar-homelab',
           label: 'GitHub',
@@ -118,26 +108,18 @@ const config: Config = {
       style: 'dark',
       links: [
         {
-          title: 'Construcción',
+          title: 'Empezar',
           items: [
             {label: 'Guía rápida', to: '/docs/guia-rapida'},
             {label: 'Introducción', to: '/docs/intro'},
-            {label: 'Estado actual', to: '/docs/arquitectura/estado-actual'},
+            {label: 'Herramientas básicas', to: '/docs/primeros-pasos/herramientas-basicas'},
             {label: 'Arquitectura', to: '/docs/arquitectura/vision-general'},
-            {label: 'Roadmap', to: '/docs/roadmap/roadmap-general'},
-          ],
-        },
-        {
-          title: 'Operación',
-          items: [
-            {label: 'Servicios', to: '/docs/servicios/catalogo'},
-            {label: 'Runbooks', to: '/docs/runbooks/indice-runbooks'},
-            {label: 'Troubleshooting', to: '/docs/troubleshooting/metodologia'},
           ],
         },
         {
           title: 'Proyecto',
           items: [
+            {label: 'Documentación completa', to: '/docs/intro'},
             {label: 'Bitácora', to: '/bitacora'},
             {label: 'Repositorio', href: 'https://github.com/rudemex/oscar-homelab'},
           ],

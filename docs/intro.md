@@ -11,8 +11,10 @@ slug: /intro
 O.S.C.A.R. es un laboratorio doméstico pensado como una **plataforma de infraestructura**, no solamente como una computadora que ejecuta contenedores. El objetivo es disponer de un entorno propio para aprender, experimentar, automatizar y operar servicios reales usando tecnologías de virtualización, networking, contenedores, Kubernetes, GitOps, observabilidad, seguridad e inteligencia artificial.
 
 :::tip ¿Querés arrancar ya?
-La [guía rápida](./guia-rapida.md) te lleva de cero a un servidor con Proxmox, Docker y un primer servicio andando, en un solo recorrido, sin importar tu experiencia previa ni el hardware específico que tengas. El resto de este sitio es la versión profunda — arquitectura, seguridad, backups, Kubernetes — para cuando quieras ir más allá.
+La [guía rápida](./guia-rapida.md) te lleva de cero a un servidor con Proxmox, Docker y un primer servicio andando, en un solo recorrido, sin importar tu experiencia previa ni el hardware específico que tengas.
 :::
+
+El menú lateral está organizado a propósito en dos niveles: arriba, lo esencial para arrancar (esta introducción, herramientas básicas, guía rápida y [Arquitectura](./arquitectura/vision-general.md) con los diagramas, el stack elegido y los requisitos mínimos). Todo lo demás — instalación por servicio, ADRs, runbooks, labs, seguridad, backups — vive colapsado bajo **Avanzado**, sin haberse borrado: se documenta y se abre a medida que cada pieza se construye de verdad, en vez de exponer 20 secciones desde el primer día.
 
 Esta documentación está escrita para que el entorno pueda construirse desde cero y para que, meses después, siga siendo posible responder preguntas como:
 
