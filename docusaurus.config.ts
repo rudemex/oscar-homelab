@@ -89,16 +89,24 @@ const config: Config = {
         src: 'img/oscar-mark.svg',
       },
       items: [
+        {to: '/docs/guia-rapida', label: 'Guía rápida', position: 'left'},
         {
           type: 'docSidebar',
           sidebarId: 'tutorialSidebar',
           position: 'left',
           label: 'Documentación',
         },
-        {to: '/docs/roadmap/roadmap-general', label: 'Roadmap', position: 'left'},
-        {to: '/docs/runbooks/indice-runbooks', label: 'Runbooks', position: 'left'},
-        {to: '/docs/laboratorios/indice', label: 'Labs', position: 'left'},
-        {to: '/bitacora', label: 'Bitácora', position: 'left'},
+        {
+          type: 'dropdown',
+          label: 'Operar',
+          position: 'left',
+          items: [
+            {to: '/docs/roadmap/roadmap-general', label: 'Roadmap'},
+            {to: '/docs/runbooks/indice-runbooks', label: 'Runbooks'},
+            {to: '/docs/laboratorios/indice', label: 'Labs'},
+            {to: '/bitacora', label: 'Bitácora'},
+          ],
+        },
         {
           href: 'https://github.com/rudemex/oscar-homelab',
           label: 'GitHub',
