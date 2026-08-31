@@ -25,6 +25,8 @@ La tabla ayuda a diagnosticar; no significa que deban abrirse entre todas las re
 | MinIO | 9000 API / 9001 consola | interno (laboratorio) |
 | Home Assistant | 8123 | interno/proxy |
 | MQTT | 1883/8883 | IoT/HA selectivo |
+| [Minecraft](../juegos/minecraft.md) | 25565 TCP (juego) / 25575 TCP (RCON) | juego según [exposición elegida](../juegos/vision-general.md#exposición-a-internet); RCON nunca publicado |
+| [Counter-Strike 2](../juegos/counter-strike.md) | 27015 TCP+UDP | juego según [exposición elegida](../juegos/vision-general.md#exposición-a-internet) |
 
 Confirmar siempre la configuración real del servicio.
 

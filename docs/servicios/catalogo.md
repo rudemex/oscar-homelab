@@ -89,3 +89,5 @@ Antes de sumar un servicio, responder:
 7. ¿podemos destruirlo y reconstruirlo desde Git?
 
 El objetivo no es maximizar la cantidad de logos del dashboard; es maximizar lo que aprendemos y lo fácil que resulta operar el conjunto.
+
+Minecraft y Counter-Strike 2 no están en esta tabla a propósito: no son servicios de infraestructura, viven en su propia sección — ver [servidores de juegos](../juegos/vision-general.md).
