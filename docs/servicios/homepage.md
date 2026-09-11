@@ -216,20 +216,20 @@ Los nombres de clase (`.service`, `.service-name`, `.service-description`, `.ser
 
 ## CPU/RAM/disco y buscador: reconstruidos, no reubicados
 
-Layout final pedido, en 4 filas apiladas:
+Layout final pedido, en 3 filas apiladas:
 
 ```
-                     O.S.C.A.R.
-                     subtítulo
+[ clima ]      O.S.C.A.R.      [ hora/fecha ]
+              subtítulo
 ─────────────────────────────────────────────
-[ clima ]      [ CPU · RAM · disco ]      [ hora/fecha ]
+        [ CPU  ·  RAM  ·  Disco ]
 ─────────────────────────────────────────────
-                     buscador
+                buscador
 ```
 
-El orden original tenía la fila de clima/recursos/hora **arriba** del título; se invirtió para que el título quede primero, con la fila de datos separada por una línea divisoria arriba y otra abajo — el mismo `<div class="oscar-row-top">`, pero movido de lugar en el HTML de `buildOscarHeader()` y con `border-top` sumado a su `border-bottom` (que antes solo separaba esa fila del título de abajo, ahora separa por los dos lados).
+Pasó por dos versiones intermedias antes de esta: primero clima/CPU-RAM-disco/hora los 3 en una fila con el título arriba de todo; después el título arriba y esa fila (con recursos en el centro) abajo, entre dos líneas. Ninguna de las dos convenció — la versión final saca los recursos de esa fila de 3 columnas y pone el título+subtítulo en el lugar que dejaron libres, en el centro, entre clima y hora. Los recursos pasan a ser su propia fila, debajo de una única línea divisoria.
 
-El bloque título+subtítulo quedó con más aire alrededor: el `padding-top` de `#oscar-header` subió de 1.1rem a 2rem (más espacio arriba del título), y el `margin-top` de `.oscar-row-top` de 0.5rem a 1.3rem (más espacio debajo del subtítulo, antes de la primera línea divisoria).
+En el HTML de `buildOscarHeader()` esto es: `.oscar-col-center` (adentro de `.oscar-row-top`) pasó de contener `#oscarResourcesSlot` a contener el `<span class="oscar-title">` y el `<span class="oscar-subtitle">`; y `#oscarResourcesSlot` se independizó en su propia fila (`<div class="oscar-row-resources" id="oscarResourcesSlot">`), fuera del grid de 3 columnas. `.oscar-row-top` solo necesita `border-bottom` ahora — ya no está encerrada entre dos bloques, es la primera fila del header.
 
 El clima y la hora/fecha arrancaron al revés (hora a la izquierda, clima a la derecha) y se intercambiaron de lado después — no hay una razón funcional para uno u otro orden, fue puramente estético. El intercambio es un cambio de una línea en `buildOscarHeader()`: qué `<span>`s van adentro de `.oscar-col-left` vs `.oscar-col-right`, sin tocar CSS (esas clases solo fijan el borde de alineación de la columna, no el contenido).
 
