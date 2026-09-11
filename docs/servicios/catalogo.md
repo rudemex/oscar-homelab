@@ -24,7 +24,7 @@ La tabla resume el rol previsto. **Objetivo** no significa “instalar ya”: ca
 | [Homepage](./homepage.md) | **Actual** · Dashboard | Docker Core | landing con links/estado de todos los servicios |
 | [Beszel](./beszel.md) | **Actual** · Observabilidad | Docker Core | monitoreo liviano de CPU/RAM/disco, alternativa a Prometheus+Grafana |
 | [Home Assistant](./home-assistant.md) | Objetivo · Hogar | Raspberry Pi 5 futura o VM dedicada | automatización doméstica |
-| [Cloudflare Tunnel + Access](./cloudflare-tunnel.md) | Objetivo · Acceso remoto | VM Core o nodo dedicado de conectividad | publicar una demo web |
+| [Cloudflare Tunnel + Access](./cloudflare-tunnel.md) | **Actual, parcial** · Acceso remoto | Docker Core | publicar Vaultwarden/n8n/Kuma/Homepage/Beszel sin abrir puertos |
 | [Eclipse Mosquitto MQTT](./mosquitto.md) | Laboratorio / Hogar | Raspberry Pi o VM Core | sensores Pi Zero |
 | [Ollama](./ollama.md) | Laboratorio · IA local | Dell/VM solo para modelos compatibles con recursos; hardware futuro para cargas mayores | probar LLM local |
 | [Open WebUI](./open-webui.md) | Laboratorio · IA | Docker Core conectado a proveedor/modelo permitido | UI para Ollama |

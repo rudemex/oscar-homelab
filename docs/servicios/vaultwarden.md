@@ -8,7 +8,7 @@ sidebar_position: 20
 **Estado:** Actual · Seguridad — corriendo en `core01`
 **Dónde corre:** Docker Core (`/srv/oscar/apps/vaultwarden/`)
 **Sizing inicial:** ~100 MB RAM, prácticamente sin CPU
-**Red/puertos:** `8087` HTTP interno — sin dominio/TLS todavía, solo LAN
+**Red/puertos:** publicado solo en `127.0.0.1:8082` (loopback, no LAN) — el acceso real es vía [Cloudflare Tunnel](./cloudflare-tunnel.md) en `vault.oscarlab.com.ar`, que también resuelve el TLS
 **Persistencia:** base de datos SQLite + adjuntos, en `./data`
 
 ## Rol dentro de O.S.C.A.R.
@@ -27,7 +27,7 @@ mkdir -p /srv/oscar/apps/vaultwarden/data
 
 ```dotenv
 VAULTWARDEN_VERSION=1.37.2
-DOMAIN=http://localhost:8087
+DOMAIN=https://vault.oscarlab.com.ar
 SIGNUPS_ALLOWED=true
 ADMIN_TOKEN=CHANGE_ME_OPENSSL_RAND_BASE64_48
 ```
@@ -47,8 +47,10 @@ services:
     volumes:
       - ./data:/data
     ports:
-      - "8087:80"
+      - "127.0.0.1:8082:80"
 ```
+
+Sin reverse proxy propio (Caddy) ni certificado self-signed: el binding a `127.0.0.1` deja el puerto fuera de la LAN, y [Cloudflare Tunnel](./cloudflare-tunnel.md) —que corre con `network_mode: host` en el mismo `core01`— es el único que lo alcanza, terminando TLS con un certificado real de Cloudflare. Es un caso concreto de por qué [no exponer directo](../seguridad/exposicion-internet.md): antes de esto hubo un intento con Caddy + `tls internal` que nunca terminó de andar bien en el navegador; el dominio real resuelve ese problema de raíz en vez de parchearlo.
 
 ```bash
 docker compose up -d
@@ -56,7 +58,7 @@ docker compose up -d
 
 ## Primer acceso
 
-1. Entrar a `http://<IP-de-core01>:8087`, crear la primera cuenta real (email + master password — la master password nunca se comparte, ni siquiera con quien administra el servidor).
+1. Entrar a `https://vault.oscarlab.com.ar` (una vez que el hostname tenga su registro DNS — ver [Cloudflare Tunnel](./cloudflare-tunnel.md)), crear la primera cuenta real (email + master password — la master password nunca se comparte, ni siquiera con quien administra el servidor).
 2. **Apenas exista esa cuenta, poner `SIGNUPS_ALLOWED=false`** en `.env` y `docker compose up -d` de nuevo — sin esto, cualquiera con la URL puede crearse una cuenta.
 3. Instalar la extensión/app oficial de Bitwarden en cada dispositivo, y en "Self-hosted environment" apuntar a la URL de arriba en vez de bitwarden.com.
 
@@ -64,7 +66,7 @@ docker compose up -d
 
 - **`SIGNUPS_ALLOWED=false` después del primer usuario** es el punto más importante — ver arriba.
 - `ADMIN_TOKEN` da acceso al panel `/admin` (gestión de usuarios, configuración global) — tratarlo como cualquier otro secreto crítico, nunca en Git.
-- Hoy corre sin TLS propio, solo accesible en LAN — no exponer este puerto a Internet tal cual. Antes de cualquier acceso remoto real, esto necesita HTTPS (Cloudflare Tunnel u otro reverse proxy con certificado), porque WebAuthn/passkeys y algunas integraciones de Bitwarden requieren HTTPS o `localhost` estricto.
+- El puerto solo escucha en `127.0.0.1`, así que ni siquiera está en la LAN — la única vía de entrada es el Tunnel. Aun así, [Cloudflare Access](./cloudflare-tunnel.md) delante del hostname es obligatorio antes de crear el registro DNS público: un Tunnel sin Access sigue siendo un servicio público apenas alguien conoce/adivina el subdominio — ver [exposición a Internet](../seguridad/exposicion-internet.md).
 - La master password del usuario **nunca** se puede recuperar si se pierde — a diferencia de una cuenta normal, no hay "olvidé mi contraseña" real: perderla significa perder acceso a todo lo guardado. Vale la pena escribirla en un lugar físico seguro (no digital) como respaldo de último recurso.
 
 ## Backup y restore
@@ -80,12 +82,13 @@ Restore: detener el contenedor, reemplazar `./data` por el contenido del backup,
 
 ## Observabilidad
 
-- disponibilidad HTTP del puerto 8087;
+- disponibilidad HTTP de `vault.oscarlab.com.ar` (vía Uptime Kuma) y del túnel mismo;
 - tamaño de `./data` (crece lento, solo con adjuntos grandes);
 - logs del contenedor por intentos de login fallidos repetidos (fuerza bruta).
 
 ## Troubleshooting
 
 - **No se puede crear la primera cuenta** → `SIGNUPS_ALLOWED` no está en `true`, o el contenedor no arrancó → revisar `.env` y `docker compose logs vaultwarden`.
-- **El cliente Bitwarden dice "servidor no compatible" o falla el login** → URL del `DOMAIN` mal configurada, o falta HTTPS para alguna función específica (passkeys) → confirmar que `DOMAIN` en `.env` coincide con la URL real usada desde el cliente.
+- **El cliente Bitwarden dice "servidor no compatible" o falla el login** → URL del `DOMAIN` mal configurada → confirmar que `DOMAIN` en `.env` coincide exactamente con `https://vault.oscarlab.com.ar`.
+- **`vault.oscarlab.com.ar` no resuelve o da error de Cloudflare** → revisar el estado del túnel y del registro DNS en [Cloudflare Tunnel](./cloudflare-tunnel.md#troubleshooting).
 - **Olvidaste la master password** → no hay recuperación real sin haberla anotado en otro lado; es una limitación de diseño (cifrado end-to-end), no un bug.

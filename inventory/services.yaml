@@ -32,6 +32,11 @@ services:
     status: current
     criticality: C3
     target: core01
+  - id: cloudflare-tunnel
+    status: current-partial
+    criticality: C2
+    target: core01
+    note: "túnel e ingress listos, sin Access ni registros DNS públicos todavía"
   - id: prometheus
     status: planned
     criticality: C2

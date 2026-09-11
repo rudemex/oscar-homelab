@@ -10,7 +10,7 @@ Esta página es la única fuente de "qué existe de verdad hoy". El resto del si
 Se actualiza en cada cambio de fase real (ver [roadmap](../roadmap/roadmap-general.md)), no en cada edición de documentación.
 
 :::caution
-Proxmox ya está instalado, `core01` existe con Docker corriendo, y hay ocho servicios reales arriba (abajo). Todo lo demás del sitio que dice "Objetivo" sigue sin existir — esta página es la línea exacta entre lo uno y lo otro.
+Proxmox ya está instalado, `core01` existe con Docker corriendo, y hay nueve servicios reales arriba (abajo) — aunque el Tunnel todavía no publica nada al público. Todo lo demás del sitio que dice "Objetivo" sigue sin existir — esta página es la línea exacta entre lo uno y lo otro.
 :::
 
 ## Hardware — existe físicamente
@@ -36,13 +36,14 @@ Proxmox ya está instalado, `core01` existe con Docker corriendo, y hay ocho ser
 | `core01` — Ubuntu 24.04 LTS + Docker 29 | VM (vmid 102) | Actual | 2 vCPU / 4 GB / 60 GB disco, creada desde cloud image vía Cloud-Init (SSH por clave, sin password). IP por DHCP, sin fijar todavía. Ver [crear VM core01](../proxmox/crear-vm-core01.md). |
 | Uptime Kuma | Docker en `core01` | Actual | primer servicio real del stack Docker — `/srv/oscar/apps/uptime-kuma/`. Ver [Uptime Kuma](../servicios/uptime-kuma.md). |
 | n8n + PostgreSQL 17 | Docker en `core01` | Actual | `/srv/oscar/apps/n8n/`, secretos (`POSTGRES_PASSWORD`, `N8N_ENCRYPTION_KEY`) generados únicos con `openssl rand`, no reutilizados. La encryption key ya se extrajo y se entregó fuera del chat — pendiente de confirmar que quedó guardada en un gestor de contraseñas. Ver [n8n](../servicios/n8n.md). |
-| Vaultwarden 1.37.2 | Docker en `core01` | Actual | `/srv/oscar/apps/vaultwarden/`, puerto 8087, solo LAN. Ver [Vaultwarden](../servicios/vaultwarden.md). |
+| Vaultwarden 1.37.2 | Docker en `core01` | Actual | `/srv/oscar/apps/vaultwarden/`, puerto publicado solo en `127.0.0.1:8082` (ya no en LAN). Ver [Vaultwarden](../servicios/vaultwarden.md). |
 | Homepage v2.3.0 | Docker en `core01` | Actual | `/srv/oscar/apps/homepage/`, puerto 3005, dashboard con links a todos los servicios reales. Ver [Homepage](../servicios/homepage.md). |
 | Beszel 0.19.0 | Docker en `core01` | Actual | hub (puerto 8090) y agente (puerto 45876) conectados, reportando CPU/RAM/disco en tiempo real. Ver [Beszel](../servicios/beszel.md). |
+| Cloudflare Tunnel | Docker en `core01` | Actual, **parcial** | túnel `core01` conectado, ingress mapeado para los 5 servicios de arriba — sin registros DNS públicos ni Cloudflare Access todavía, así que nada es alcanzable desde Internet por ahora. Ver [Cloudflare Tunnel](../servicios/cloudflare-tunnel.md). |
 
-## Dominio — reservado, todavía sin usar
+## Dominio — activo, esperando Access
 
-`oscarlab.ar` y `oscarlab.com.ar` ya están registrados (NIC Argentina, pagos — $25.500 y $8.500 ARS respectivamente, no gratuitos). Ninguno de los dos está apuntado a nada todavía — es un recurso disponible para cuando se implemente [Cloudflare Tunnel + Access](../servicios/cloudflare-tunnel.md) y Let's Encrypt vía DNS-01, no un servicio en uso hoy.
+`oscarlab.ar` y `oscarlab.com.ar` están registrados (NIC Argentina, pagos — $25.500 y $8.500 ARS respectivamente) y delegados a Cloudflare (`oscarlab.com.ar` ya en estado `active`). El túnel ya usa `oscarlab.com.ar` como dominio primario, pero ningún hostname es público todavía: falta habilitar Cloudflare Access y crear los registros DNS — ver [Cloudflare Tunnel](../servicios/cloudflare-tunnel.md) para el detalle de qué falta.
 
 ## Backups — parcialmente resuelto
 
