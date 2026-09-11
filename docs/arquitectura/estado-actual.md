@@ -40,6 +40,10 @@ Proxmox ya está instalado, `core01` existe con Docker corriendo, y hay ocho ser
 | Homepage v2.3.0 | Docker en `core01` | Actual | `/srv/oscar/apps/homepage/`, puerto 3005, dashboard con links a todos los servicios reales. Ver [Homepage](../servicios/homepage.md). |
 | Beszel 0.19.0 | Docker en `core01` | Actual | hub (puerto 8090) y agente (puerto 45876) conectados, reportando CPU/RAM/disco en tiempo real. Ver [Beszel](../servicios/beszel.md). |
 
+## Dominio — reservado, todavía sin usar
+
+`oscarlab.ar` y `oscarlab.com.ar` ya están registrados (NIC Argentina). Ninguno de los dos está apuntado a nada todavía — es un recurso disponible para cuando se implemente [Cloudflare Tunnel + Access](../servicios/cloudflare-tunnel.md) y Let's Encrypt vía DNS-01, no un servicio en uso hoy.
+
 ## Backups — parcialmente resuelto
 
 Ya existe un job `vzdump` automático (lunes a viernes 00:00, `all:1` así que cualquier VM/LXC nueva se suma sola, modo snapshot, comprimido zstd, hacia el storage `Backups`, retención 5 últimos + 1 mensual + 6 anuales) — y ya generó backups reales de la VM 101 y el LXC 100 con status `OK`.
