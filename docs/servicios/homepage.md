@@ -219,11 +219,15 @@ Los nombres de clase (`.service`, `.service-name`, `.service-description`, `.ser
 Layout final pedido, en 4 filas apiladas:
 
 ```
-[ clima ]      [ CPU · RAM · disco ]      [ hora/fecha ]
                      O.S.C.A.R.
                      subtítulo
+─────────────────────────────────────────────
+[ clima ]      [ CPU · RAM · disco ]      [ hora/fecha ]
+─────────────────────────────────────────────
                      buscador
 ```
+
+El orden original tenía la fila de clima/recursos/hora **arriba** del título; se invirtió para que el título quede primero, con la fila de datos separada por una línea divisoria arriba y otra abajo — el mismo `<div class="oscar-row-top">`, pero movido de lugar en el HTML de `buildOscarHeader()` y con `border-top` sumado a su `border-bottom` (que antes solo separaba esa fila del título de abajo, ahora separa por los dos lados).
 
 El clima y la hora/fecha arrancaron al revés (hora a la izquierda, clima a la derecha) y se intercambiaron de lado después — no hay una razón funcional para uno u otro orden, fue puramente estético. El intercambio es un cambio de una línea en `buildOscarHeader()`: qué `<span>`s van adentro de `.oscar-col-left` vs `.oscar-col-right`, sin tocar CSS (esas clases solo fijan el borde de alineación de la columna, no el contenido).
 
