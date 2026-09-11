@@ -313,7 +313,7 @@ El widget `glances` **sigue existiendo** en `widgets.yaml` — hace falta que es
 
 `display: none` no mueve ni desconecta el nodo del árbol de React — sigue exactamente donde Homepage lo puso, actualizándose cada 1.5s sin que nadie le preste atención. Es la diferencia clave con el intento anterior: ocultar es seguro, reubicar no.
 
-El buscador es más simple todavía — un `<input>` propio que en `Enter` abre `https://www.google.com/search?q=...` en una pestaña nueva. No hay necesidad de reusar el widget nativo de búsqueda para algo tan básico.
+El buscador es más simple todavía — un `<input>` propio que en `Enter` abre `https://www.google.com/search?q=...` en una pestaña nueva. No hay necesidad de reusar el widget nativo de búsqueda para algo tan básico. Va alineado a la izquierda (`justify-content: flex-start` en `.oscar-row-search`), en espejo con la fila de CPU/RAM/disco que está a la derecha — las dos filas de abajo quedan una a cada lado, en vez de las dos centradas.
 
 **Regla que queda de esto para cualquier próxima idea de "reposicionar un widget nativo de Homepage con JS":** no. Si hace falta en otro lugar del layout, se reconstruye desde cero (fetch a la ruta interna si hay datos reales de por medio, como acá) y se oculta el original con `display: none`, nunca se lo mueve por el DOM.
 
