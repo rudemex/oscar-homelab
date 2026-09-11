@@ -226,19 +226,49 @@ Homepage carga `config/custom.css` automáticamente (se sirve en `/api/config/cu
 Los nombres de clase (`.service`, `.service-name`, `.service-description`, `.service-group-name`, `.widget-container`) salen del código fuente de Homepage (`src/components/services/item.jsx` y `group.jsx`), no de la documentación pública — no están listados en `docs/configs/custom-css-js.md`, hubo que revisar el repo directo.
 
 
-## Barra de estado: CPU/RAM/disco + buscador
+## CPU/RAM/disco y buscador: reubicados dentro del header
 
-`resources` (CPU/RAM/disco) y `search` son los únicos dos widgets nativos de Homepage que quedaron (`datetime`/`openmeteo` se reemplazaron por el header custom de abajo). Viven en una barra angosta entre el header y las tarjetas — recursos a la izquierda, buscador a la derecha, mismo tratamiento visual sin caja que la fecha/el clima:
+Layout final pedido, en 4 filas apiladas:
+
+```
+[ hora/fecha ]      [ CPU · RAM · disco ]      [ clima ]
+                          O.S.C.A.R.
+                          subtítulo
+                          buscador
+```
+
+`resources` (CPU/RAM/disco) y `search` siguen siendo los widgets **nativos** de Homepage (traen datos reales del propio backend) — lo que cambia es su posición: `custom.js` los saca de la fila donde Homepage los renderiza por defecto y los mueve, con `appendChild`, a dos contenedores (`#oscarResourcesSlot`, `#oscarSearchSlot`) dentro del header custom:
+
+```js
+function relocateNativeWidgets() {
+  var resourcesSlot = document.getElementById("oscarResourcesSlot");
+  var searchSlot = document.getElementById("oscarSearchSlot");
+  if (!resourcesSlot || !searchSlot) return;
+
+  document.querySelectorAll(".information-widget-resource").forEach(function (el) {
+    if (el.parentNode !== resourcesSlot) resourcesSlot.appendChild(el);
+  });
+
+  var searchEl = document.querySelector(".widget-container:has(input)");
+  if (searchEl && searchEl.parentNode !== searchSlot) {
+    searchSlot.appendChild(searchEl);
+  }
+}
+```
+
+Es **mover el nodo real**, no clonarlo ni reconstruirlo — `appendChild` sobre un nodo existente lo saca de donde estaba y lo pone en el nuevo lugar, sin recrearlo. Esto importa porque Homepage sigue actualizando esos widgets con React por su cuenta (nuevo % de CPU cada tanto, etc.): React actualiza por la referencia al nodo real que ya tiene guardada internamente, no por dónde vive ese nodo en el documento en un momento dado, así que reposicionarlo no le impide seguir refrescando los datos. El riesgo real (bajo pero no cero) es que Homepage renderizara nueva UI hermana esperando encontrar el nodo en su ubicación original — se ejecuta `relocateNativeWidgets()` en el mismo `setInterval` de 2s que reconstruye el resto del header, así que si Homepage llegara a devolverlo a su sitio, se vuelve a mover solo.
+
+La fila original de Homepage (donde vivían antes de moverlos) queda vacía y sin CSS propio — sin hijos no ocupa espacio, no hace falta ocultarla a mano.
+
+Estilo, sin caja/fondo, igual que fecha y clima:
 
 ```css
-div:has(> .widget-container) {
-  justify-content: space-between !important;
+#oscarResourcesSlot {
+  display: flex;
   align-items: center;
-  padding: 0.55rem 1.5rem;
-  border-top: 1px solid rgba(248, 250, 252, 0.12);
-  border-bottom: 1px solid rgba(248, 250, 252, 0.12);
+  gap: 1rem;
+  justify-content: center;
 }
-
 .widget-container {
   background: transparent;
   border: none;
@@ -246,21 +276,14 @@ div:has(> .widget-container) {
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
   font-size: 0.78rem;
 }
-
-/* el buscador es el único de los dos que es interactivo — necesita alguna
-   pista visual de que se puede escribir ahí, aunque sea mínima */
+/* el buscador es el único widget interactivo acá — necesita alguna pista
+   visual de que se puede escribir, aunque sea mínima */
 .widget-container:has(input) {
   border-bottom: 1px solid rgba(248, 250, 252, 0.35);
 }
-.widget-container:has(input) input {
-  background: transparent;
-  color: #f8fafc;
-}
 ```
 
-Por qué quedan en el mismo orden sin tocar nada más: en `widgets.yaml`, `resources` está listado antes que `search` — el flexbox nativo de Homepage ya los renderiza en ese orden (izquierda a derecha), así que `justify-content: space-between` alcanza para separarlos a los extremos sin necesitar `order` explícito.
-
-`:has()` (soportado en todos los navegadores modernos desde 2023) llega al contenedor padre real de estos widgets sin depender de una clase propia de Homepage ahí — trae utilitarias de Tailwind (`flex`, `justify-between`), no una clase semántica estable. El mismo selector distingue el buscador del resto: `.widget-container:has(input)` apunta puntual al que tiene un `<input>` adentro, sin necesitar el nombre real de la clase que Homepage le da al widget de búsqueda (es una clase Tailwind generada dinámicamente, no una constante fija en el código fuente).
+`:has()` (soportado en todos los navegadores modernos desde 2023) distingue el buscador del resto sin necesitar el nombre real de su clase — que es una clase Tailwind generada dinámicamente, no una constante fija en el código fuente de Homepage.
 
 ## Header de 3 columnas: hora/fecha · O.S.C.A.R. · clima (custom.js)
 
