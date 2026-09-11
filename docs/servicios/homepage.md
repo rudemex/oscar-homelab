@@ -228,15 +228,9 @@ Los nombres de clase (`.service`, `.service-name`, `.service-description`, `.ser
 
 ## Reorganizar la barra de widgets superior
 
-Por defecto Homepage pone **todos** los widgets de info (`resources`, `datetime`, `openmeteo`, `search`) en una sola fila estirada de punta a punta — con los 4 juntos se veía amontonado y sin jerarquía. Se separó en dos filas con puro CSS, sin tocar `widgets.yaml` ni mover ningún nodo del DOM (evita pelear con los re-renders de React, que si movés el elemento real vía JS te lo puede volver a poner en su lugar original):
+Primer intento: separar los 4 widgets nativos de info (`resources`, `datetime`, `openmeteo`, `search`) en dos filas con puro CSS. Funcionó, pero tenía un techo real — los widgets nativos de Homepage traen su propia caja/fondo (`.widget-container`) y muy poco margen para estilar cada uno suelto. Se abandonó ese camino a favor de construir el reloj y el clima **desde cero** en `custom.js` (ver la sección del header más abajo) — sigue quedando `resources` en fila propia:
 
 ```css
-/* fecha/hora + clima + buscador: centrados y agrupados */
-div:has(> .information-widget-datetime) {
-  justify-content: center !important;
-  gap: 0.6rem;
-}
-
 /* CPU/RAM/disco: fila propia, con un divisor sutil arriba */
 .information-widget-resource {
   order: 10;
@@ -248,47 +242,71 @@ div:has(> .information-widget-datetime) {
   padding-top: 0.6rem;
   border-top: 1px solid rgba(56, 189, 248, 0.15);
 }
+
+/* buscador (único widget nativo que queda en la fila superior): centrado */
+div:has(> .widget-container) {
+  justify-content: center !important;
+  gap: 0.6rem;
+}
 ```
 
-El truco es `flex-basis: 100%` en el *primer* elemento `.information-widget-resource` (CPU, RAM y disco son tres instancias del mismo widget, una por métrica) — fuerza que ese y los siguientes salten a una fila nueva dentro del mismo contenedor flex-wrap, sin necesitar un contenedor HTML distinto. `:has()` (soportado en todos los navegadores modernos desde 2023) selecciona el contenedor padre real de `datetime` sin depender de una clase propia de Homepage para ese wrapper — las clases que trae son utilitarias de Tailwind (`flex`, `justify-between`, etc.), no hay una clase semántica estable para engancharse ahí directamente.
+El truco de `flex-basis: 100%` en el *primer* `.information-widget-resource` (CPU/RAM/disco son tres instancias del mismo widget) fuerza que ese y los siguientes salten a una fila nueva dentro del mismo contenedor flex-wrap, sin contenedor HTML distinto. `:has()` (soportado en todos los navegadores modernos desde 2023) llega al contenedor padre real sin depender de una clase propia de Homepage ahí — trae utilitarias de Tailwind (`flex`, `justify-between`), no una clase semántica estable.
 
-## Header con el nombre del proyecto (custom.js)
+## Header de 3 columnas: hora/fecha · O.S.C.A.R. · clima (custom.js)
 
-Homepage no tiene ningún lugar nativo para mostrar el nombre del proyecto en grande — el `title` de `settings.yaml` solo va al `<title>` del navegador y al manifest PWA, y el único widget relacionado ("logo") es un ícono de 48×48px, sin texto. Para el título grande tipo "O.S.C.A.R." del mockup original hizo falta `custom.js`:
+Homepage no tiene ningún lugar nativo para mostrar el nombre del proyecto en grande — el `title` de `settings.yaml` solo va al `<title>` del navegador y al manifest PWA, y el único widget relacionado ("logo") es un ícono de 48×48px, sin texto. La primera versión fue solo el título centrado con `datetime`/`openmeteo` como widgets nativos de Homepage abajo — pero esos widgets traen su propia caja/fondo (`.widget-container`) sin margen real para estilar cada uno suelto. Se reemplazó por un reloj y un clima **construidos desde cero** en `custom.js`, en 3 columnas: hora/fecha a la izquierda, "O.S.C.A.R." al centro, clima a la derecha — texto blanco sin caja, solo con sombra para que resalte contra la foto de fondo:
 
 ```js
 // custom.js
-function addOscarHeader() {
-  var existing = document.getElementById("oscar-header");
-  if (existing) {
-    syncSubtitleWidth();   // el ancho de .oscar-title cambia con el viewport (mobile/desktop)
-    return;
-  }
+var WEATHER_LAT = -34.6037, WEATHER_LON = -58.3816;
+var WEATHER_LABEL = "Buenos Aires";
+var WEATHER_TZ = "America/Argentina/Buenos_Aires";
+var WEATHER_ICONS = { 0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 61: "🌧️", 95: "⛈️" /* ...resto de códigos WMO */ };
+
+function buildOscarHeader() {
+  if (document.getElementById("oscar-header")) { syncSubtitleWidth(); return; }
   var header = document.createElement("div");
   header.id = "oscar-header";
   header.innerHTML =
-    '<span class="oscar-title">O.S.C.A.R.</span>' +
-    '<span class="oscar-subtitle">Operations, Services, Compute, Automation &amp; Routing</span>';
+    '<div class="oscar-col oscar-col-left">' +
+      '<span class="oscar-time" id="oscarTime">--:--</span>' +
+      '<span class="oscar-date" id="oscarDate">—</span></div>' +
+    '<div class="oscar-col oscar-col-center">' +
+      '<span class="oscar-title">O.S.C.A.R.</span>' +
+      '<span class="oscar-subtitle">Operations, Services, Compute, Automation &amp; Routing</span></div>' +
+    '<div class="oscar-col oscar-col-right">' +
+      '<span class="oscar-weather-temp" id="oscarWeatherTemp">—</span>' +
+      '<span class="oscar-weather-label">' + WEATHER_LABEL + '</span></div>';
   document.body.insertBefore(header, document.body.firstChild);
   syncSubtitleWidth();
 }
 
-function syncSubtitleWidth() {
-  var title = document.querySelector("#oscar-header .oscar-title");
-  var subtitle = document.querySelector("#oscar-header .oscar-subtitle");
-  if (!title || !subtitle) return;
-  var width = title.getBoundingClientRect().width;
-  if (width > 0) subtitle.style.width = width + "px";
+function updateClock() {
+  var now = new Date();
+  document.getElementById("oscarTime").textContent =
+    new Intl.DateTimeFormat("es-AR", { hour: "2-digit", minute: "2-digit", hour12: true, timeZone: WEATHER_TZ }).format(now);
+  document.getElementById("oscarDate").textContent =
+    new Intl.DateTimeFormat("es-AR", { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric", timeZone: WEATHER_TZ }).format(now);
 }
 
-addOscarHeader();
-document.addEventListener("DOMContentLoaded", addOscarHeader);
-setInterval(addOscarHeader, 2000);   // red de seguridad + remide el ancho en cada pasada
+function updateWeather() {
+  var url = "https://api.open-meteo.com/v1/forecast?latitude=" + WEATHER_LAT + "&longitude=" + WEATHER_LON +
+    "&current=temperature_2m,weather_code&timezone=" + encodeURIComponent(WEATHER_TZ);
+  fetch(url).then(function (r) { return r.json(); }).then(function (d) {
+    var icon = WEATHER_ICONS[d.current.weather_code] || "🌡️";
+    document.getElementById("oscarWeatherTemp").textContent = icon + " " + Math.round(d.current.temperature_2m) + "°C";
+  }).catch(function () {});
+}
+
+buildOscarHeader();
+setInterval(function () { buildOscarHeader(); syncSubtitleWidth(); }, 2000);
+updateClock(); setInterval(updateClock, 15000);
+updateWeather(); setInterval(updateWeather, 10 * 60 * 1000);
 ```
 
-Se inserta directo en `document.body`, no dentro del contenedor que maneja React — así un re-render de Homepage no lo pisa. El `setInterval` cumple dos roles: red de seguridad si algo llega a borrar el header, y remedir el ancho real de "O.S.C.A.R." (cambia según el viewport) para que el subtítulo, centrado debajo y en fuente más chica, quede exactamente con el mismo ancho — se logra fijando `subtitle.style.width` en píxeles al ancho medido del título, y dejando que el texto haga wrap natural dentro de ese ancho.
+Open-Meteo es la misma API pública sin key que ya usaba el widget nativo — acá se llama directo con `fetch`, sin pasar por Homepage. El header entero se inserta en `document.body`, no dentro del contenedor que maneja React, así un re-render de Homepage no lo pisa; el `setInterval` de 2s es red de seguridad + remide el ancho del subtítulo (cambia con el viewport).
 
-`custom.css` pone el header en columna centrada (`flex-direction: column; align-items: center`), y `overflow-wrap: break-word` en el subtítulo — sin eso, una palabra larga como "Automation" se salía del ancho angosto que le da el título y rompía el efecto. El título además tiene una animación de glow tipo aurora, cicla color y sombra entre celeste/verde-agua/violeta cada 6s:
+`custom.css` pone el header como grid de 3 columnas (`grid-template-columns: 1fr auto 1fr`), con la columna izquierda alineada a la derecha y la derecha alineada a la izquierda (para que ambas "miren" hacia el título central), colapsando a una sola columna centrada en mobile (`max-width: 640px`). Hora y clima comparten estilo (texto blanco `#f8fafc`, `text-shadow` para separarse de la foto, sin fondo ni borde); fecha y ciudad van más chicas debajo de cada una. El título sigue con la animación de glow tipo aurora, cicla color y sombra entre celeste/verde-agua/violeta cada 6s:
 
 ```css
 @keyframes oscar-aurora-glow {
