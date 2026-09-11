@@ -259,35 +259,39 @@ setInterval(updateResources, 5000);
 
 `/api/widgets/glances` es la ruta **interna** de Homepage (mismo origen que la página) — el mismo endpoint que usaba el widget nativo por debajo. Pedirle los datos directo a Glances (`http://192.168.0.156:61208`) desde el navegador **no funciona para nadie que entre desde fuera de la LAN**: es una IP privada, e ir por afuera del túnel es exactamente el problema que Cloudflare Tunnel existe para resolver. Pasar por la ruta interna de Homepage evita ese problema (Homepage llama a Glances del lado del servidor) y de paso evita CORS.
 
-### De texto chico a gauge circular
+### De texto chico a barra de progreso
 
-La primera versión de este bloque era solo ícono + `%` en texto chico — poco legible de un vistazo, y sin el valor absoluto (cuántos GB usados de cuántos totales), que es la parte que más importa para saber si hay margen real. Se rehizo como un **gauge circular por recurso** (SVG, sin librerías): un anillo de progreso con el `%` centrado adentro, y debajo el rango real —
+La primera versión de este bloque era solo ícono + `%` en texto chico — poco legible de un vistazo, y sin el valor absoluto (cuántos GB usados de cuántos totales), que es la parte que más importa para saber si hay margen real. Se probó también un gauge circular (SVG, % adentro del anillo) — más grande, pero seguía sin transmitir de un vistazo "qué tan cerca del límite" tan bien como una barra horizontal. La versión final: tres filas apiladas, una por recurso, cada una con ícono + nombre arriba, el rango real al lado, y abajo una barra de progreso con el `%` al final —
+
+```
+[ícono] CPU        2 núcleos
+        [▓▓▓▓░░░░░░░░░░░░░░░░]  18%
+
+[ícono] RAM        1.4/8.0 GB
+        [▓▓▓▓▓▓░░░░░░░░░░░░░░]  17%
+
+[ícono] Disco       10.1/57.1 GB
+        [▓▓▓▓▓░░░░░░░░░░░░░░░]  18%
+```
 
 ```js
-var GAUGE_BASE_COLOR = { cpu: "#38bdf8", mem: "#5eead4", disk: "#a78bfa" };
-var GAUGE_R = 24;
-var GAUGE_CIRC = 2 * Math.PI * GAUGE_R;
+var RESOURCE_BASE_COLOR = { cpu: "#38bdf8", mem: "#5eead4", disk: "#a78bfa" };
 
-function gaugeColor(key, pct) {
+function resourceColor(key, pct) {
   if (pct >= 90) return "#f87171"; // rojo — crítico
   if (pct >= 75) return "#fbbf24"; // ámbar — atención
-  return GAUGE_BASE_COLOR[key] || "#38bdf8";
+  return RESOURCE_BASE_COLOR[key] || "#38bdf8";
 }
 
 function resourceItemHtml(key, pct, name, detailText) {
-  var color = gaugeColor(key, pct);
-  var offset = GAUGE_CIRC * (1 - pct / 100);
-  // <svg>: círculo de fondo (track) + círculo de progreso, rotado -90° para
-  // que arranque arriba, con stroke-dasharray=GAUGE_CIRC y
-  // stroke-dashoffset=offset — el truco estándar de "donut de SVG con un
-  // solo <circle>". El color del progreso sale de --gauge-color (CSS var
-  // inline) y pisa el color base del recurso si el uso está alto.
+  var color = resourceColor(key, pct);
+  // ícono + nombre + valor arriba; abajo un <div class="oscar-bar-track">
+  // con un <div class="oscar-bar-fill"> cuyo width inline es "pct%" y cuyo
+  // background es `color` — la barra más simple posible, sin SVG ni canvas.
 }
 ```
 
-El color base es distinto por recurso (cian CPU, verde-agua RAM, violeta disco — la misma paleta del brillo del título), pero por encima de 75% pasa a ámbar y por encima de 90% a rojo, sin importar cuál sea. El criterio de esos dos umbrales salió directo de lo que pasó con la RAM: llegar al 91% real fue lo que forzó [subir `core01` de 4 a 8 GB](../proxmox/crear-vm-core01.md#sizing-inicial) — la idea es que la próxima vez que algún recurso se acerque a ese punto, se note en el dashboard sin tener que ir a mirar Glances aparte.
-
-Adentro de cada anillo, arriba del `%`, hay un ícono chico (rect con patitas para CPU, memoria y disco — los mismos SVG que ya existían antes del gauge) pintado con el mismo color que el anillo (`currentColor`), así el aviso rojo/ámbar se ve en los dos a la vez, no solo en el borde.
+El color base es distinto por recurso (cian CPU, verde-agua RAM, violeta disco — la misma paleta del brillo del título) tanto en el ícono como en el relleno de la barra, pero por encima de 75% pasa a ámbar y por encima de 90% a rojo, sin importar cuál sea. El criterio de esos dos umbrales salió directo de lo que pasó con la RAM: llegar al 91% real fue lo que forzó [subir `core01` de 4 a 8 GB](../proxmox/crear-vm-core01.md#sizing-inicial) — la idea es que la próxima vez que algún recurso se acerque a ese punto, se note en el dashboard sin tener que ir a mirar Glances aparte.
 
 El widget `glances` **sigue existiendo** en `widgets.yaml` — hace falta que esté configurado ahí para que esa ruta interna funcione (Homepage busca la URL/versión/disco por índice en su config real, no por lo que se le pase en la query). Lo que cambia es que ya no se muestra: se oculta con CSS, sin tocarlo de ningún otro modo —
 
