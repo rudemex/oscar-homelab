@@ -37,6 +37,12 @@ sidebar_position: 11
 
 Se armaron vía la API de socket.io (paquete `uptime-kuma-api`, no la REST API — Kuma no tiene una para crear monitores, el API Key propio de Kuma solo sirve para el endpoint de métricas de Prometheus, no para esto).
 
+## Status page
+
+Existe una status page en `/status/oscar` con los 9 monitores agrupados en "Servicios" — no es solo para verla directamente, es lo que consume el [widget de Uptime Kuma en Homepage](./homepage.md#widgets-nativos-datos-en-vivo-en-la-tarjeta): ese widget lee de una status page (por `slug`), no de la lista de monitores directo.
+
+Nota técnica si se vuelve a tocar por API: la librería `uptime-kuma-api` (v1.x) tiene un bug de compatibilidad con Kuma 2.5.4 en `save_status_page()` (falla por una key `incident` que esta versión del servidor ya no devuelve) — hubo que armar el payload a mano y llamar `saveStatusPage` directo por socket.io. Un detalle no obvio ahí: **python-socketio necesita una `tuple` para mandar múltiples argumentos posicionales, no una `list`** — pasar una lista hace que el servidor reciba todo el array como un solo parámetro (`slug`), y falla con `"No slug?"`.
+
 ## Checklist de despliegue
 
 - [ ] hostname y ubicación decididos;

@@ -76,6 +76,28 @@ Los links usan los dominios reales (vía [Cloudflare Tunnel](./cloudflare-tunnel
 
 `settings.yaml` también define el layout (columnas por grupo) y `headerStyle: boxedWidgets` para que se vea menos genérico que el default.
 
+## Widgets nativos (datos en vivo en la tarjeta)
+
+Además del `siteMonitor` (puntito de estado), dos tarjetas tienen un `widget:` que muestra datos reales directo en la card, no solo un link:
+
+```yaml
+# Uptime Kuma — lee de una status page, no de la lista de monitores directo
+widget:
+  type: uptimekuma
+  url: http://<IP-de-core01>:3001
+  slug: oscar   # la status page se crea aparte en Kuma, con todos los monitores reales dentro
+
+# Proxmox — requiere un token de API dedicado, de solo lectura (rol PVEAuditor)
+widget:
+  type: proxmox
+  url: https://<IP-de-oscar-core>:8006
+  username: root@pam!homepage
+  password: <secret del token, fuera de Git>
+  node: oscar-core
+```
+
+El token `root@pam!homepage` se creó con `privsep=1` (sin permisos hasta asignarle un rol explícito) — el rol `PVEAuditor` en el path `/` se asignó a mano desde la UI de Proxmox (Datacenter → Permissions → Add → Token Permission), porque asignar roles vía API quedó bloqueado por las reglas de seguridad del entorno de automatización usado para este build.
+
 `compose.yaml`:
 
 ```yaml
