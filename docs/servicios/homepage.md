@@ -262,7 +262,18 @@ setInterval(addOscarHeader, 2000);   // red de seguridad + remide el ancho en ca
 
 Se inserta directo en `document.body`, no dentro del contenedor que maneja React — así un re-render de Homepage no lo pisa. El `setInterval` cumple dos roles: red de seguridad si algo llega a borrar el header, y remedir el ancho real de "O.S.C.A.R." (cambia según el viewport) para que el subtítulo, centrado debajo y en fuente más chica, quede exactamente con el mismo ancho — se logra fijando `subtitle.style.width` en píxeles al ancho medido del título, y dejando que el texto haga wrap natural dentro de ese ancho.
 
-`custom.css` pone el header en columna centrada (`flex-direction: column; align-items: center`), título a `3.2rem`, y `overflow-wrap: break-word` en el subtítulo — sin eso, una palabra larga como "Automation" se salía del ancho angosto que le da el título y rompía el efecto. Ver el archivo completo en `core01`, no vale la pena duplicarlo acá.
+`custom.css` pone el header en columna centrada (`flex-direction: column; align-items: center`), y `overflow-wrap: break-word` en el subtítulo — sin eso, una palabra larga como "Automation" se salía del ancho angosto que le da el título y rompía el efecto. El título además tiene una animación de glow tipo aurora, cicla color y sombra entre celeste/verde-agua/violeta cada 6s:
+
+```css
+@keyframes oscar-aurora-glow {
+  0%, 100% { color: #38bdf8; text-shadow: 0 0 22px rgba(56, 189, 248, .55), 0 0 46px rgba(56, 189, 248, .25); }
+  33%      { color: #5eead4; text-shadow: 0 0 22px rgba(94, 234, 212, .55), 0 0 46px rgba(94, 234, 212, .25); }
+  66%      { color: #a78bfa; text-shadow: 0 0 22px rgba(167, 139, 250, .55), 0 0 46px rgba(167, 139, 250, .25); }
+}
+.oscar-title { animation: oscar-aurora-glow 6s ease-in-out infinite; }
+```
+
+Ver el archivo completo en `core01`, no vale la pena duplicarlo acá.
 
 ## Sin soporte: páginas con carrusel/slide
 
