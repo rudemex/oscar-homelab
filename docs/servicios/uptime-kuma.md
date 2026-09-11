@@ -32,7 +32,7 @@ sidebar_position: 11
 | Vaultwarden | `https://vault.oscarlab.com.ar` | única excepción: solo escucha en `127.0.0.1` en `core01`, así que Kuma no puede llegar directo — se mide vía el dominio público, aceptando 200-399 (Access devuelve 302 sin loguearse, y eso ya cuenta como "responde") |
 | Proxmox | `https://192.168.0.233:8006` | con `ignoreTls` (certificado self-signed) |
 | AdGuard Home | `http://192.168.0.93:80` | LXC 100 |
-| Home Assistant | `http://192.168.0.195:8123` | VM 101 |
+| Home Assistant | `http://192.168.0.195:80` | VM 101 — **no** el 8123 típico de otras instalaciones; esta usa el puerto 80, se descubrió por error al asumir el default |
 | Cloudflare Tunnel | `http://192.168.0.156:20241/ready` | endpoint de salud propio de `cloudflared`, expuesto porque corre en `network_mode: host` |
 
 Se armaron vía la API de socket.io (paquete `uptime-kuma-api`, no la REST API — Kuma no tiene una para crear monitores, el API Key propio de Kuma solo sirve para el endpoint de métricas de Prometheus, no para esto).

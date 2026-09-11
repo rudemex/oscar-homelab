@@ -5,10 +5,10 @@ sidebar_position: 13
 
 # Home Assistant
 
-**Estado:** Objetivo · Hogar  
-**Dónde corre:** Raspberry Pi 5 futura o VM dedicada  
+**Estado:** Actual · Hogar — VM 101 (`haos-18.2`) en `oscar-core`, instalada vía community-script  
+**Dónde corre:** VM dedicada en `oscar-core` (no Raspberry Pi todavía — ver [estado actual](../arquitectura/estado-actual.md))  
 **Sizing inicial:** 2 vCPU/2–4 GB RAM típico inicial; depende de integraciones  
-**Red/puertos:** 8123 interno; acceso remoto protegido  
+**Red/puertos:** **puerto 80** interno (no el 8123 típico de otras instalaciones — esta instancia quedó configurada distinto); acceso remoto protegido  
 **Persistencia:** configuración, DB, add-ons e integraciones
 
 ## Rol dentro de O.S.C.A.R.
@@ -62,7 +62,7 @@ Si en el futuro se agregan integraciones con estado externo (cámaras RTSP, MQTT
 
 - entidades marcadas `unavailable` (indica integración o dispositivo caído);
 - automatizaciones fallidas en el logbook;
-- disponibilidad HTTP del panel (puerto 8123);
+- disponibilidad HTTP del panel (puerto 80 en esta instancia — ver nota arriba);
 - consumo de CPU/RAM y tamaño de `home-assistant_v2.db`;
 - reinicios del proceso/contenedor.
 
