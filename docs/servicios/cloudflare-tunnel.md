@@ -5,7 +5,7 @@ sidebar_position: 14
 
 # Cloudflare Tunnel + Access
 
-**Estado:** Actual, parcial — túnel `core01` corriendo y conectado (2 conexiones QUIC activas), ingress configurado para 5 servicios; **sin registros DNS públicos todavía** (esperando habilitar Cloudflare Access antes de exponer nada) y sin políticas de Access
+**Estado:** Actual — túnel `core01` corriendo y conectado, ingress configurado para 5 servicios, Cloudflare Access habilitado con una Access Application + política por servicio (solo el email del autor, código de un solo uso), y los 5 registros DNS ya publicados y protegidos
 **Dónde corre:** `core01` (`/srv/oscar/apps/cloudflared/`), `network_mode: host`
 **Sizing inicial:** muy bajo (~20-30 MB RAM)
 **Red/puertos:** solo conexiones salientes (QUIC/HTTP2 hacia el edge de Cloudflare); ningún puerto inbound en el router
@@ -32,11 +32,11 @@ Ingress configurado (vía API, `config_src: cloudflare`):
 | `beszel.oscarlab.com.ar` | `http://localhost:8090` |
 | *(catch-all)* | `http_status:404` |
 
-Falta, en orden:
+Orden que se siguió (importa para no dejar una ventana pública sin protección): primero se creó la Access Application + política de cada hostname, y **recién después** el registro DNS (`CNAME` → `<tunnel-id>.cfargotunnel.com`, `proxied: true`) — así, en el instante exacto en que cada hostname empezó a resolver, Access ya estaba interceptando. Crear el DNS antes que la política habría dejado el servicio público sin nada delante durante esa ventana.
 
-1. **Habilitar Cloudflare Access** (Zero Trust) en la cuenta — todavía no está activado.
-2. Crear una Access Application + política (identidad del único usuario real, MFA) para cada hostname administrativo — por la regla de [exposición a Internet](../seguridad/exposicion-internet.md), ninguno se publica sin esto delante.
-3. Recién ahí, crear los registros DNS (`CNAME` → `<tunnel-id>.cfargotunnel.com`) que hacen que cada hostname resuelva de verdad — hasta entonces, aunque el túnel y el ingress ya están vivos, nadie de Internet puede llegar a estos servicios (los hostnames ni siquiera resuelven).
+Cada Access Application usa el método de login por defecto de Cloudflare (código de un solo uso enviado por email) — no hizo falta configurar ningún proveedor de identidad externo, alcanza con la política `include: email == <el único usuario real>`.
+
+Pendiente real: **`kuma.oscarlab.com.ar` y `home.oscarlab.com.ar`** quedaron con la misma política restrictiva que el resto por prolijidad, pero son candidatos a relajar más adelante si se quiere una página de estado o un dashboard público sin login — evaluarlo caso por caso, no por defecto.
 
 ## Ejemplo concreto
 

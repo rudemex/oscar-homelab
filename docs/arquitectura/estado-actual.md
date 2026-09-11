@@ -10,7 +10,7 @@ Esta página es la única fuente de "qué existe de verdad hoy". El resto del si
 Se actualiza en cada cambio de fase real (ver [roadmap](../roadmap/roadmap-general.md)), no en cada edición de documentación.
 
 :::caution
-Proxmox ya está instalado, `core01` existe con Docker corriendo, y hay nueve servicios reales arriba (abajo) — aunque el Tunnel todavía no publica nada al público. Todo lo demás del sitio que dice "Objetivo" sigue sin existir — esta página es la línea exacta entre lo uno y lo otro.
+Proxmox ya está instalado, `core01` existe con Docker corriendo, y hay nueve servicios reales arriba (abajo) — cinco de ellos ya publicados en `oscarlab.com.ar` detrás de Cloudflare Access. Todo lo demás del sitio que dice "Objetivo" sigue sin existir — esta página es la línea exacta entre lo uno y lo otro.
 :::
 
 ## Hardware — existe físicamente
@@ -39,11 +39,11 @@ Proxmox ya está instalado, `core01` existe con Docker corriendo, y hay nueve se
 | Vaultwarden 1.37.2 | Docker en `core01` | Actual | `/srv/oscar/apps/vaultwarden/`, puerto publicado solo en `127.0.0.1:8082` (ya no en LAN). Ver [Vaultwarden](../servicios/vaultwarden.md). |
 | Homepage v2.3.0 | Docker en `core01` | Actual | `/srv/oscar/apps/homepage/`, puerto 3005, dashboard con links a todos los servicios reales. Ver [Homepage](../servicios/homepage.md). |
 | Beszel 0.19.0 | Docker en `core01` | Actual | hub (puerto 8090) y agente (puerto 45876) conectados, reportando CPU/RAM/disco en tiempo real. Ver [Beszel](../servicios/beszel.md). |
-| Cloudflare Tunnel | Docker en `core01` | Actual, **parcial** | túnel `core01` conectado, ingress mapeado para los 5 servicios de arriba — sin registros DNS públicos ni Cloudflare Access todavía, así que nada es alcanzable desde Internet por ahora. Ver [Cloudflare Tunnel](../servicios/cloudflare-tunnel.md). |
+| Cloudflare Tunnel + Access | Docker en `core01` | Actual | túnel conectado, 5 hostnames públicos (`vault`, `n8n`, `kuma`, `home`, `beszel` . `oscarlab.com.ar`), cada uno con su propia Access Application y protegido por login (código de un solo uso al email del autor). Ver [Cloudflare Tunnel](../servicios/cloudflare-tunnel.md). |
 
-## Dominio — activo, esperando Access
+## Dominio — en uso
 
-`oscarlab.ar` y `oscarlab.com.ar` están registrados (NIC Argentina, pagos — $25.500 y $8.500 ARS respectivamente) y delegados a Cloudflare (`oscarlab.com.ar` ya en estado `active`). El túnel ya usa `oscarlab.com.ar` como dominio primario, pero ningún hostname es público todavía: falta habilitar Cloudflare Access y crear los registros DNS — ver [Cloudflare Tunnel](../servicios/cloudflare-tunnel.md) para el detalle de qué falta.
+`oscarlab.ar` y `oscarlab.com.ar` están registrados (NIC Argentina, pagos — $25.500 y $8.500 ARS respectivamente) y delegados a Cloudflare. `oscarlab.com.ar` es el dominio primario: los 5 servicios reales ya tienen subdominio público protegido por Cloudflare Access — ver [Cloudflare Tunnel](../servicios/cloudflare-tunnel.md).
 
 ## Backups — parcialmente resuelto
 
@@ -68,7 +68,7 @@ Lo que todavía falta, y es la parte que realmente importa para disaster recover
 El build no siguió el orden lineal del [roadmap](../roadmap/roadmap-general.md) al pie de la letra — Proxmox y dos servicios del hogar (Fase 7) ya existían antes de que existiera `core01` (Fase 3), y el backup local (parte de Fase 4) ya estaba resuelto sin que se instalara nada del medio. Eso está bien: el roadmap es una guía de dependencias razonables, no una secuencia obligatoria. Lo que sí falta con prioridad, dado lo que ya hay corriendo:
 
 1. **Confirmar que la `N8N_ENCRYPTION_KEY` quedó guardada en un gestor** (Vaultwarden ya está arriba para esto) — se extrajo del servidor pero la única copia real es la que el usuario guarde.
-2. **Completar el primer acceso de Vaultwarden** — crear la cuenta real y deshabilitar `SIGNUPS_ALLOWED`; sigue bloqueado por un problema de carga HTTPS en el navegador todavía sin resolver.
+2. **Completar el primer acceso de Vaultwarden** — el bloqueo de HTTPS ya se resolvió (Cloudflare Tunnel + Access en `vault.oscarlab.com.ar`); falta crear la cuenta real y deshabilitar `SIGNUPS_ALLOWED`.
 3. **Copia off-site del backup** — sigue siendo la brecha real de disaster recovery; el backup local ya existe, pero no protege contra la pérdida del Dell completo.
 4. **`core01` todavía no está confirmado en el job de backup** — el `vzdump all:1` la incluye automáticamente en la próxima corrida programada; verificarlo en la próxima ejecución (lunes a viernes 00:00).
 5. Integrar el UPS (ver [backlog](../roadmap/backlog.md)) — más urgente ahora que hay servicios reales con estado (Postgres, Vaultwarden) que un corte de luz podría corromper.
