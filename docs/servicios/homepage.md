@@ -216,18 +216,16 @@ Los nombres de clase (`.service`, `.service-name`, `.service-description`, `.ser
 
 ## CPU/RAM/disco y buscador: reconstruidos, no reubicados
 
-Layout final pedido, en 3 filas apiladas:
+Layout final pedido, en 2 filas apiladas:
 
 ```
 [ clima ]      O.S.C.A.R.      [ hora/fecha ]
               subtítulo
 ─────────────────────────────────────────────
-        [ CPU  ·  RAM  ·  Disco ]
-─────────────────────────────────────────────
-                buscador
+[ buscador ]                  [ CPU · RAM · Disco ]
 ```
 
-Pasó por dos versiones intermedias antes de esta: primero clima/CPU-RAM-disco/hora los 3 en una fila con el título arriba de todo; después el título arriba y esa fila (con recursos en el centro) abajo, entre dos líneas. Ninguna de las dos convenció — la versión final saca los recursos de esa fila de 3 columnas y pone el título+subtítulo en el lugar que dejaron libres, en el centro, entre clima y hora. Los recursos pasan a ser su propia fila, debajo de una única línea divisoria, alineada siempre a la derecha (`justify-content: flex-end` en `.oscar-row-resources`, no `center`) — a diferencia del resto de las filas del header, que están centradas.
+Pasó por varias versiones intermedias antes de esta: primero clima/CPU-RAM-disco/hora los 3 en una fila con el título arriba de todo; después el título arriba y esa fila (con recursos en el centro) abajo, entre dos líneas; después recursos y buscador en dos filas separadas, cada una centrada; después esas mismas dos filas, cada una pegada a un borde (buscador a la izquierda, recursos a la derecha) pero todavía apiladas una arriba de la otra. Ninguna terminaba de convencer — la versión final: título+subtítulo en el centro de la fila de arriba (reemplazando ahí a los recursos), y abajo de la línea divisoria, **una sola fila** con el buscador a la izquierda y CPU/RAM/disco a la derecha, `justify-content: space-between` en `.oscar-row-bottom` en vez de dos filas con `flex-start`/`flex-end` por separado.
 
 En el HTML de `buildOscarHeader()` esto es: `.oscar-col-center` (adentro de `.oscar-row-top`) pasó de contener `#oscarResourcesSlot` a contener el `<span class="oscar-title">` y el `<span class="oscar-subtitle">`; y `#oscarResourcesSlot` se independizó en su propia fila (`<div class="oscar-row-resources" id="oscarResourcesSlot">`), fuera del grid de 3 columnas. `.oscar-row-top` solo necesita `border-bottom` ahora — ya no está encerrada entre dos bloques, es la primera fila del header.
 
@@ -313,7 +311,7 @@ El widget `glances` **sigue existiendo** en `widgets.yaml` — hace falta que es
 
 `display: none` no mueve ni desconecta el nodo del árbol de React — sigue exactamente donde Homepage lo puso, actualizándose cada 1.5s sin que nadie le preste atención. Es la diferencia clave con el intento anterior: ocultar es seguro, reubicar no.
 
-El buscador es más simple todavía — un `<input>` propio que en `Enter` abre `https://www.google.com/search?q=...` en una pestaña nueva. No hay necesidad de reusar el widget nativo de búsqueda para algo tan básico. Va alineado a la izquierda (`justify-content: flex-start` en `.oscar-row-search`), en espejo con la fila de CPU/RAM/disco que está a la derecha — las dos filas de abajo quedan una a cada lado, en vez de las dos centradas.
+El buscador es más simple todavía — un `<input>` propio que en `Enter` abre `https://www.google.com/search?q=...` en una pestaña nueva. No hay necesidad de reusar el widget nativo de búsqueda para algo tan básico. Comparte fila con CPU/RAM/disco: `.oscar-row-bottom` los pone a los dos en la misma línea, buscador a la izquierda y recursos a la derecha (`justify-content: space-between`), no en dos filas apiladas.
 
 **Regla que queda de esto para cualquier próxima idea de "reposicionar un widget nativo de Homepage con JS":** no. Si hace falta en otro lugar del layout, se reconstruye desde cero (fetch a la ruta interna si hay datos reales de por medio, como acá) y se oculta el original con `display: none`, nunca se lo mueve por el DOM.
 
