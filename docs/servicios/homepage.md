@@ -265,6 +265,7 @@ Estilo, sin caja/fondo, igual que fecha y clima:
 ```css
 #oscarResourcesSlot {
   display: flex;
+  flex-direction: row;   /* el mismo div también es .oscar-col (column) — sin esto hereda vertical */
   align-items: center;
   gap: 1rem;
   justify-content: center;
@@ -407,3 +408,4 @@ Disponibilidad HTTP del puerto 3005 alcanza — es un dashboard, no un servicio 
 - **Los acentos/ñ aparecen como `Ã³`/`Ã±` en `services.yaml`** → dos causas posibles, hay que distinguirlas antes de "arreglar" algo que no está roto:
   1. **El archivo real está corrupto de verdad** → pasó al editarlo con `sed -i` directo en `core01`: el contenedor no tiene una locale UTF-8, y `sed` reinterpreta *todo el archivo* con la locale por defecto al reescribirlo, no solo la línea que toca. La única forma segura de editar este archivo (o cualquiera con tildes) es reescribirlo completo desde una fuente UTF-8 correcta y subirlo por `base64 -d > archivo` — nunca `sed -i` en el contenedor.
   2. **El archivo está bien pero la herramienta de diagnóstico lo muestra mal** → si se inspecciona el contenido pasándolo por la respuesta JSON del `exec-status` de la API de Proxmox (usada para ejecutar comandos en `core01` sin SSH) y se imprime directo, esa capa de transporte re-codifica los bytes UTF-8 y se ve el mismo patrón `Ã³`. Para confirmar cuál de los dos es, pedir el archivo en base64 explícito y decodificarlo del lado de quien lo lee, en vez de confiar en el texto plano que devuelve esa API — si ahí se ve bien, el archivo nunca estuvo roto.
+- **Un `<div>` con dos clases distintas hereda un `flex-direction` que no le pusiste** → pasó con `#oscarResourcesSlot`: el mismo elemento tiene `class="oscar-col oscar-col-center"` (que define `flex-direction: column`) **e** `id="oscarResourcesSlot"` con su propio `display: flex`. Como nunca se declaró `flex-direction` en la regla del id, CPU/RAM/disco quedaban apiladas verticalmente en vez de en línea — la especificidad del id gana en las propiedades que sí define (`display`, `gap`, etc.), pero una propiedad que un selector no toca simplemente seguía viniendo del otro. Al reutilizar una clase de layout genérica (`.oscar-col`) en un elemento que también tiene su propio id con reglas de layout, conviene repasar cada propiedad que el genérico define y decidir explícitamente si el id la hereda o la pisa — no asumir que "más específico" alcanza para todo.
