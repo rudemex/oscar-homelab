@@ -226,6 +226,32 @@ Homepage carga `config/custom.css` automáticamente (se sirve en `/api/config/cu
 Los nombres de clase (`.service`, `.service-name`, `.service-description`, `.service-group-name`, `.widget-container`) salen del código fuente de Homepage (`src/components/services/item.jsx` y `group.jsx`), no de la documentación pública — no están listados en `docs/configs/custom-css-js.md`, hubo que revisar el repo directo.
 
 
+## Reorganizar la barra de widgets superior
+
+Por defecto Homepage pone **todos** los widgets de info (`resources`, `datetime`, `openmeteo`, `search`) en una sola fila estirada de punta a punta — con los 4 juntos se veía amontonado y sin jerarquía. Se separó en dos filas con puro CSS, sin tocar `widgets.yaml` ni mover ningún nodo del DOM (evita pelear con los re-renders de React, que si movés el elemento real vía JS te lo puede volver a poner en su lugar original):
+
+```css
+/* fecha/hora + clima + buscador: centrados y agrupados */
+div:has(> .information-widget-datetime) {
+  justify-content: center !important;
+  gap: 0.6rem;
+}
+
+/* CPU/RAM/disco: fila propia, con un divisor sutil arriba */
+.information-widget-resource {
+  order: 10;
+}
+.information-widget-resource:first-of-type {
+  flex-basis: 100%;      /* fuerza el salto de línea dentro del mismo flex row */
+  justify-content: center;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid rgba(56, 189, 248, 0.15);
+}
+```
+
+El truco es `flex-basis: 100%` en el *primer* elemento `.information-widget-resource` (CPU, RAM y disco son tres instancias del mismo widget, una por métrica) — fuerza que ese y los siguientes salten a una fila nueva dentro del mismo contenedor flex-wrap, sin necesitar un contenedor HTML distinto. `:has()` (soportado en todos los navegadores modernos desde 2023) selecciona el contenedor padre real de `datetime` sin depender de una clase propia de Homepage para ese wrapper — las clases que trae son utilitarias de Tailwind (`flex`, `justify-between`, etc.), no hay una clase semántica estable para engancharse ahí directamente.
+
 ## Header con el nombre del proyecto (custom.js)
 
 Homepage no tiene ningún lugar nativo para mostrar el nombre del proyecto en grande — el `title` de `settings.yaml` solo va al `<title>` del navegador y al manifest PWA, y el único widget relacionado ("logo") es un ícono de 48×48px, sin texto. Para el título grande tipo "O.S.C.A.R." del mockup original hizo falta `custom.js`:
