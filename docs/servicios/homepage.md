@@ -198,7 +198,7 @@ volumes:
 # settings.yaml
 background:
   image: /images/bg-2.jpg
-  blur: md
+  blur: ""   # sin blur — la foto de Pexels tiene resolución real, no hace falta disimular nada
   saturate: 90
   brightness: 40
   opacity: 40
