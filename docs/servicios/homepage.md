@@ -287,6 +287,8 @@ function resourceItemHtml(key, pct, name, detailText) {
 
 El color base es distinto por recurso (cian CPU, verde-agua RAM, violeta disco — la misma paleta del brillo del título), pero por encima de 75% pasa a ámbar y por encima de 90% a rojo, sin importar cuál sea. El criterio de esos dos umbrales salió directo de lo que pasó con la RAM: llegar al 91% real fue lo que forzó [subir `core01` de 4 a 8 GB](../proxmox/crear-vm-core01.md#sizing-inicial) — la idea es que la próxima vez que algún recurso se acerque a ese punto, se note en el dashboard sin tener que ir a mirar Glances aparte.
 
+Adentro de cada anillo, arriba del `%`, hay un ícono chico (rect con patitas para CPU, memoria y disco — los mismos SVG que ya existían antes del gauge) pintado con el mismo color que el anillo (`currentColor`), así el aviso rojo/ámbar se ve en los dos a la vez, no solo en el borde.
+
 El widget `glances` **sigue existiendo** en `widgets.yaml` — hace falta que esté configurado ahí para que esa ruta interna funcione (Homepage busca la URL/versión/disco por índice en su config real, no por lo que se le pase en la query). Lo que cambia es que ya no se muestra: se oculta con CSS, sin tocarlo de ningún otro modo —
 
 ```css
