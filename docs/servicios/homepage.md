@@ -233,23 +233,36 @@ Homepage no tiene ningún lugar nativo para mostrar el nombre del proyecto en gr
 ```js
 // custom.js
 function addOscarHeader() {
-  if (document.getElementById("oscar-header")) return;
+  var existing = document.getElementById("oscar-header");
+  if (existing) {
+    syncSubtitleWidth();   // el ancho de .oscar-title cambia con el viewport (mobile/desktop)
+    return;
+  }
   var header = document.createElement("div");
   header.id = "oscar-header";
   header.innerHTML =
     '<span class="oscar-title">O.S.C.A.R.</span>' +
     '<span class="oscar-subtitle">Operations, Services, Compute, Automation &amp; Routing</span>';
   document.body.insertBefore(header, document.body.firstChild);
+  syncSubtitleWidth();
+}
+
+function syncSubtitleWidth() {
+  var title = document.querySelector("#oscar-header .oscar-title");
+  var subtitle = document.querySelector("#oscar-header .oscar-subtitle");
+  if (!title || !subtitle) return;
+  var width = title.getBoundingClientRect().width;
+  if (width > 0) subtitle.style.width = width + "px";
 }
 
 addOscarHeader();
 document.addEventListener("DOMContentLoaded", addOscarHeader);
-setInterval(addOscarHeader, 2000);   // red de seguridad si algo lo llega a borrar
+setInterval(addOscarHeader, 2000);   // red de seguridad + remide el ancho en cada pasada
 ```
 
-Se inserta directo en `document.body`, no dentro del contenedor que maneja React — así un re-render de Homepage no lo pisa. El `setInterval` es paranoia barata: si en algún momento sí lo pisara, se vuelve a insertar solo en un máximo de 2 segundos, sin que se note.
+Se inserta directo en `document.body`, no dentro del contenedor que maneja React — así un re-render de Homepage no lo pisa. El `setInterval` cumple dos roles: red de seguridad si algo llega a borrar el header, y remedir el ancho real de "O.S.C.A.R." (cambia según el viewport) para que el subtítulo, centrado debajo y en fuente más chica, quede exactamente con el mismo ancho — se logra fijando `subtitle.style.width` en píxeles al ancho medido del título, y dejando que el texto haga wrap natural dentro de ese ancho.
 
-`custom.css` define el estilo (`.oscar-title`, `.oscar-subtitle`) — ver el archivo completo en `core01`, no vale la pena duplicarlo acá.
+`custom.css` pone el header en columna centrada (`flex-direction: column; align-items: center`) — ver el archivo completo en `core01`, no vale la pena duplicarlo acá.
 
 ## Sin soporte: páginas con carrusel/slide
 
