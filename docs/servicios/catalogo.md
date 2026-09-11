@@ -20,6 +20,9 @@ La tabla resume el rol previsto. **Objetivo** no significa “instalar ya”: ca
 | [Loki](./loki.md) | Objetivo · Logs | VM observabilidad o k3s | logs de contenedores |
 | [Uptime Kuma](./uptime-kuma.md) | **Actual** · Disponibilidad | Docker Core | HTTP checks |
 | [n8n](./n8n.md) | **Actual** · Automatización | Docker Core | backups coordinados |
+| [Vaultwarden](./vaultwarden.md) | **Actual** · Seguridad | Docker Core | gestor de contraseñas propio (Bitwarden-compatible) |
+| [Homepage](./homepage.md) | **Actual** · Dashboard | Docker Core | landing con links/estado de todos los servicios |
+| [Beszel](./beszel.md) | **Actual, parcial** · Observabilidad | Docker Core | monitoreo liviano de CPU/RAM/disco, alternativa a Prometheus+Grafana |
 | [Home Assistant](./home-assistant.md) | Objetivo · Hogar | Raspberry Pi 5 futura o VM dedicada | automatización doméstica |
 | [Cloudflare Tunnel + Access](./cloudflare-tunnel.md) | Objetivo · Acceso remoto | VM Core o nodo dedicado de conectividad | publicar una demo web |
 | [Eclipse Mosquitto MQTT](./mosquitto.md) | Laboratorio / Hogar | Raspberry Pi o VM Core | sensores Pi Zero |
@@ -46,6 +49,9 @@ flowchart TB
     LOKI[Loki] --> GRAF
   end
   KUMA[Uptime Kuma]
+  VAULT[Vaultwarden]
+  HOME[Homepage]
+  BESZEL[Beszel]
 
   subgraph AUTOM["Automatización / Hogar"]
     N8N[n8n] --> PGN8N[(Postgres)]
@@ -61,11 +67,16 @@ flowchart TB
   DOCKER --> MQTT
   DOCKER --> WEBUI
   DOCKER --> OLLAMA
+  DOCKER --> VAULT
+  DOCKER --> HOME
+  DOCKER --> BESZEL
 
   PROM -.observa.-> DOCKER
   PROM -.observa.-> K3S
   KUMA -.chequea.-> DOCKER
   KUMA -.chequea.-> N8N
+  BESZEL -.observa.-> DOCKER
+  HOME -.muestra.-> KUMA
 
   TUNNEL[Cloudflare Tunnel + Access] --> GRAF
   TUNNEL --> N8N

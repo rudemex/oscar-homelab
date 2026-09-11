@@ -20,6 +20,19 @@ services:
     status: current
     criticality: C2
     target: core01
+  - id: vaultwarden
+    status: current
+    criticality: C1
+    target: core01
+  - id: homepage
+    status: current
+    criticality: C3
+    target: core01
+  - id: beszel
+    status: current-partial
+    criticality: C3
+    target: core01
+    note: "hub arriba, agente pendiente de key generada desde la UI"
   - id: prometheus
     status: planned
     criticality: C2
