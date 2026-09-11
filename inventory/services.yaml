@@ -17,7 +17,7 @@ services:
     criticality: C2
     target: core01
   - id: n8n
-    status: planned
+    status: current
     criticality: C2
     target: core01
   - id: prometheus

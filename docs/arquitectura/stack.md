@@ -16,7 +16,7 @@ Una cosa es el mínimo técnico para correr algo (ver [requisitos mínimos](../r
 | Registry/artefactos | [Nexus Repository](../servicios/nexus.md) | Objetivo | un solo servicio para imágenes OCI + proxy npm |
 | Git | [Forgejo](../servicios/forgejo.md) | Decisión pendiente | self-hosted, liviano — a confirmar contra alternativas |
 | Observabilidad | [Prometheus + Grafana + Loki](../observabilidad/arquitectura.md) + [Uptime Kuma](../servicios/uptime-kuma.md) | Objetivo | métricas, logs y disponibilidad con el ecosistema más adoptado |
-| Automatización | [n8n](../servicios/n8n.md) | Objetivo | workflows visuales, conecta el resto de los servicios |
+| Automatización | [n8n](../servicios/n8n.md) | **Actual** — `core01`, n8n 2.38.7 + Postgres 17 | workflows visuales, conecta el resto de los servicios |
 | Firewall/red | [OPNsense](../red/firewall-opnsense.md) | Objetivo, sin hardware todavía | segmentación real cuando exista el appliance dedicado |
 | DNS | [AdGuard Home](../red/dns-adguard.md) | **Actual** — LXC 100 en `oscar-core` | bloqueo de publicidad + DNS interno; reemplazó a Pi-hole, elegido por el script de instalación usado, no por una razón técnica fuerte |
 | Acceso remoto | [Cloudflare Tunnel + Access](../servicios/cloudflare-tunnel.md) | Objetivo | cero puertos abiertos, identidad delante de paneles |

@@ -5,8 +5,8 @@ sidebar_position: 12
 
 # n8n
 
-**Estado:** Objetivo · Automatización  
-**Dónde corre:** Docker Core o VM dedicada cuando crezca  
+**Estado:** Actual · Automatización — corriendo en `core01`  
+**Dónde corre:** Docker Core (`/srv/oscar/apps/n8n/`)  
 **Sizing inicial:** 2 vCPU, 2–4 GB RAM inicial + PostgreSQL para uso serio  
 **Red/puertos:** UI interna; webhooks publicados selectivamente  
 **Persistencia:** database, encryption key, workflows y credenciales

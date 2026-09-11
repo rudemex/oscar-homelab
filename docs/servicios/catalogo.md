@@ -19,7 +19,7 @@ La tabla resume el rol previsto. **Objetivo** no significa “instalar ya”: ca
 | [Grafana](./grafana.md) | Objetivo · Observabilidad | VM observabilidad o Docker Core | dashboard de rack |
 | [Loki](./loki.md) | Objetivo · Logs | VM observabilidad o k3s | logs de contenedores |
 | [Uptime Kuma](./uptime-kuma.md) | **Actual** · Disponibilidad | Docker Core | HTTP checks |
-| [n8n](./n8n.md) | Objetivo · Automatización | Docker Core o VM dedicada cuando crezca | backups coordinados |
+| [n8n](./n8n.md) | **Actual** · Automatización | Docker Core | backups coordinados |
 | [Home Assistant](./home-assistant.md) | Objetivo · Hogar | Raspberry Pi 5 futura o VM dedicada | automatización doméstica |
 | [Cloudflare Tunnel + Access](./cloudflare-tunnel.md) | Objetivo · Acceso remoto | VM Core o nodo dedicado de conectividad | publicar una demo web |
 | [Eclipse Mosquitto MQTT](./mosquitto.md) | Laboratorio / Hogar | Raspberry Pi o VM Core | sensores Pi Zero |
