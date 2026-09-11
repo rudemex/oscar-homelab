@@ -90,7 +90,18 @@ Los links usan los dominios reales (vía [Cloudflare Tunnel](./cloudflare-tunnel
 
 ## Widgets nativos (datos en vivo en la tarjeta)
 
-Además del `siteMonitor` (puntito de estado), dos tarjetas tienen un `widget:` que muestra datos reales directo en la card, no solo un link:
+Además del `siteMonitor` (puntito de estado), **6 de las 9 tarjetas** tienen un `widget:` que muestra datos reales directo en la card en vez de un link plano — Proxmox, AdGuard Home, Cloudflare Tunnel, Uptime Kuma, Beszel y Home Assistant. Solo n8n y Vaultwarden se quedan con descripción fija: Homepage no tiene una integración nativa para ninguno de los dos.
+
+Cada widget necesitó su propia credencial, todas de solo lectura donde el servicio lo permite:
+
+| Servicio | Credencial | Cómo se generó |
+|---|---|---|
+| Proxmox | token `root@pam!homepage`, rol `PVEAuditor` | token dedicado, ver arriba |
+| AdGuard Home | usuario/password real del panel | no tiene modelo de tokens/roles, solo un admin |
+| Cloudflare Tunnel | el mismo token de la cuenta (ya tiene `Tunnel:Edit`, que cubre lectura) | reutilizado, no se creó uno nuevo solo para esto |
+| Uptime Kuma | ninguna — lee de la status page pública `/status/oscar` | — |
+| Beszel | superusuario dedicado `homepage@oscar.home` | creado por CLI, mismo patrón que en su momento para el agente — ver [Beszel](./beszel.md) |
+| Home Assistant | long-lived access token | generado a mano desde el perfil de HA (Seguridad → Tokens de acceso de larga duración) |
 
 ```yaml
 # Uptime Kuma — lee de una status page, no de la lista de monitores directo
@@ -106,6 +117,37 @@ widget:
   username: root@pam!homepage
   password: <secret del token, fuera de Git>
   node: oscar-core
+
+# AdGuard Home — no tiene tokens/roles, solo el usuario/password real del panel
+widget:
+  type: adguard
+  url: http://<IP-del-LXC-100>
+  username: <usuario admin>
+  password: <password admin, fuera de Git>
+  fields: ["queries", "blocked", "filtered", "latency"]
+
+# Cloudflare Tunnel — reutiliza el token de cuenta ya existente (Tunnel:Edit cubre lectura)
+widget:
+  type: cloudflared
+  accountid: <account id>
+  tunnelid: <tunnel id>
+  key: <token de Cloudflare, fuera de Git>
+  fields: ["status", "origin_ip"]
+
+# Beszel — pide un superusuario (no alcanza con la cuenta normal); se creó uno dedicado
+widget:
+  type: beszel
+  url: http://<IP-de-core01>:8090
+  username: homepage@oscar.home
+  password: <secret, fuera de Git>
+  version: 2   # Beszel >= 0.9.0
+
+# Home Assistant — long-lived access token generado a mano desde el perfil de HA
+widget:
+  type: homeassistant
+  url: http://<IP-de-VM-101>
+  key: <token, fuera de Git>
+  fields: ["people_home", "lights_on", "switches_on"]
 ```
 
 El token `root@pam!homepage` se creó con `privsep=1` (sin permisos hasta asignarle un rol explícito) — el rol `PVEAuditor` en el path `/` se asignó a mano desde la UI de Proxmox (Datacenter → Permissions → Add → Token Permission), porque asignar roles vía API quedó bloqueado por las reglas de seguridad del entorno de automatización usado para este build.
