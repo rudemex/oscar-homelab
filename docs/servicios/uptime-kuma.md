@@ -21,7 +21,7 @@ sidebar_position: 11
 
 ## Monitores reales configurados
 
-8 monitores HTTP, chequeo cada 60s, apuntando a la IP LAN real de cada servicio (no al hostname público) para medir el backend directo y no depender de Cloudflare Access en el camino:
+9 monitores HTTP, chequeo cada 60s, apuntando a la IP LAN real de cada servicio (no al hostname público) para medir el backend directo y no depender de Cloudflare Access en el camino — cubre todo lo que el inventario marca como "Actual" excepto Kuma mismo (ver "nadie vigila al vigilante" más abajo):
 
 | Monitor | URL | Nota |
 |---|---|---|
@@ -33,6 +33,7 @@ sidebar_position: 11
 | Proxmox | `https://192.168.0.233:8006` | con `ignoreTls` (certificado self-signed) |
 | AdGuard Home | `http://192.168.0.93:80` | LXC 100 |
 | Home Assistant | `http://192.168.0.195:8123` | VM 101 |
+| Cloudflare Tunnel | `http://192.168.0.156:20241/ready` | endpoint de salud propio de `cloudflared`, expuesto porque corre en `network_mode: host` |
 
 Se armaron vía la API de socket.io (paquete `uptime-kuma-api`, no la REST API — Kuma no tiene una para crear monitores, el API Key propio de Kuma solo sirve para el endpoint de métricas de Prometheus, no para esto).
 
