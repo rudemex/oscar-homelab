@@ -63,27 +63,25 @@ Si en el futuro se agregan integraciones con estado externo (cámaras RTSP, MQTT
 - entidades marcadas `unavailable` (indica integración o dispositivo caído);
 - automatizaciones fallidas en el logbook;
 - disponibilidad HTTP del panel (puerto 80 en esta instancia — ver nota arriba);
+- consumo de CPU/RAM y tamaño de `home-assistant_v2.db`;
+- reinicios del proceso/contenedor.
 
 ## Configuración necesaria para el Tunnel
 
-Home Assistant rechaza por defecto cualquier request que no venga de una IP declarada como proxy de confianza — sin esto, `ha.oscarlab.com.ar` daba `400: Bad Request` aunque el túnel y Access estaban bien. Hace falta en `configuration.yaml`:
+Home Assistant rechaza por defecto cualquier request que declare venir de un proxy (trae headers `X-Forwarded-For`/`X-Forwarded-Proto`, como hace `cloudflared`) si el origen no está en una lista de proxies de confianza — sin esto, `ha.oscarlab.com.ar` daba `400: Bad Request` aunque el túnel y Access estaban perfectamente sanos.
 
-```yaml
-http:
-  use_x_forwarded_for: true
-  trusted_proxies:
-    - 192.168.0.156   # core01 — ahí corre cloudflared con network_mode: host
-```
+**Ojo con la versión:** en Home Assistant **2026.8+**, esto ya no se configura en `configuration.yaml` — un bloque `http: trusted_proxies: [...]` ahí se ignora en silencio, sin error, lo que hace parecer que "no hizo nada" (así fue acá: quedó bien escrito, pasó `ha core check`, y el 400 siguió igual). El lugar real es la UI:
 
-Se edita directo en `/mnt/data/supervisor/homeassistant/configuration.yaml` (HAOS no tiene SSH habilitado por defecto en esta instalación; se usó la API de guest-agent de Proxmox para acceder al shell de la VM). Validar con `ha core check` antes de reiniciar con `ha core restart` — si la config tiene un error de sintaxis, `ha core check` lo avisa sin tumbar el servicio en producción.
-- consumo de CPU/RAM y tamaño de `home-assistant_v2.db`;
-- reinicios del proceso/contenedor.
+**Configuración → Sistema → Red → Servidor HTTP → Proxies de confianza** → agregar `192.168.0.156` (`core01`, donde corre `cloudflared` con `network_mode: host`).
+
+Si en algún momento se migra a una instalación más vieja que no tenga ese panel en Red, ahí sí correspondería el bloque YAML de arriba — confirmar la versión antes de asumir cuál de los dos caminos aplica.
 
 ## Troubleshooting
 
 - **Una integración marca `unavailable`** → dispositivo offline en la VLAN IOT, o token/credencial expirado → verificar conectividad de red hacia el dispositivo, revisar logs de la integración específica.
 - **Una automatización no dispara** → condición mal definida o entidad trigger renombrada → revisar el trace de la automatización en Settings → Automations, validar el `entity_id` usado.
 - **El panel no responde pero el contenedor está `Up`** → proceso colgado o `home-assistant_v2.db` corrupta/bloqueada → ver [Servicio Docker caído](../runbooks/docker-servicio-caido.md), revisar logs de arranque.
+- **`400: Bad Request` entrando por `ha.oscarlab.com.ar`, pero por LAN funciona bien** → falta el proxy de confianza — ver "Configuración necesaria para el Tunnel" arriba. El log (`docker logs homeassistant`) lo confirma con `A request from a reverse proxy was received from <IP>, but your HTTP integration is not set-up for reverse proxies`.
 
 ## Ideas de laboratorio
 
