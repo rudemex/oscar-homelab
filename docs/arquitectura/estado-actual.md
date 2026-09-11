@@ -42,7 +42,7 @@ Proxmox ya está instalado, `core01` existe con Docker corriendo, y hay ocho ser
 
 ## Dominio — reservado, todavía sin usar
 
-`oscarlab.ar` y `oscarlab.com.ar` ya están registrados (NIC Argentina). Ninguno de los dos está apuntado a nada todavía — es un recurso disponible para cuando se implemente [Cloudflare Tunnel + Access](../servicios/cloudflare-tunnel.md) y Let's Encrypt vía DNS-01, no un servicio en uso hoy.
+`oscarlab.ar` y `oscarlab.com.ar` ya están registrados (NIC Argentina, pagos — $25.500 y $8.500 ARS respectivamente, no gratuitos). Ninguno de los dos está apuntado a nada todavía — es un recurso disponible para cuando se implemente [Cloudflare Tunnel + Access](../servicios/cloudflare-tunnel.md) y Let's Encrypt vía DNS-01, no un servicio en uso hoy.
 
 ## Backups — parcialmente resuelto
 
