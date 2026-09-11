@@ -261,17 +261,12 @@ setInterval(updateResources, 5000);
 
 ### De texto chico a barra de progreso
 
-La primera versión de este bloque era solo ícono + `%` en texto chico — poco legible de un vistazo, y sin el valor absoluto (cuántos GB usados de cuántos totales), que es la parte que más importa para saber si hay margen real. Se probó también un gauge circular (SVG, % adentro del anillo) — más grande, pero seguía sin transmitir de un vistazo "qué tan cerca del límite" tan bien como una barra horizontal. La versión final: tres filas apiladas, una por recurso, cada una con ícono + nombre arriba, el rango real al lado, y abajo una barra de progreso con el `%` al final —
+La primera versión de este bloque era solo ícono + `%` en texto chico — poco legible de un vistazo, y sin el valor absoluto (cuántos GB usados de cuántos totales), que es la parte que más importa para saber si hay margen real. Se probó también un gauge circular (SVG, % adentro del anillo) — más grande, pero seguía sin transmitir de un vistazo "qué tan cerca del límite" tan bien como una barra horizontal, y ocupaba más alto que ancho. La versión final: tres columnas lado a lado (CPU, RAM, Disco), cada una con un ícono grande a la izquierda y, a la derecha, 3 líneas — nombre, el rango real, y la barra de progreso con el `%` al lado —
 
 ```
-[ícono] CPU        2 núcleos
-        [▓▓▓▓░░░░░░░░░░░░░░░░]  18%
-
-[ícono] RAM        1.4/8.0 GB
-        [▓▓▓▓▓▓░░░░░░░░░░░░░░]  17%
-
-[ícono] Disco       10.1/57.1 GB
-        [▓▓▓▓▓░░░░░░░░░░░░░░░]  18%
+     ┌ CPU              ┌ RAM              ┌ Disco
+[i]  │ 2 núcleos    [i]  │ 1.4/8.0 GB   [i]  │ 10.1/57.1 GB
+     └ [▓▓░░░] 18%       └ [▓▓░░░] 17%       └ [▓▓░░░] 18%
 ```
 
 ```js
@@ -285,13 +280,16 @@ function resourceColor(key, pct) {
 
 function resourceItemHtml(key, pct, name, detailText) {
   var color = resourceColor(key, pct);
-  // ícono + nombre + valor arriba; abajo un <div class="oscar-bar-track">
-  // con un <div class="oscar-bar-fill"> cuyo width inline es "pct%" y cuyo
-  // background es `color` — la barra más simple posible, sin SVG ni canvas.
+  // ícono grande a la izquierda; a la derecha, un <div class="oscar-bar-body">
+  // de 3 líneas (nombre, valor, barra+%). La barra es un
+  // <div class="oscar-bar-track"> con un <div class="oscar-bar-fill"> cuyo
+  // width inline es "pct%" y cuyo background es `color` — sin SVG ni canvas.
 }
 ```
 
 El color base es distinto por recurso (cian CPU, verde-agua RAM, violeta disco — la misma paleta del brillo del título) tanto en el ícono como en el relleno de la barra, pero por encima de 75% pasa a ámbar y por encima de 90% a rojo, sin importar cuál sea. El criterio de esos dos umbrales salió directo de lo que pasó con la RAM: llegar al 91% real fue lo que forzó [subir `core01` de 4 a 8 GB](../proxmox/crear-vm-core01.md#sizing-inicial) — la idea es que la próxima vez que algún recurso se acerque a ese punto, se note en el dashboard sin tener que ir a mirar Glances aparte.
+
+El ícono se agrandó a propósito (1.8rem, casi el doble del que tenía al lado del nombre en la versión anterior) y quedó **en paralelo** con las 3 líneas de texto, no arriba de ellas — así su alto no se suma al del texto, sino que compite con él por el más alto de los dos. Eso deja a toda la columna de recursos con una altura parecida a la del bloque hora/fecha y al de clima, que son los otros dos bloques de esta misma fila — el objetivo era que las tres columnas se sientan del mismo peso visual, no que una quede visiblemente más chica que las otras dos.
 
 El widget `glances` **sigue existiendo** en `widgets.yaml` — hace falta que esté configurado ahí para que esa ruta interna funcione (Homepage busca la URL/versión/disco por índice en su config real, no por lo que se le pase en la query). Lo que cambia es que ya no se muestra: se oculta con CSS, sin tocarlo de ningún otro modo —
 
