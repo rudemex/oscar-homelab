@@ -185,7 +185,7 @@ Van en **`widgets.yaml`**, un archivo separado de `settings.yaml` — es un erro
 
 ## Fondo de pantalla
 
-Es una foto real (aurora boreal, provista por el autor), no el gradiente CSS que había antes — Homepage la sirve nativamente vía `background:` en `settings.yaml`, con blur/saturación/brillo/opacidad ajustables. Requiere montar un volumen aparte:
+Es una foto real (aurora boreal), no el gradiente CSS que había antes — Homepage la sirve nativamente vía `background:` en `settings.yaml`, con blur/saturación/brillo/opacidad ajustables. Requiere montar un volumen aparte:
 
 ```yaml
 # compose.yaml
@@ -197,14 +197,20 @@ volumes:
 ```yaml
 # settings.yaml
 background:
-  image: /images/bg-1.jpg
-  blur: xl    # bien alto: disimula que la foto (1672×941) se ve pixelada al estirarse en pantallas más grandes
+  image: /images/bg-2.jpg
+  blur: md
   saturate: 90
-  brightness: 45
-  opacity: 55   # bajado de 90 a 55 — con más se perdía el contraste contra las tarjetas
+  brightness: 40
+  opacity: 40
 ```
 
-La imagen original pesaba 4.3 MB (PNG) — se convirtió a JPEG calidad 82 antes de subirla (441 KB), porque esto lo va a cargar también el navegador de la Raspberry que eventualmente maneje la pantalla táctil del rack, y 4+ MB por cada carga de página es innecesario para una foto de fondo.
+Pasó por dos imágenes antes de esta:
+
+1. Una foto provista por el autor (4.3 MB PNG, 1672×941) — se veía pixelada al estirarse en pantallas más grandes, incluso con blur alto.
+2. Dos intentos con fotos de un banco de imágenes de pago (`magnific.com`/Freepik) — ambas con la marca de agua **"Magnific" repetida por toda la imagen** en cualquier resolución consultada (se probó pidiendo hasta 2560px de ancho vía el parámetro `w=` de su CDN, el mismo dominio cachea 2000px como máximo real). Quedaron descartadas — no se puede publicar una imagen con marca de agua de un banco pago sin la licencia.
+3. La actual: **Pexels** (banco 100% gratuito, sin atribución obligatoria, sin marca de agua), foto real de aurora verde sobre cielo estrellado, 1920×1280, sin horizonte/paisaje que compita visualmente con las tarjetas — 101 KB después de la compresión propia de Pexels, no hizo falta recomprimir.
+
+Regla práctica que quedó de esto: antes de usar cualquier imagen de un buscador, chequear si el dominio es un banco de pago (Freepik/Magnific, Shutterstock, etc.) — casi siempre entregan preview con marca de agua sin importar qué resolución se pida por URL.
 
 `custom.css` ya no define el fondo (antes tenía un gradiente + grilla armado en CSS puro, antes de tener esta imagen) — la opacidad de las tarjetas y la barra de widgets se subió dos veces (0.55/0.65 → 0.7/0.78 → **0.85/0.9**, casi opacas) porque con una foto de verdad de fondo, cualquier transparencia notoria le come contraste al texto — mucho más agresivo de lo que hacía falta con el gradiente CSS liso de antes.
 
