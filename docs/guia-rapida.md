@@ -131,7 +131,7 @@ Pegar esto (`Ctrl+O`, Enter para guardar; `Ctrl+X` para salir):
 ```yaml
 services:
   uptime-kuma:
-    image: louislam/uptime-kuma:1.23.16
+    image: louislam/uptime-kuma:1.23.17
     restart: unless-stopped
     volumes:
       - uptime-kuma-data:/app/data
