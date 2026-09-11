@@ -9,7 +9,7 @@ La tabla resume el rol previsto. **Objetivo** no significa “instalar ya”: ca
 
 | Servicio | Estado | Ubicación sugerida | Para qué lo usamos |
 |---|---|---|---|
-| [Docker y Docker Compose](./docker-compose.md) | Objetivo · Core | VM `core01` y, cuando convenga, VMs específicas | ejecutar n8n, Uptime Kuma, dashboards y utilidades |
+| [Docker y Docker Compose](./docker-compose.md) | **Actual** · Core | VM `core01` | ejecutar n8n, Uptime Kuma, dashboards y utilidades |
 | [EasyPanel](./easypanel.md) | Laboratorio · Plataforma de apps | VM Docker dedicada o `core01` durante la etapa inicial | comparar un PaaS casero contra el flujo GitOps; redundante con Compose+k3s si no aporta algo distinto |
 | [Sonatype Nexus Repository](./nexus.md) | Objetivo · DevOps | VM `devops01` | proxy/cache de npm |
 | [Forgejo / Git local](./forgejo.md) | Objetivo · Decisión pendiente | VM `devops01` o VM pequeña dedicada | mirror de repositorios importantes |
@@ -18,7 +18,7 @@ La tabla resume el rol previsto. **Objetivo** no significa “instalar ya”: ca
 | [Prometheus](./prometheus.md) | Objetivo · Observabilidad | VM observabilidad o k3s, según fase | métricas de hosts |
 | [Grafana](./grafana.md) | Objetivo · Observabilidad | VM observabilidad o Docker Core | dashboard de rack |
 | [Loki](./loki.md) | Objetivo · Logs | VM observabilidad o k3s | logs de contenedores |
-| [Uptime Kuma](./uptime-kuma.md) | Objetivo · Disponibilidad | Docker Core | HTTP checks |
+| [Uptime Kuma](./uptime-kuma.md) | **Actual** · Disponibilidad | Docker Core | HTTP checks |
 | [n8n](./n8n.md) | Objetivo · Automatización | Docker Core o VM dedicada cuando crezca | backups coordinados |
 | [Home Assistant](./home-assistant.md) | Objetivo · Hogar | Raspberry Pi 5 futura o VM dedicada | automatización doméstica |
 | [Cloudflare Tunnel + Access](./cloudflare-tunnel.md) | Objetivo · Acceso remoto | VM Core o nodo dedicado de conectividad | publicar una demo web |

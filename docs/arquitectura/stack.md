@@ -10,7 +10,7 @@ Una cosa es el mínimo técnico para correr algo (ver [requisitos mínimos](../r
 | Capa | Elegimos | Estado | Por qué (resumen) |
 |---|---|---|---|
 | Virtualización | [Proxmox VE](../proxmox/instalacion.md) | **Actual** — `oscar-core`, VE 9.2 | snapshots/backups por VM, aislamiento entre plataformas |
-| Contenedores | [Docker + Compose](../servicios/docker-compose.md) | Objetivo | estándar de facto, curva de entrada baja |
+| Contenedores | [Docker + Compose](../servicios/docker-compose.md) | **Actual** — `core01`, Docker 29 | estándar de facto, curva de entrada baja |
 | Orquestación | [k3s](../kubernetes/instalacion-k3s.md) | Objetivo | Kubernetes real con bajo overhead en un nodo chico |
 | GitOps | [Argo CD](../kubernetes/instalacion-argocd.md) | Objetivo | reconciliación declarativa, UI para aprender el modelo |
 | Registry/artefactos | [Nexus Repository](../servicios/nexus.md) | Objetivo | un solo servicio para imágenes OCI + proxy npm |

@@ -5,15 +5,15 @@ services:
     criticality: C0
     target: oscar-core
   - id: docker-core
-    status: planned
+    status: current
     criticality: C1
-    target: core01
+    target: core01 (vm 102, DHCP — sin IP fija todavía)
   - id: adguard-home
     status: current
     criticality: C1
     target: oscar-core (lxc 100)
   - id: uptime-kuma
-    status: planned
+    status: current
     criticality: C2
     target: core01
   - id: n8n

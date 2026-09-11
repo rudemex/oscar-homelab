@@ -5,7 +5,7 @@ sidebar_position: 11
 
 # Uptime Kuma
 
-**Estado:** Objetivo · Disponibilidad  
+**Estado:** Actual · Disponibilidad — corriendo en `core01`  
 **Dónde corre:** Docker Core  
 **Sizing inicial:** 1 vCPU, 512 MB–1 GB RAM  
 **Red/puertos:** 3001 interno  

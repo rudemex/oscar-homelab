@@ -10,7 +10,7 @@ Esta página es la única fuente de "qué existe de verdad hoy". El resto del si
 Se actualiza en cada cambio de fase real (ver [roadmap](../roadmap/roadmap-general.md)), no en cada edición de documentación.
 
 :::caution
-Proxmox ya está instalado y hay dos servicios reales corriendo (abajo). Todo lo demás del sitio que dice "Objetivo" sigue sin existir — esta página es la línea exacta entre lo uno y lo otro.
+Proxmox ya está instalado, `core01` existe con Docker corriendo, y hay cuatro servicios reales arriba (abajo). Todo lo demás del sitio que dice "Objetivo" sigue sin existir — esta página es la línea exacta entre lo uno y lo otro.
 :::
 
 ## Hardware — existe físicamente
@@ -33,22 +33,35 @@ Proxmox ya está instalado y hay dos servicios reales corriendo (abajo). Todo lo
 | Proxmox VE 9.2.18 | Hypervisor | Actual | Nodo único `oscar-core`, storage `local-lvm` (M.2) + `Backups` (SATA, dir storage). Sano: load bajo, sin swap, sin tareas fallidas. |
 | Home Assistant OS 18.2 | VM (vmid 101) | Actual | 2 vCPU / 4 GB / 32 GB disco, instalada vía community-script. Ver [Home Assistant](../servicios/home-assistant.md). |
 | AdGuard Home | LXC (vmid 100) | Actual | 1 vCPU / 512 MB, instalada vía community-script. Reemplaza a Pi-hole — ver [DNS con AdGuard Home](../red/dns-adguard.md). |
+| `core01` — Ubuntu 24.04 LTS + Docker 29 | VM (vmid 102) | Actual | 2 vCPU / 4 GB / 60 GB disco, creada desde cloud image vía Cloud-Init (SSH por clave, sin password). IP por DHCP, sin fijar todavía. Ver [crear VM core01](../proxmox/crear-vm-core01.md). |
+| Uptime Kuma | Docker en `core01` | Actual | primer servicio real del stack Docker — `/srv/oscar/apps/uptime-kuma/`. Ver [Uptime Kuma](../servicios/uptime-kuma.md). |
+
+## Backups — parcialmente resuelto
+
+Ya existe un job `vzdump` automático (lunes a viernes 00:00, `all:1` así que cualquier VM/LXC nueva se suma sola, modo snapshot, comprimido zstd, hacia el storage `Backups`, retención 5 últimos + 1 mensual + 6 anuales) — y ya generó backups reales de la VM 101 y el LXC 100 con status `OK`.
+
+Lo que todavía falta, y es la parte que realmente importa para disaster recovery:
+
+- **Sin copia off-site** — el backup vive en el mismo Dell que respalda. Un fallo del equipo completo (placa, robo, incendio) se lleva la VM *y* su backup juntos — ver [estrategia 3-2-1](../backup-dr/estrategia-321.md).
+- **Nunca se probó un restore** — un backup no verificado es una hipótesis.
+- **La config del propio Proxmox (`/etc/pve`) no está en este job** — `vzdump` respalda VMs/LXC, no la configuración del hypervisor.
 
 ## Lo que NO existe todavía
 
-- `core01` / Docker Core y cualquier servicio Docker (n8n, Uptime Kuma, Grafana, Nexus, etc.);
+- n8n, Grafana, Prometheus, Loki, Nexus y el resto del stack Docker más allá de Uptime Kuma;
 - k3s / Argo CD;
 - red segmentada / VLANs / firewall dedicado (OPNsense);
-- backups automatizados o probados (ni de las VMs/LXC actuales, ni off-site);
+- copia de backup off-site, restore probado, backup de la config de Proxmox, backup de `core01` (ver arriba y abajo);
 - Raspberry Pi 5, NAS, switch gestionable definitivo.
 
 ## Próximo paso real
 
-El build no siguió el orden lineal del [roadmap](../roadmap/roadmap-general.md) al pie de la letra — Proxmox y dos servicios del hogar (Fase 7) ya existen antes de que exista `core01` (Fase 3) o backups probados (Fase 4). Eso está bien: el roadmap es una guía de dependencias razonables, no una secuencia obligatoria. Lo que sí falta con prioridad, dado lo que ya hay corriendo:
+El build no siguió el orden lineal del [roadmap](../roadmap/roadmap-general.md) al pie de la letra — Proxmox y dos servicios del hogar (Fase 7) ya existían antes de que existiera `core01` (Fase 3), y el backup local (parte de Fase 4) ya estaba resuelto sin que se instalara nada del medio. Eso está bien: el roadmap es una guía de dependencias razonables, no una secuencia obligatoria. Lo que sí falta con prioridad, dado lo que ya hay corriendo:
 
-1. **Backup de lo que ya existe** — ni la VM de Home Assistant ni el LXC de AdGuard tienen backup probado todavía; son los primeros candidatos reales para `vzdump`, no solo teoría.
-2. `core01` con Docker, para tener un lugar real donde correr el resto del stack.
-3. Integrar el UPS (ver [backlog](../roadmap/backlog.md)) — más urgente ahora que hay dos servicios reales que un corte de luz podría corromper.
+1. **Copia off-site del backup** — sigue siendo la brecha real de disaster recovery; el backup local ya existe, pero no protege contra la pérdida del Dell completo.
+2. **`core01` todavía no está en el job de backup** — el `vzdump all:1` la incluye automáticamente en la próxima corrida programada, pero conviene confirmarlo explícitamente una vez que tenga algo de valor corriendo (hoy solo tiene Uptime Kuma, sin datos críticos todavía).
+3. Integrar el UPS (ver [backlog](../roadmap/backlog.md)) — más urgente ahora que hay tres servicios reales que un corte de luz podría corromper.
+4. Sumar el próximo servicio real a `core01` (n8n es el siguiente candidato natural del [stack elegido](./stack.md)).
 
 ## Por qué esta página existe
 
