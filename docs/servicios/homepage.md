@@ -227,6 +227,8 @@ Layout final pedido, en 4 filas apiladas:
 
 El clima y la hora/fecha arrancaron al revés (hora a la izquierda, clima a la derecha) y se intercambiaron de lado después — no hay una razón funcional para uno u otro orden, fue puramente estético. El intercambio es un cambio de una línea en `buildOscarHeader()`: qué `<span>`s van adentro de `.oscar-col-left` vs `.oscar-col-right`, sin tocar CSS (esas clases solo fijan el borde de alineación de la columna, no el contenido).
 
+La fecha lleva un ícono de calendario al lado, y "Buenos Aires" un pin de ubicación — mismo estilo SVG de trazo que el resto (`CALENDAR_SVG`/`PIN_SVG` en `custom.js`, clase `.oscar-inline-icon` en el CSS). En la fecha, el ícono va en un `<span>` separado del texto (que sigue siendo `#oscarDate`, actualizado por `updateClock()`) — necesario porque `textContent` pisaría cualquier HTML que estuviera adentro del mismo nodo, incluido el ícono.
+
 ### Primer intento (revertido): mover los nodos nativos con `appendChild`
 
 La primera versión sacaba los widgets nativos `resources`/`search` de la fila donde Homepage los renderiza por defecto y los movía, con `appendChild`, a los contenedores del header custom — mismo nodo real de React, solo reposicionado. Funcionaba visualmente, pero **rompía la página entera de a ratos** con:
@@ -292,6 +294,8 @@ function resourceItemHtml(key, pct, name, detailText) {
 El color base es distinto por recurso (cian CPU, verde-agua RAM, violeta disco — la misma paleta del brillo del título) tanto en el ícono como en el relleno de la barra, pero por encima de 75% pasa a ámbar y por encima de 90% a rojo, sin importar cuál sea. El criterio de esos dos umbrales salió directo de lo que pasó con la RAM: llegar al 91% real fue lo que forzó [subir `core01` de 4 a 8 GB](../proxmox/crear-vm-core01.md#sizing-inicial) — la idea es que la próxima vez que algún recurso se acerque a ese punto, se note en el dashboard sin tener que ir a mirar Glances aparte.
 
 El ícono se agrandó a propósito (1.8rem, casi el doble del que tenía al lado del nombre en la versión anterior) y quedó **en paralelo** con las 3 líneas de texto, no arriba de ellas — así su alto no se suma al del texto, sino que compite con él por el más alto de los dos. Eso deja a toda la columna de recursos con una altura parecida a la del bloque hora/fecha y al de clima, que son los otros dos bloques de esta misma fila — el objetivo era que las tres columnas se sientan del mismo peso visual, no que una quede visiblemente más chica que las otras dos.
+
+El valor real (`2 núcleos`, `1.4/8.0 GB`) se agrandó de 0.62rem a 0.72rem — es el dato que más importa de las 3 líneas y el que menos peso visual tenía. Para compensar el espacio que ganó, se achicó el `gap` entre el nombre de arriba y el bloque valor+barra de abajo (`.oscar-bar-body`, de 0.15rem a 0.05rem) — menos interlineado entre el título y el resto, para que las 3 líneas se lean como un solo bloque compacto en vez de tres líneas sueltas.
 
 El widget `glances` **sigue existiendo** en `widgets.yaml` — hace falta que esté configurado ahí para que esa ruta interna funcione (Homepage busca la URL/versión/disco por índice en su config real, no por lo que se le pase en la query). Lo que cambia es que ya no se muestra: se oculta con CSS, sin tocarlo de ningún otro modo —
 
