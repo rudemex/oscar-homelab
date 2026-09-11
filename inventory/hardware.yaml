@@ -76,6 +76,26 @@ cctv:
       height: 41
     status: current
 
+status_indicator:
+  # Ver docs/hardware/led-status.md y apps/oscar-led-controller/README.md
+  current_providers:
+    - type: philips-hue
+      status: current
+      note: prueba de concepto original, controla un bulb/luz Hue via el Bridge
+    - type: tp-link-tapo
+      model: L930-5 LED strip
+      status: current
+      note: protocolo KLAP no oficial, investigado y documentado en el README de la app
+  target_hardware:
+    controller: ESP32
+    strip: WS2812B (direccionable por LED)
+    status: decision-pending
+    note: >-
+      Hardware final planeado para reemplazar Hue/Tapo — permite pintar
+      segmentos individuales (ZoneCapableProvider), que ni Hue ni Tapo
+      soportan hoy. Instalación física pensada como dos tramos espejados,
+      uno por lateral del rack.
+
 rack_accessories:
   - item: GeeekPi 9-inch 1280x720 Touch LCD
     units: 3U

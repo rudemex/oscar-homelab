@@ -22,6 +22,7 @@ Una cosa es el mínimo técnico para correr algo (ver [requisitos mínimos](../r
 | Acceso remoto | [Cloudflare Tunnel + Access](../servicios/cloudflare-tunnel.md) | Objetivo | cero puertos abiertos, identidad delante de paneles |
 | Backups | [Restic](../servicios/restic.md) + [estrategia 3-2-1](../backup-dr/estrategia-321.md) | Objetivo | cifrado, deduplicado, backend agnóstico |
 | Hogar | [Home Assistant](../servicios/home-assistant.md) | **Actual** — VM 101 `haos-18.2` en `oscar-core` | estándar de facto en automatización doméstica self-hosted |
+| Indicador visual | [`oscar-led-controller`](../hardware/led-status.md) (app propia) | **Actual** (código) — Hue/Tapo hoy, WS2812B+ESP32 planeado | traduce el estado real de O.S.C.A.R. a color/animación en una luz física |
 | IA | [Agentes + MCP + RAG](../ia/vision-general.md) | Futuro (fases) | capa final, sobre todo lo anterior ya observable |
 
 Cada fila tiene su propia página con instalación, seguridad, backup y troubleshooting — esta tabla es el mapa, no el detalle. Si una elección todavía no está tomada, dice "Decisión pendiente" en vez de inventarse una para completar la tabla.
