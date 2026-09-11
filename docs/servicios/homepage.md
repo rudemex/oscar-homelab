@@ -306,7 +306,11 @@ updateWeather(); setInterval(updateWeather, 10 * 60 * 1000);
 
 Open-Meteo es la misma API pública sin key que ya usaba el widget nativo — acá se llama directo con `fetch`, sin pasar por Homepage. El header entero se inserta en `document.body`, no dentro del contenedor que maneja React, así un re-render de Homepage no lo pisa; el `setInterval` de 2s es red de seguridad + remide el ancho del subtítulo (cambia con el viewport).
 
-`custom.css` pone el header como grid de 3 columnas (`grid-template-columns: 1fr auto 1fr`), con la columna izquierda alineada a la derecha y la derecha alineada a la izquierda (para que ambas "miren" hacia el título central), colapsando a una sola columna centrada en mobile (`max-width: 640px`). Hora y clima comparten estilo (texto blanco `#f8fafc`, `text-shadow` para separarse de la foto, sin fondo ni borde); fecha y ciudad van más chicas debajo de cada una. El título sigue con la animación de glow tipo aurora, cicla color y sombra entre celeste/verde-agua/violeta cada 6s:
+`custom.css` pone el header como grid de 3 columnas (`grid-template-columns: 1fr auto 1fr`). Ojo con una distinción que no es obvia: **`justify-self`** posiciona el bloque entero dentro de su columna (fecha pegada al borde izquierdo de la página, clima al derecho — `justify-self: start` / `end`), mientras que **`align-items` del propio `.oscar-col`** centra las dos líneas *entre sí* dentro de ese bloque (hora arriba de fecha, temperatura arriba de ciudad) — son dos ejes de alineación distintos que hay que separar, si se usa solo uno de los dos el bloque termina centrado contra el título en vez de pegado al borde, o las líneas quedan alineadas a un costado en vez de centradas entre ellas. En mobile (`max-width: 640px`) las tres columnas colapsan a una y las tres pasan a `justify-self: center`.
+
+El ícono de clima es SVG inline propio (`WEATHER_SVG` en `custom.js`), no emoji — así el color (blanco, `currentColor`) y la sombra combinan con el resto del texto sin depender de cómo cada sistema operativo dibuje el emoji. Son 7 íconos monolínea (sol, parcialmente nublado, nublado, niebla, lluvia, nieve, tormenta) mapeados desde los [códigos WMO](https://open-meteo.com/en/docs) que devuelve Open-Meteo.
+
+Hora y clima comparten estilo (texto blanco `#f8fafc`, `text-shadow` para separarse de la foto, sin fondo ni borde); fecha y ciudad van más chicas debajo de cada una. El título sigue con la animación de glow tipo aurora, cicla color y sombra entre celeste/verde-agua/violeta cada 6s:
 
 ```css
 @keyframes oscar-aurora-glow {
