@@ -152,36 +152,24 @@ widget:
 
 El token `root@pam!homepage` se creó con `privsep=1` (sin permisos hasta asignarle un rol explícito) — el rol `PVEAuditor` en el path `/` se asignó a mano desde la UI de Proxmox (Datacenter → Permissions → Add → Token Permission), porque asignar roles vía API quedó bloqueado por las reglas de seguridad del entorno de automatización usado para este build.
 
-## Widgets de información (barra superior)
+## Widgets de información — historia (ya no se ven en pantalla)
 
-Van en **`widgets.yaml`**, un archivo separado de `settings.yaml` — es un error fácil de cometer (yo mismo lo cometí primero: los puse dentro de `settings.yaml` bajo una clave `widgets:`, y Homepage los ignoró en silencio sin tirar ningún error, así que la página siguió mostrando el widget de recursos viejo nomás; costó varias vueltas de "no veo cambios" hasta confirmar con curl directo al contenedor que el HTML servido no tenía el contenido nuevo).
+Los widgets nativos de info (`resources`, `datetime`, `openmeteo`, `search`) van en **`widgets.yaml`**, un archivo separado de `settings.yaml` — es un error fácil de cometer (yo mismo lo cometí primero: los puse dentro de `settings.yaml` bajo una clave `widgets:`, y Homepage los ignoró en silencio sin tirar ningún error; costó varias vueltas de "no veo cambios" hasta confirmar con curl directo al contenedor que el HTML servido no tenía el contenido nuevo).
+
+Dicho esto: hoy **ninguno de los cuatro se ve en pantalla**. `datetime`, `openmeteo` y `search` se reemplazaron por versiones propias en `custom.js` (ver las secciones de abajo), y `resources` quedó reemplazado por `glances`, configurado pero oculto (ver "CPU/RAM/disco y buscador" más abajo). Lo único que queda en `widgets.yaml` es:
 
 ```yaml
 # widgets.yaml
-- resources:
+- glances:
+    url: http://192.168.0.156:61208
+    version: 4
     cpu: true
-    memory: true
-    disk: /
-- datetime:
-    text_size: xl
-    locale: es-AR
-    format:
-      dateStyle: long
-      timeStyle: short
-      hour12: false
-- openmeteo:
-    label: Buenos Aires
-    latitude: -34.6037
-    longitude: -58.3816
-    timezone: America/Argentina/Buenos_Aires
-    units: metric
-- search:
-    provider: google
-    showSearchSuggestions: true
-    target: _blank
+    mem: true
+    disk: /hostroot
+    expanded: true
 ```
 
-`openmeteo` es el widget de clima recomendado por Homepage — no pide registro ni API key (a diferencia de OpenWeatherMap). `settings.yaml` solo tiene título/tema/layout — nada de widgets de info ahí.
+`settings.yaml` solo tiene título/tema/layout/idioma/fondo — nada de widgets de info ahí, esa es justo la confusión de arriba.
 
 ## Fondo de pantalla
 
@@ -226,7 +214,7 @@ Homepage carga `config/custom.css` automáticamente (se sirve en `/api/config/cu
 Los nombres de clase (`.service`, `.service-name`, `.service-description`, `.service-group-name`, `.widget-container`) salen del código fuente de Homepage (`src/components/services/item.jsx` y `group.jsx`), no de la documentación pública — no están listados en `docs/configs/custom-css-js.md`, hubo que revisar el repo directo.
 
 
-## CPU/RAM/disco y buscador: reubicados dentro del header
+## CPU/RAM/disco y buscador: reconstruidos, no reubicados
 
 Layout final pedido, en 4 filas apiladas:
 
@@ -237,63 +225,59 @@ Layout final pedido, en 4 filas apiladas:
                           buscador
 ```
 
-`glances` (CPU/RAM/disco — ver más abajo por qué no es el widget `resources` original) y `search` siguen siendo los widgets **nativos** de Homepage (traen datos reales del propio backend) — lo que cambia es su posición: `custom.js` los saca de la fila donde Homepage los renderiza por defecto y los mueve, con `appendChild`, a dos contenedores (`#oscarResourcesSlot`, `#oscarSearchSlot`) dentro del header custom:
+### Primer intento (revertido): mover los nodos nativos con `appendChild`
+
+La primera versión sacaba los widgets nativos `resources`/`search` de la fila donde Homepage los renderiza por defecto y los movía, con `appendChild`, a los contenedores del header custom — mismo nodo real de React, solo reposicionado. Funcionaba visualmente, pero **rompía la página entera de a ratos** con:
+
+```
+NotFoundError: Failed to execute 'removeChild' on 'Node':
+The node to be removed is not a child of this node.
+```
+
+Causa: el widget de recursos se refresca cada 1.5s vía React (`refreshInterval` interno). En algún ciclo de ese refresco, React intentó actualizar/reemplazar ese nodo **en su ubicación original** — pero ya no estaba ahí, porque `appendChild` lo había movido a otro lado del árbol. React no busca el nodo por posición en el documento en cada actualización; guarda una referencia directa, así que mover el nodo no rompe los *cambios de contenido* (por eso "funcionaba visualmente" un rato) — pero si React necesita tocar el **padre original** (insertar/quitar un hermano, por ejemplo en un remount del árbol), encuentra una estructura que ya no coincide con lo que espera, y explota. Es información que no está en ninguna documentación de Homepage — se encontró en producción, con la página realmente caída.
+
+### Solución real: reconstruir todo desde cero, nunca mover nodos ajenos
+
+Ninguno de los 4 bloques del header es hoy un widget nativo reposicionado. CPU/RAM/disco y el buscador se arman en `custom.js`, igual que ya se hacía con el reloj y el clima:
 
 ```js
-function relocateNativeWidgets() {
-  var resourcesSlot = document.getElementById("oscarResourcesSlot");
-  var searchSlot = document.getElementById("oscarSearchSlot");
-  if (!resourcesSlot || !searchSlot) return;
-
-  document.querySelectorAll(".information-widget-resource").forEach(function (el) {
-    if (el.parentNode !== resourcesSlot) resourcesSlot.appendChild(el);
-  });
-
-  var searchEl = document.querySelector(".widget-container:has(input)");
-  if (searchEl && searchEl.parentNode !== searchSlot) {
-    searchSlot.appendChild(searchEl);
-  }
+function updateResources() {
+  var slot = document.getElementById("oscarResourcesSlot");
+  fetch("/api/widgets/glances?index=0&version=4&disk=1")
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      // arma el HTML propio (ícono + % + etiqueta) a partir de d.cpu, d.mem, d.fs
+    });
 }
+setInterval(updateResources, 5000);
 ```
 
-Es **mover el nodo real**, no clonarlo ni reconstruirlo — `appendChild` sobre un nodo existente lo saca de donde estaba y lo pone en el nuevo lugar, sin recrearlo. Esto importa porque Homepage sigue actualizando esos widgets con React por su cuenta (nuevo % de CPU cada tanto, etc.): React actualiza por la referencia al nodo real que ya tiene guardada internamente, no por dónde vive ese nodo en el documento en un momento dado, así que reposicionarlo no le impide seguir refrescando los datos. El riesgo real (bajo pero no cero) es que Homepage renderizara nueva UI hermana esperando encontrar el nodo en su ubicación original — se ejecuta `relocateNativeWidgets()` en el mismo `setInterval` de 2s que reconstruye el resto del header, así que si Homepage llegara a devolverlo a su sitio, se vuelve a mover solo.
+`/api/widgets/glances` es la ruta **interna** de Homepage (mismo origen que la página) — el mismo endpoint que usaba el widget nativo por debajo. Pedirle los datos directo a Glances (`http://192.168.0.156:61208`) desde el navegador **no funciona para nadie que entre desde fuera de la LAN**: es una IP privada, e ir por afuera del túnel es exactamente el problema que Cloudflare Tunnel existe para resolver. Pasar por la ruta interna de Homepage evita ese problema (Homepage llama a Glances del lado del servidor) y de paso evita CORS.
 
-La fila original de Homepage (donde vivían antes de moverlos) queda vacía y sin CSS propio — sin hijos no ocupa espacio, no hace falta ocultarla a mano.
-
-Estilo, sin caja/fondo, igual que fecha y clima:
+El widget `glances` **sigue existiendo** en `widgets.yaml` — hace falta que esté configurado ahí para que esa ruta interna funcione (Homepage busca la URL/versión/disco por índice en su config real, no por lo que se le pase en la query). Lo que cambia es que ya no se muestra: se oculta con CSS, sin tocarlo de ningún otro modo —
 
 ```css
-#oscarResourcesSlot {
-  display: flex;
-  flex-direction: row;   /* el mismo div también es .oscar-col (column) — sin esto hereda vertical */
-  align-items: center;
-  gap: 1rem;
-  justify-content: center;
-}
-.widget-container {
-  background: transparent;
-  border: none;
-  color: #f8fafc;
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
-  font-size: 0.78rem;
-}
-/* el buscador es el único widget interactivo acá — necesita alguna pista
-   visual de que se puede escribir, aunque sea mínima */
-.widget-container:has(input) {
-  border-bottom: 1px solid rgba(248, 250, 252, 0.35);
+.information-widget-resource {
+  display: none !important;
 }
 ```
 
-`:has()` (soportado en todos los navegadores modernos desde 2023) distingue el buscador del resto sin necesitar el nombre real de su clase — que es una clase Tailwind generada dinámicamente, no una constante fija en el código fuente de Homepage.
+`display: none` no mueve ni desconecta el nodo del árbol de React — sigue exactamente donde Homepage lo puso, actualizándose cada 1.5s sin que nadie le preste atención. Es la diferencia clave con el intento anterior: ocultar es seguro, reubicar no.
 
-### Por qué es `glances`, no `resources`
+El buscador es más simple todavía — un `<input>` propio que en `Enter` abre `https://www.google.com/search?q=...` en una pestaña nueva. No hay necesidad de reusar el widget nativo de búsqueda para algo tan básico.
 
-El widget `resources` de Homepage, sin nada más, mide el **contenedor de Homepage**, no `core01` entero — CPU y RAM son las del propio proceso de Homepage (casi siempre ~0%, porque es una app liviana), no las de la VM completa. El disco tenía el mismo problema (`disk: /` apuntaba al filesystem interno del contenedor). Un primer parche montó el filesystem del host de solo lectura (`/:/hostfs:ro`) para arreglar el disco, pero CPU/RAM seguían siendo del contenedor — no hay forma de arreglar eso desde adentro del propio contenedor de Homepage.
+**Regla que queda de esto para cualquier próxima idea de "reposicionar un widget nativo de Homepage con JS":** no. Si hace falta en otro lugar del layout, se reconstruye desde cero (fetch a la ruta interna si hay datos reales de por medio, como acá) y se oculta el original con `display: none`, nunca se lo mueve por el DOM.
 
-La solución real fue sumar [Glances](./glances.md), un agente aparte corriendo con `network_mode: host` + `pid: host` en `core01`, que sí ve el host completo — y usar el widget `glances` de Homepage (no `resources`) para leer de ahí:
+### Por qué los datos vienen de `glances`, no de `resources`
+
+El widget nativo `resources` de Homepage, sin nada más, mide el **contenedor de Homepage**, no `core01` entero — CPU y RAM son las del propio proceso de Homepage (casi siempre ~0%, porque es una app liviana), no las de la VM completa. El disco tenía el mismo problema (`disk: /` apuntaba al filesystem interno del contenedor). No hay forma de arreglar eso desde adentro del propio contenedor de Homepage — hace falta un agente con visibilidad real del host.
+
+Por eso [Glances](./glances.md) corre aparte, con `network_mode: host` + `pid: host` en `core01`, y `widgets.yaml` usa el widget `glances` (no `resources`) para tener esos datos disponibles del lado del servidor:
 
 ```yaml
-# widgets.yaml
+# widgets.yaml — el único widget nativo que queda; no se muestra en pantalla
+# (ver "Solución real" arriba), pero tiene que seguir configurado acá para
+# que /api/widgets/glances tenga de dónde sacar los datos.
 - glances:
     url: http://192.168.0.156:61208
     version: 4
@@ -301,22 +285,19 @@ La solución real fue sumar [Glances](./glances.md), un agente aparte corriendo 
     mem: true
     disk: /hostroot
     expanded: true
-- search:
-    provider: google
-    focus: false
-    showSearchSuggestions: true
-    target: _blank
 ```
 
-`glances` está "diseñado para calzar con el widget `resources`" (según la propia documentación de Homepage) — usa el mismo componente visual por dentro, así que todo el CSS/JS de reubicación de arriba (que apunta a `.information-widget-resource`) siguió funcionando sin cambios al pasar de uno a otro.
-
-`expanded: true` agrega una segunda línea por métrica (total además del valor principal). También se agregó `language: es` en `settings.yaml`, así las etiquetas del widget (que veían en inglés — "cpu", "free", "total") salen en español.
+`expanded: true` no cambia nada en pantalla (el widget nativo está oculto), pero sí afecta qué campos trae la respuesta de `/api/widgets/glances`, que es lo que `custom.js` lee. También se agregó `language: es` en `settings.yaml` — no le pega a esta parte reconstruida a mano, pero sigue siendo relevante para cualquier otro widget nativo de Homepage que se use en el futuro.
 
 Instalar Glances también dejó en evidencia que **`core01` estaba al 91% de RAM** (4 GB asignados, con 9 contenedores reales corriendo) — se subió a 8 GB antes de sumarle uno más. Ver [creación de `core01`](../proxmox/crear-vm-core01.md#sizing-inicial).
 
 ## Header de 3 columnas: hora/fecha · O.S.C.A.R. · clima (custom.js)
 
 Homepage no tiene ningún lugar nativo para mostrar el nombre del proyecto en grande — el `title` de `settings.yaml` solo va al `<title>` del navegador y al manifest PWA, y el único widget relacionado ("logo") es un ícono de 48×48px, sin texto. La primera versión fue solo el título centrado con `datetime`/`openmeteo` como widgets nativos de Homepage abajo — pero esos widgets traen su propia caja/fondo (`.widget-container`) sin margen real para estilar cada uno suelto. Se reemplazó por un reloj y un clima **construidos desde cero** en `custom.js`, en 3 columnas: hora/fecha a la izquierda, "O.S.C.A.R." al centro, clima a la derecha — texto blanco sin caja, solo con sombra para que resalte contra la foto de fondo:
+
+:::note Snapshot histórico, no el archivo completo actual
+El bloque de abajo es la versión que agregó el reloj/clima por primera vez (con íconos emoji). Después se sumaron los íconos SVG, la fila de CPU/RAM/disco y el buscador (ver "CPU/RAM/disco y buscador" más arriba) al mismo `custom.js` — se deja este fragmento porque explica bien el razonamiento original de las 3 columnas, no porque sea el archivo completo tal cual está hoy en `core01`.
+:::
 
 ```js
 // custom.js
