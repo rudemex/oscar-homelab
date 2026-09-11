@@ -237,7 +237,7 @@ Layout final pedido, en 4 filas apiladas:
                           buscador
 ```
 
-`resources` (CPU/RAM/disco) y `search` siguen siendo los widgets **nativos** de Homepage (traen datos reales del propio backend) — lo que cambia es su posición: `custom.js` los saca de la fila donde Homepage los renderiza por defecto y los mueve, con `appendChild`, a dos contenedores (`#oscarResourcesSlot`, `#oscarSearchSlot`) dentro del header custom:
+`glances` (CPU/RAM/disco — ver más abajo por qué no es el widget `resources` original) y `search` siguen siendo los widgets **nativos** de Homepage (traen datos reales del propio backend) — lo que cambia es su posición: `custom.js` los saca de la fila donde Homepage los renderiza por defecto y los mueve, con `appendChild`, a dos contenedores (`#oscarResourcesSlot`, `#oscarSearchSlot`) dentro del header custom:
 
 ```js
 function relocateNativeWidgets() {
@@ -286,28 +286,33 @@ Estilo, sin caja/fondo, igual que fecha y clima:
 
 `:has()` (soportado en todos los navegadores modernos desde 2023) distingue el buscador del resto sin necesitar el nombre real de su clase — que es una clase Tailwind generada dinámicamente, no una constante fija en el código fuente de Homepage.
 
-### Ojo con lo que "CPU/RAM/disco" mide en realidad
+### Por qué es `glances`, no `resources`
 
-El widget `resources` de Homepage, sin nada más, mide el **contenedor de Homepage**, no `core01` entero — CPU y RAM son las del propio proceso de Homepage (casi siempre ~0%, porque es una app liviana), no las de la VM completa. Para eso ya está [Beszel](./beszel.md), que sí mide el host real.
+El widget `resources` de Homepage, sin nada más, mide el **contenedor de Homepage**, no `core01` entero — CPU y RAM son las del propio proceso de Homepage (casi siempre ~0%, porque es una app liviana), no las de la VM completa. El disco tenía el mismo problema (`disk: /` apuntaba al filesystem interno del contenedor). Un primer parche montó el filesystem del host de solo lectura (`/:/hostfs:ro`) para arreglar el disco, pero CPU/RAM seguían siendo del contenedor — no hay forma de arreglar eso desde adentro del propio contenedor de Homepage.
 
-El disco tenía el mismo problema y sí se corrigió: `disk: /` apuntaba al filesystem interno del contenedor (la imagen de Homepage), no al disco real de `core01`. Se montó el filesystem del host de solo lectura y se apuntó ahí:
-
-```yaml
-# compose.yaml
-volumes:
-  - /:/hostfs:ro
-```
+La solución real fue sumar [Glances](./glances.md), un agente aparte corriendo con `network_mode: host` + `pid: host` en `core01`, que sí ve el host completo — y usar el widget `glances` de Homepage (no `resources`) para leer de ahí:
 
 ```yaml
 # widgets.yaml
-- resources:
-    expanded: true
+- glances:
+    url: http://192.168.0.156:61208
+    version: 4
     cpu: true
-    memory: true
-    disk: /hostfs
+    mem: true
+    disk: /hostroot
+    expanded: true
+- search:
+    provider: google
+    focus: false
+    showSearchSuggestions: true
+    target: _blank
 ```
 
-`expanded: true` agrega una segunda línea por métrica (total además del valor principal) — sin esto se veía un solo número suelto, sin contexto de cuánto es el total. También se agregó `language: es` en `settings.yaml`, así las etiquetas del widget (que veían en inglés — "cpu", "free", "total") salen en español.
+`glances` está "diseñado para calzar con el widget `resources`" (según la propia documentación de Homepage) — usa el mismo componente visual por dentro, así que todo el CSS/JS de reubicación de arriba (que apunta a `.information-widget-resource`) siguió funcionando sin cambios al pasar de uno a otro.
+
+`expanded: true` agrega una segunda línea por métrica (total además del valor principal). También se agregó `language: es` en `settings.yaml`, así las etiquetas del widget (que veían en inglés — "cpu", "free", "total") salen en español.
+
+Instalar Glances también dejó en evidencia que **`core01` estaba al 91% de RAM** (4 GB asignados, con 9 contenedores reales corriendo) — se subió a 8 GB antes de sumarle uno más. Ver [creación de `core01`](../proxmox/crear-vm-core01.md#sizing-inicial).
 
 ## Header de 3 columnas: hora/fecha · O.S.C.A.R. · clima (custom.js)
 

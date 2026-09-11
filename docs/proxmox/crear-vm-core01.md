@@ -13,12 +13,14 @@ Con el Dell en 32 GB RAM (ver [distribución con 32 GB](../hardware/dell-7060.md
 
 ```text
 vCPU: 2
-RAM: 4 GB
+RAM: 8 GB
 Disk: 60 GB (expandible)
 NIC: VirtIO
 ```
 
-Este sizing de `core01` no cambia por tener más RAM disponible — sigue siendo la VM de servicios livianos (n8n, Uptime Kuma, dashboards). El margen extra de RAM se usa para sumar VMs nuevas (observabilidad dedicada, k3s con más recursos), no para inflar esta.
+:::caution Corregido tras la experiencia real
+Esta página decía 4 GB y una nota de que "no cambia por tener más RAM disponible". Con 9 contenedores reales corriendo (n8n+Postgres, Uptime Kuma, Vaultwarden, Homepage, Beszel hub+agente, Cloudflare Tunnel, Glances) el uso llegó al 91% de 4 GB — nada roto todavía, pero sin margen para nada más. Se subió a 8 GB. La lección real: "VM de servicios livianos" no significa que la suma de varios servicios livianos siga siendo liviana — sí sirve seguir sin inflarla para un solo servicio pesado (eso sí ameritaría una VM aparte), pero 4 GB se quedó corto para la cantidad de contenedores que terminó acumulando.
+:::
 
 No asignar toda la RAM física entre VMs; Proxmox y filesystem necesitan margen.
 
@@ -37,7 +39,7 @@ qm set 101 --ipconfig0 ip=192.168.20.11/24,gw=192.168.20.1
 qm set 101 --sshkey ~/.ssh/id_ed25519.pub
 
 # 4. Ajustar sizing al de esta página (ver "Sizing inicial" arriba)
-qm set 101 --cores 2 --memory 4096
+qm set 101 --cores 2 --memory 8192
 
 # 5. Iniciar
 qm start 101

@@ -10,7 +10,7 @@ Esta página es la única fuente de "qué existe de verdad hoy". El resto del si
 Se actualiza en cada cambio de fase real (ver [roadmap](../roadmap/roadmap-general.md)), no en cada edición de documentación.
 
 :::caution
-Proxmox ya está instalado, `core01` existe con Docker corriendo, y hay diez servicios reales arriba (abajo) — seis de ellos ya publicados en `oscarlab.com.ar` detrás de Cloudflare Access. Todo lo demás del sitio que dice "Objetivo" sigue sin existir — esta página es la línea exacta entre lo uno y lo otro.
+Proxmox ya está instalado, `core01` existe con Docker corriendo, y hay once servicios reales arriba (abajo) — siete de ellos ya publicados en `oscarlab.com.ar` detrás de Cloudflare Access. Todo lo demás del sitio que dice "Objetivo" sigue sin existir — esta página es la línea exacta entre lo uno y lo otro.
 :::
 
 ## Hardware — existe físicamente
@@ -33,13 +33,14 @@ Proxmox ya está instalado, `core01` existe con Docker corriendo, y hay diez ser
 | Proxmox VE 9.2.18 | Hypervisor | Actual | Nodo único `oscar-core`, storage `local-lvm` (M.2) + `Backups` (SATA, dir storage). Sano: load bajo, sin swap, sin tareas fallidas. |
 | Home Assistant OS 18.2 | VM (vmid 101) | Actual | 2 vCPU / 4 GB / 32 GB disco, instalada vía community-script. Ver [Home Assistant](../servicios/home-assistant.md). |
 | AdGuard Home | LXC (vmid 100) | Actual | 1 vCPU / 512 MB, instalada vía community-script. Reemplaza a Pi-hole — ver [DNS con AdGuard Home](../red/dns-adguard.md). |
-| `core01` — Ubuntu 24.04 LTS + Docker 29 | VM (vmid 102) | Actual | 2 vCPU / 4 GB / 60 GB disco, creada desde cloud image vía Cloud-Init (SSH por clave, sin password). IP por DHCP, sin fijar todavía. Ver [crear VM core01](../proxmox/crear-vm-core01.md). |
+| `core01` — Ubuntu 24.04 LTS + Docker 29 | VM (vmid 102) | Actual | 2 vCPU / **8 GB** / 60 GB disco (subida de 4→8 GB, el uso real llegó a 91% con 9 contenedores), creada desde cloud image vía Cloud-Init (SSH por clave, sin password). IP por DHCP, sin fijar todavía. Ver [crear VM core01](../proxmox/crear-vm-core01.md). |
 | Uptime Kuma | Docker en `core01` | Actual | primer servicio real del stack Docker — `/srv/oscar/apps/uptime-kuma/`. Ver [Uptime Kuma](../servicios/uptime-kuma.md). |
 | n8n + PostgreSQL 17 | Docker en `core01` | Actual | `/srv/oscar/apps/n8n/`, secretos (`POSTGRES_PASSWORD`, `N8N_ENCRYPTION_KEY`) generados únicos con `openssl rand`, no reutilizados. La encryption key ya se extrajo y se entregó fuera del chat — pendiente de confirmar que quedó guardada en un gestor de contraseñas. Ver [n8n](../servicios/n8n.md). |
 | Vaultwarden 1.37.2 | Docker en `core01` | Actual | `/srv/oscar/apps/vaultwarden/`, puerto publicado solo en `127.0.0.1:8082` (ya no en LAN). Ver [Vaultwarden](../servicios/vaultwarden.md). |
 | Homepage v2.3.0 | Docker en `core01` | Actual | `/srv/oscar/apps/homepage/`, puerto 3005, dashboard con links a todos los servicios reales. Ver [Homepage](../servicios/homepage.md). |
 | Beszel 0.19.0 | Docker en `core01` | Actual | hub (puerto 8090) y agente (puerto 45876) conectados, reportando CPU/RAM/disco en tiempo real. Ver [Beszel](../servicios/beszel.md). |
 | ProxMenux Monitor | systemd en `oscar-core` (no Docker) | Actual | instalado por el autor directo en el hipervisor, `proxmenux-monitor.service`, puerto 8008. Publicado como `monitor.oscarlab.com.ar`. Ver [ProxMenux Monitor](../servicios/proxmenux-monitor.md). |
+| Glances | Docker en `core01` | Actual | mide CPU/RAM/disco reales del host para el widget de Homepage — antes ese widget mostraba el uso del propio contenedor de Homepage, no el de `core01`. Ver [Glances](../servicios/glances.md). |
 | Cloudflare Tunnel + Access | Docker en `core01` | Actual | túnel conectado, 7 hostnames públicos (`vault`, `n8n`, `kuma`, `home`, `beszel`, `monitor`, `ha` . `oscarlab.com.ar`), cada uno con su propia Access Application y protegido por login (código de un solo uso al email del autor). Ver [Cloudflare Tunnel](../servicios/cloudflare-tunnel.md). |
 
 ## Dominio — en uso
