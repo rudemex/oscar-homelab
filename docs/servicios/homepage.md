@@ -27,47 +27,59 @@ mkdir -p /srv/oscar/apps/homepage/config
 - Infraestructura:
     - Proxmox (oscar-core):
         href: https://<IP-de-oscar-core>:8006
-        description: Hypervisor
+        description: Hypervisor — administra todas las VMs y contenedores
         icon: proxmox.png
         siteMonitor: https://<IP-de-oscar-core>:8006
+        widget:
+          type: proxmox
+          url: https://<IP-de-oscar-core>:8006
+          username: root@pam!homepage
+          password: <secret del token, fuera de Git>
+          node: oscar-core
     - ProxMenux Monitor:
         href: https://monitor.oscarlab.com.ar
-        description: Monitoreo del hipervisor
+        description: CPU, RAM y disco del hipervisor en vivo
         icon: proxmox.png
         siteMonitor: http://<IP-de-oscar-core>:8008
     - AdGuard Home:
         href: http://<IP-del-LXC-100>
-        description: DNS y bloqueo de publicidad
+        description: Filtra DNS y bloquea publicidad en toda la red
         icon: adguard-home.png
         siteMonitor: http://<IP-del-LXC-100>
-- core01:
+- Servicios:
     - Uptime Kuma:
         href: https://kuma.oscarlab.com.ar
-        description: Monitoreo de disponibilidad
+        description: Estado de disponibilidad de todo O.S.C.A.R.
         icon: uptime-kuma.png
         siteMonitor: http://<IP-de-core01>:3001
+        widget:
+          type: uptimekuma
+          url: http://<IP-de-core01>:3001
+          slug: oscar
     - n8n:
         href: https://n8n.oscarlab.com.ar
-        description: Automatización
+        description: Automatización de workflows
         icon: n8n.png
         siteMonitor: http://<IP-de-core01>:5678/healthz
     - Vaultwarden:
         href: https://vault.oscarlab.com.ar
-        description: Gestor de contraseñas
+        description: Gestor de contraseñas propio, compatible con Bitwarden
         icon: vaultwarden.png
         siteMonitor: https://vault.oscarlab.com.ar/alive
     - Beszel:
         href: https://beszel.oscarlab.com.ar
-        description: Monitoreo de recursos
+        description: CPU, RAM y disco de core01 en tiempo real
         icon: beszel.png
         siteMonitor: http://<IP-de-core01>:8090
 - Hogar:
     - Home Assistant:
         href: http://<IP-de-VM-101>
-        description: Automatización del hogar
+        description: Automatización y control del hogar
         icon: home-assistant.png
         siteMonitor: http://<IP-de-VM-101>
 ```
+
+El nombre del segundo grupo es **"Servicios"**, no "core01" — el hostname de la VM no le dice nada a nadie que no conozca el proyecto por dentro. Las descripciones dicen qué hace cada cosa en criollo, no una traducción literal del nombre técnico.
 
 Los links usan los dominios reales (vía [Cloudflare Tunnel](./cloudflare-tunnel.md)) cuando el servicio está publicado, o la IP LAN cuando no (Proxmox, AdGuard, Home Assistant — deliberadamente sin dominio, ver [exposición a Internet](../seguridad/exposicion-internet.md)). Cada tarjeta tiene:
 
@@ -128,6 +140,18 @@ Van en **`widgets.yaml`**, un archivo separado de `settings.yaml` — es un erro
 ```
 
 `openmeteo` es el widget de clima recomendado por Homepage — no pide registro ni API key (a diferencia de OpenWeatherMap). `settings.yaml` solo tiene título/tema/layout — nada de widgets de info ahí.
+
+## Identidad visual (custom.css)
+
+Homepage carga `config/custom.css` automáticamente (se sirve en `/api/config/custom.css`, referenciado por la propia página) — no hace falta tocar nada del compose, solo poner el archivo ahí. Se usó para:
+
+- fondo oscuro con gradiente + grilla sutil (CSS puro, `repeating-linear-gradient`, sin ninguna imagen externa que hostear ni que se pueda romper);
+- tarjetas de servicio (`.service`) con borde y efecto hover en vez del recuadro plano default;
+- nombres de grupo (`.service-group-name`) en mayúsculas con acento celeste, estilo "consola";
+- la barra de widgets superior (`.widget-container`) separada visualmente en pastillas, para que CPU/RAM/disco/reloj/clima/buscador no se vean todos pegados.
+
+Los nombres de clase (`.service`, `.service-name`, `.service-description`, `.service-group-name`, `.widget-container`) salen del código fuente de Homepage (`src/components/services/item.jsx` y `group.jsx`), no de la documentación pública — no están listados en `docs/configs/custom-css-js.md`, hubo que revisar el repo directo.
+
 
 ## Sin soporte: páginas con carrusel/slide
 
