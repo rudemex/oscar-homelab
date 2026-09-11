@@ -226,6 +226,31 @@ Homepage carga `config/custom.css` automáticamente (se sirve en `/api/config/cu
 Los nombres de clase (`.service`, `.service-name`, `.service-description`, `.service-group-name`, `.widget-container`) salen del código fuente de Homepage (`src/components/services/item.jsx` y `group.jsx`), no de la documentación pública — no están listados en `docs/configs/custom-css-js.md`, hubo que revisar el repo directo.
 
 
+## Header con el nombre del proyecto (custom.js)
+
+Homepage no tiene ningún lugar nativo para mostrar el nombre del proyecto en grande — el `title` de `settings.yaml` solo va al `<title>` del navegador y al manifest PWA, y el único widget relacionado ("logo") es un ícono de 48×48px, sin texto. Para el título grande tipo "O.S.C.A.R." del mockup original hizo falta `custom.js`:
+
+```js
+// custom.js
+function addOscarHeader() {
+  if (document.getElementById("oscar-header")) return;
+  var header = document.createElement("div");
+  header.id = "oscar-header";
+  header.innerHTML =
+    '<span class="oscar-title">O.S.C.A.R.</span>' +
+    '<span class="oscar-subtitle">Open Systems Control And Rack</span>';
+  document.body.insertBefore(header, document.body.firstChild);
+}
+
+addOscarHeader();
+document.addEventListener("DOMContentLoaded", addOscarHeader);
+setInterval(addOscarHeader, 2000);   // red de seguridad si algo lo llega a borrar
+```
+
+Se inserta directo en `document.body`, no dentro del contenedor que maneja React — así un re-render de Homepage no lo pisa. El `setInterval` es paranoia barata: si en algún momento sí lo pisara, se vuelve a insertar solo en un máximo de 2 segundos, sin que se note.
+
+`custom.css` define el estilo (`.oscar-title`, `.oscar-subtitle`) — ver el archivo completo en `core01`, no vale la pena duplicarlo acá.
+
 ## Sin soporte: páginas con carrusel/slide
 
 Homepage es un dashboard de una sola página — no tiene una función nativa para rotar entre distintas vistas o pantallas completas. Si eventualmente se quiere que la [pantalla táctil del rack](../observabilidad/dashboard-rack.md) cicle entre Homepage, Kuma, Beszel, etc., eso se resuelve del lado del navegador en modo kiosko (la Raspberry que maneje la pantalla), no configurando Homepage — queda para cuando se arme esa pieza.
