@@ -8,7 +8,7 @@ sidebar_position: 13
 **Estado:** Actual · Hogar — VM 101 (`haos-18.2`) en `oscar-core`, instalada vía community-script  
 **Dónde corre:** VM dedicada en `oscar-core` (no Raspberry Pi todavía — ver [estado actual](../arquitectura/estado-actual.md))  
 **Sizing inicial:** 2 vCPU/2–4 GB RAM típico inicial; depende de integraciones  
-**Red/puertos:** **puerto 80** interno (no el 8123 típico de otras instalaciones — esta instancia quedó configurada distinto); acceso remoto protegido  
+**Red/puertos:** **puerto 80** interno (no el 8123 típico de otras instalaciones — esta instancia quedó configurada distinto); acceso real vía [Cloudflare Tunnel](./cloudflare-tunnel.md) en `ha.oscarlab.com.ar`  
 **Persistencia:** configuración, DB, add-ons e integraciones
 
 ## Rol dentro de O.S.C.A.R.

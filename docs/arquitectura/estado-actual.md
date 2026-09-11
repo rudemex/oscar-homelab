@@ -40,7 +40,7 @@ Proxmox ya está instalado, `core01` existe con Docker corriendo, y hay diez ser
 | Homepage v2.3.0 | Docker en `core01` | Actual | `/srv/oscar/apps/homepage/`, puerto 3005, dashboard con links a todos los servicios reales. Ver [Homepage](../servicios/homepage.md). |
 | Beszel 0.19.0 | Docker en `core01` | Actual | hub (puerto 8090) y agente (puerto 45876) conectados, reportando CPU/RAM/disco en tiempo real. Ver [Beszel](../servicios/beszel.md). |
 | ProxMenux Monitor | systemd en `oscar-core` (no Docker) | Actual | instalado por el autor directo en el hipervisor, `proxmenux-monitor.service`, puerto 8008. Publicado como `monitor.oscarlab.com.ar`. Ver [ProxMenux Monitor](../servicios/proxmenux-monitor.md). |
-| Cloudflare Tunnel + Access | Docker en `core01` | Actual | túnel conectado, 6 hostnames públicos (`vault`, `n8n`, `kuma`, `home`, `beszel`, `monitor` . `oscarlab.com.ar`), cada uno con su propia Access Application y protegido por login (código de un solo uso al email del autor). Ver [Cloudflare Tunnel](../servicios/cloudflare-tunnel.md). |
+| Cloudflare Tunnel + Access | Docker en `core01` | Actual | túnel conectado, 7 hostnames públicos (`vault`, `n8n`, `kuma`, `home`, `beszel`, `monitor`, `ha` . `oscarlab.com.ar`), cada uno con su propia Access Application y protegido por login (código de un solo uso al email del autor). Ver [Cloudflare Tunnel](../servicios/cloudflare-tunnel.md). |
 
 ## Dominio — en uso
 
