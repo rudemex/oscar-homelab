@@ -25,11 +25,11 @@ sidebar_position: 11
 
 | Monitor | URL | Nota |
 |---|---|---|
-| n8n | `http://192.168.0.156:5678` | — |
+| n8n | `http://192.168.0.156:5678/healthz` | endpoint de salud dedicado, más preciso que chequear la UI |
 | Homepage | `http://192.168.0.156:3005` | — |
 | Beszel hub | `http://192.168.0.156:8090` | — |
 | ProxMenux Monitor | `http://192.168.0.233:8008` | en `oscar-core`, no en `core01` |
-| Vaultwarden | `https://vault.oscarlab.com.ar` | única excepción: solo escucha en `127.0.0.1` en `core01`, así que Kuma no puede llegar directo — se mide vía el dominio público, aceptando 200-399 (Access devuelve 302 sin loguearse, y eso ya cuenta como "responde") |
+| Vaultwarden | `https://vault.oscarlab.com.ar/alive` | endpoint de salud dedicado (liviano, no carga toda la app); solo escucha en `127.0.0.1` en `core01` así que se mide vía el dominio público — necesitó otro bypass de Access (`/alive`, igual patrón que `/identity`/`/api`/`/notifications`/`/icons`) porque si no Cloudflare lo interceptaba antes de llegar |
 | Proxmox | `https://192.168.0.233:8006` | con `ignoreTls` (certificado self-signed) |
 | AdGuard Home | `http://192.168.0.93:80` | LXC 100 |
 | Home Assistant | `http://192.168.0.195:80` | VM 101 — **no** el 8123 típico de otras instalaciones; esta usa el puerto 80, se descubrió por error al asumir el default |

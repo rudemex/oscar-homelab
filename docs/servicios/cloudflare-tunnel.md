@@ -39,6 +39,20 @@ Cada Access Application usa el método de login por defecto de Cloudflare (códi
 
 Pendiente real: **`kuma.oscarlab.com.ar` y `home.oscarlab.com.ar`** quedaron con la misma política restrictiva que el resto por prolijidad, pero son candidatos a relajar más adelante si se quiere una página de estado o un dashboard público sin login — evaluarlo caso por caso, no por defecto.
 
+### Rutas con bypass (Vaultwarden)
+
+Access protege todo `vault.oscarlab.com.ar` por defecto, pero eso rompe a los clientes que no saben hacer el login web de Cloudflare (extensión/apps oficiales de Bitwarden, Uptime Kuma chequeando el endpoint de salud). Se crearon Access Applications adicionales, ancladas a subrutas específicas, con política `decision: bypass` (sin pedir login) — Vaultwarden ya tiene su propia autenticación fuerte en esas rutas, así que el bypass no baja la seguridad real del vault:
+
+| Ruta con bypass | Para qué |
+|---|---|
+| `/identity` | login de la extensión/apps oficiales y del CLI (`client_id`/`client_secret`) |
+| `/api` | sincronización del vault |
+| `/notifications` | websocket de sync en vivo |
+| `/icons` | favicons de sitios guardados, no sensible |
+| `/alive` | healthcheck liviano usado por [Uptime Kuma](./uptime-kuma.md) |
+
+El resto de `vault.oscarlab.com.ar` (la interfaz web y `/admin`) sigue exigiendo el login de Access normal.
+
 ## Ejemplo concreto
 
 `vault.oscarlab.com.ar` → Cloudflare Access (MFA) → Tunnel → Vaultwarden interno.
