@@ -16,7 +16,7 @@ Crear una VM Linux desde el template Cloud-Init, acceder por clave SSH sin passw
 - Proxmox VE instalado y accesible ([instalación de Proxmox](../proxmox/instalacion.md)) — es el único requisito duro.
 - Idealmente, el template Cloud-Init ya creado ([templates y Cloud-Init](../proxmox/templates-cloud-init.md)). Si todavía no existe, el lab puede arrancar desde una instalación manual mínima de Ubuntu/Debian Server por ISO; en ese caso, saltar el paso 1 y crear el usuario administrativo durante la instalación en vez de vía `--ciuser`.
 - Un par de claves SSH propio (o generarlo en el paso 2).
-- Acceso de red a la VLAN/segmento de administración donde vive `pve01`.
+- Acceso de red a la VLAN/segmento de administración donde vive `oscar-core`.
 
 Recursos mínimos para la VM del lab (deliberadamente más chica que `core01`, que usa 2 vCPU/4 GB — ver [crear-vm-core01.md](../proxmox/crear-vm-core01.md)):
 
@@ -30,7 +30,7 @@ NIC: VirtIO
 ## Arquitectura
 
 ```text
-[equipo cliente] --clave SSH ed25519--> [VM lab-linux01 en pve01, red de administración]
+[equipo cliente] --clave SSH ed25519--> [VM lab-linux01 en oscar-core, red de administración]
 ```
 
 No hay más partes móviles que esas dos; no amerita un diagrama Mermaid.

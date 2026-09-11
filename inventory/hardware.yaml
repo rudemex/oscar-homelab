@@ -6,7 +6,7 @@ rack:
   units: 12
 
 compute:
-  - id: pve01
+  - id: oscar-core
     model: Dell OptiPlex 7060 Micro
     role: proxmox-host
     cpu: Intel Core i7 8th Gen
@@ -59,7 +59,7 @@ power:
       no está dedicado al rack ni monitoreado. Pendiente: confirmar
       capacidad (VA) real contra el consumo de Dell + switch + router +
       patch panel activo, reubicarlo cerca del rack o tender una toma
-      protegida hasta él, y conectar salida NUT/USB a pve01 (o a otro
+      protegida hasta él, y conectar salida NUT/USB a oscar-core (o a otro
       host) para que el apagado limpio y el panel UPS del Control
       Center dejen de ser teóricos.
   stabilizer:

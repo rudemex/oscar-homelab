@@ -21,7 +21,7 @@ sidebar_position: 8
 
 ## Ejemplo concreto
 
-Alerta: disco de `pve01` > 85% durante 15 min; dashboard: RAM/CPU/latencia de todos los nodos.
+Alerta: disco de `oscar-core` > 85% durante 15 min; dashboard: RAM/CPU/latencia de todos los nodos.
 
 ## Checklist de despliegue
 

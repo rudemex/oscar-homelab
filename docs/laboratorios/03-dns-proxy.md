@@ -9,20 +9,20 @@ sidebar_position: 4
 
 ## Objetivo
 
-Crear un registro DNS interno en Pi-hole para el `whoami` del [Lab 02](./02-docker-compose.md) y publicarlo detrás de Traefik como reverse proxy interno, para poder acceder por nombre (`whoami.oscar.home`) en vez de recordar `IP:puerto`. TLS con la PKI interna queda **fuera de alcance**: es una decisión pendiente del [backlog](../roadmap/backlog.md), así que este lab documenta el flujo en HTTP simple y deja el hook de TLS para cuando exista una PKI real.
+Crear un registro DNS interno en AdGuard Home para el `whoami` del [Lab 02](./02-docker-compose.md) y publicarlo detrás de Traefik como reverse proxy interno, para poder acceder por nombre (`whoami.oscar.home`) en vez de recordar `IP:puerto`. TLS con la PKI interna queda **fuera de alcance**: es una decisión pendiente del [backlog](../roadmap/backlog.md), así que este lab documenta el flujo en HTTP simple y deja el hook de TLS para cuando exista una PKI real.
 
 ## Prerequisitos
 
 - [Lab 02](./02-docker-compose.md) completado: `whoami` corriendo en Docker Compose.
-- Pi-hole desplegado como resolver DNS interno ([dns-pihole.md](../red/dns-pihole.md)). Si todavía no existe, se puede sustituir temporalmente por una entrada en el `/etc/hosts` del cliente de prueba — dejar anotado en la evidencia del lab que es un sustituto, no la solución real.
+- AdGuard Home desplegado como resolver DNS interno ([dns-adguard.md](../red/dns-adguard.md)). Si todavía no existe, se puede sustituir temporalmente por una entrada en el `/etc/hosts` del cliente de prueba — dejar anotado en la evidencia del lab que es un sustituto, no la solución real.
 - Recursos: Traefik agrega ~0.2 vCPU / 128 MB sobre el host que ya corre `whoami`.
 
 ## Arquitectura
 
 ```mermaid
 flowchart LR
-  Client[cliente] -->|1. consulta whoami.oscar.home| Pihole[Pi-hole DNS1]
-  Pihole -->|2. responde IP de core01| Client
+  Client[cliente] -->|1. consulta whoami.oscar.home| AdGuard[AdGuard Home DNS1]
+  AdGuard -->|2. responde IP de core01| Client
   Client -->|3. HTTP Host: whoami.oscar.home| Traefik[Traefik :80]
   Traefik -->|4. routing por Host header| Whoami[whoami:80]
 ```
@@ -31,9 +31,9 @@ Cuatro pasos, dos capas distintas: la resolución de nombre (1-2) no sabe nada d
 
 ## Pasos
 
-### 1. Registro DNS en Pi-hole
+### 1. Registro DNS en AdGuard Home
 
-En Pi-hole → Local DNS → DNS Records, crear `whoami.oscar.home` apuntando a la IP del host que corre `whoami` (`core01` o la VM del Lab 02). Validar antes de tocar el proxy:
+En AdGuard Home → Filters → DNS rewrites, crear una entrada `whoami.oscar.home` apuntando a la IP del host que corre `whoami` (`core01` o la VM del Lab 02). Validar antes de tocar el proxy:
 
 ```bash
 nslookup whoami.oscar.home <IP_DNS1>
@@ -106,10 +106,10 @@ docker compose down
 rm -rf /srv/oscar/apps/lab03   # si se usó un directorio separado
 ```
 
-En Pi-hole, borrar el registro `whoami.oscar.home` de Local DNS Records. Si se usó `/etc/hosts` como sustituto, revertir esa línea en el cliente.
+En AdGuard Home, borrar la entrada `whoami.oscar.home` de DNS rewrites. Si se usó `/etc/hosts` como sustituto, revertir esa línea en el cliente.
 
 ## Troubleshooting
 
-- **`curl http://whoami.oscar.home` da timeout** → el cliente no está usando Pi-hole como resolver (DHCP entrega otro DNS) → `nslookup whoami.oscar.home <IP_DNS1>` para descartar el proxy y aislar el problema a la capa DNS; ajustar el DNS del cliente o del DHCP.
+- **`curl http://whoami.oscar.home` da timeout** → el cliente no está usando AdGuard Home como resolver (DHCP entrega otro DNS) → `nslookup whoami.oscar.home <IP_DNS1>` para descartar el proxy y aislar el problema a la capa DNS; ajustar el DNS del cliente o del DHCP.
 - **Traefik responde `404 page not found`** → falta `traefik.enable=true` en las labels, o la regla `Host()` tiene un typo en el dominio → `docker inspect` sobre el contenedor `whoami` para confirmar las labels tal como las ve Docker, comparar contra `docker compose logs traefik`.
-- **Pi-hole resuelve bien pero el proxy da `502 Bad Gateway`** → el contenedor `whoami` está caído, o Traefik no puede alcanzarlo porque quedaron en redes Compose distintas → `docker compose ps` y confirmar que ambos servicios están en la red por defecto que crea el mismo `compose.yaml`.
+- **AdGuard Home resuelve bien pero el proxy da `502 Bad Gateway`** → el contenedor `whoami` está caído, o Traefik no puede alcanzarlo porque quedaron en redes Compose distintas → `docker compose ps` y confirmar que ambos servicios están en la red por defecto que crea el mismo `compose.yaml`.

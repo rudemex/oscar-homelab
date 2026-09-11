@@ -36,7 +36,7 @@ Cerrar/abrir cualquier tapa y verificar que cada equipo pueda retirarse.
 Separar ruta de alimentación y datos cuando sea práctico. Etiquetar fuentes:
 
 ```text
-PWR-PVE01
+PWR-OSCAR-CORE
 PWR-SW01
 PWR-DVR01
 PWR-LCD01

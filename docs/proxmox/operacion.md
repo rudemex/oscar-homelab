@@ -29,7 +29,7 @@ uname -r                   # confirmar kernel activo (puede requerir reboot si c
 journalctl -p err -b       # errores del boot actual
 ip -br a show vmbr0        # bridge sigue arriba
 qm list                    # estado de las VMs tras el reinicio, si hubo
-pvesh get /nodes/pve01/status   # CPU/RAM/uptime del nodo vía API local
+pvesh get /nodes/oscar-core/status   # CPU/RAM/uptime del nodo vía API local
 ```
 
 - verificar versión/kernel;

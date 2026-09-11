@@ -13,7 +13,7 @@ Recuperar el servicio minimizando cambios improvisados y preservando evidencia p
 
 1. Probar resolución contra DNS1 y DNS2 por separado.
 2. Verificar conectividad IP al resolver.
-3. Consultar estado de Pi-hole/resolver.
+3. Consultar estado de AdGuard Home/resolver.
 4. Comprobar upstream DNS.
 5. Si un resolver está caído, mantener servicio con el secundario y recuperar sin modificar todos los clientes.
 6. Validar resolución interna y externa.

@@ -20,7 +20,7 @@ get_backup_status()
 create_gitops_pr(change)
 ```
 
-Cada herramienta tiene permisos más fáciles de razonar que `ssh root@pve01`.
+Cada herramienta tiene permisos más fáciles de razonar que `ssh root@oscar-core`.
 
 ## Patrón
 

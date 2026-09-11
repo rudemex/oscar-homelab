@@ -11,7 +11,7 @@ Las Raspberry Pi no compiten con el Dell: complementan la arquitectura.
 
 Casos de uso ideales:
 
-- Pi-hole secundario;
+- resolver DNS secundario (AdGuard Home o Pi-hole);
 - Home Assistant en instalación pequeña;
 - Prometheus exporters;
 - Internet-Pi;

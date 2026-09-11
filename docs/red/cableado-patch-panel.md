@@ -27,14 +27,14 @@ Usar un identificador estable en ambos extremos:
 C01 - Oficina escritorio
 C02 - DVR
 C03 - AP habitación
-C04 - PVE01
+C04 - OSCAR-CORE
 ```
 
 Mantener una tabla en el inventario:
 
 | Patch | Switch | Destino | VLAN | Velocidad |
 |---|---|---|---|---|
-| PP01 | SW01-01 | PVE01 | trunk | 1G |
+| PP01 | SW01-01 | OSCAR-CORE | trunk | 1G |
 | PP02 | SW01-02 | DVR01 | CCTV | 1G |
 
 ## Pruebas

@@ -44,7 +44,7 @@ Total: **~14 de 16 GB**, dejando ~2 GB de margen — ajustado pero funcional. El
 
 | Rol | Mínimo viable | Notas |
 |---|---|---|
-| DNS secundario / Pi-hole | Pi Zero W o equivalente | Carga trivial, corre bien en el SBC más chico disponible. |
+| DNS secundario (AdGuard Home / Pi-hole) | Pi Zero W o equivalente | Carga trivial, corre bien en el SBC más chico disponible. |
 | Nodo de telemetría/sensor (MQTT) | Pi Zero W o equivalente | Igual que arriba. |
 | Home Assistant | Pi 4 (2 GB+) o Pi 5 | Con muchas integraciones/automatizaciones se nota la diferencia; un Pi Zero/Pi 3 sirve para probar, no para uso diario cómodo. |
 

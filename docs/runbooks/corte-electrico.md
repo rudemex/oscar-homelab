@@ -6,7 +6,7 @@ sidebar_position: 11
 # Corte eléctrico / UPS
 
 :::caution Estado actual vs. objetivo
-El UPS y el estabilizador **existen físicamente**, pero hoy están fuera del rack, sin dedicar a `pve01` y sin salida de monitoreo (NUT/USB) conectada — ver [inventario](../../inventory/hardware.yaml). Hasta que se reubiquen y conecten, un corte eléctrico sigue siendo un apagado sucio de `pve01`: no hay autonomía ni aviso automático de "batería baja" para disparar los pasos 1-5. Priorizar la integración (reubicar + conectar NUT) es de las tareas más baratas del roadmap — es hardware que ya está pagado, solo falta cablear y configurar software. Mientras tanto, lo único accionable ante un corte es el paso 6 (recuperación al volver la energía) y verificar que Proxmox arrancó sin corrupción de filesystem.
+El UPS y el estabilizador **existen físicamente**, pero hoy están fuera del rack, sin dedicar a `oscar-core` y sin salida de monitoreo (NUT/USB) conectada — ver [inventario](../../inventory/hardware.yaml). Hasta que se reubiquen y conecten, un corte eléctrico sigue siendo un apagado sucio de `oscar-core`: no hay autonomía ni aviso automático de "batería baja" para disparar los pasos 1-5. Priorizar la integración (reubicar + conectar NUT) es de las tareas más baratas del roadmap — es hardware que ya está pagado, solo falta cablear y configurar software. Mientras tanto, lo único accionable ante un corte es el paso 6 (recuperación al volver la energía) y verificar que Proxmox arrancó sin corrupción de filesystem.
 :::
 
 ## Objetivo

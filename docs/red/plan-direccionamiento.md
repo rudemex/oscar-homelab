@@ -33,7 +33,7 @@ El direccionamiento definitivo debe cerrarse **antes** de crear decenas de IP es
 Ejemplos:
 
 ```text
-pve01.oscar.home
+oscar-core.oscar.home
 sw01.oscar.home
 grafana.oscar.home
 n8n.oscar.home

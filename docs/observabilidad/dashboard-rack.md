@@ -13,7 +13,7 @@ La pantalla 1280×720 del rack debe mostrar **estado**, no un dashboard que obli
 ┌──────────────────────────────────────────────────────────────┐
 │ O.S.C.A.R.                    WAN ●     DNS ●    20:42       │
 ├───────────────────┬───────────────────┬──────────────────────┤
-│ PVE01             │ STORAGE           │ TEMPERATURE          │
+│ OSCAR-CORE             │ STORAGE           │ TEMPERATURE          │
 │ CPU 22%           │ M2  48%           │ Dell 47°C            │
 │ RAM 61%           │ SSD 31%           │ Rack 31°C            │
 ├───────────────────┼───────────────────┼──────────────────────┤
@@ -32,7 +32,7 @@ El UPS y el DVR ya existen físicamente ([inventario](../../inventory/hardware.y
 
 - verde/normal no debe dominar la pantalla;
 - errores deben ser obvios;
-- no más de 8 paneles principales (el layout de arriba usa 8: PVE01, storage, temperatura, servicios, red, backup, UPS, CCTV);
+- no más de 8 paneles principales (el layout de arriba usa 8: OSCAR-CORE, storage, temperatura, servicios, red, backup, UPS, CCTV);
 - tipografía legible a distancia;
 - refresh moderado;
 - sin credenciales ni datos sensibles.

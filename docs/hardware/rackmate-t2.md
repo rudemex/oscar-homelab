@@ -42,7 +42,7 @@ Convención sugerida:
 ```text
 PP01 -> SW01/01 -> Oficina
 PP02 -> SW01/02 -> DVR
-PP03 -> SW01/03 -> PVE01
+PP03 -> SW01/03 -> OSCAR-CORE
 ...
 ```
 
