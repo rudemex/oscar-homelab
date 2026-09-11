@@ -28,22 +28,53 @@ mkdir -p /srv/oscar/apps/homepage/config
     - Proxmox (oscar-core):
         href: https://<IP-de-oscar-core>:8006
         description: Hypervisor
+        icon: proxmox.png
+        siteMonitor: https://<IP-de-oscar-core>:8006
+    - ProxMenux Monitor:
+        href: https://monitor.oscarlab.com.ar
+        description: Monitoreo del hipervisor
+        icon: proxmox.png
+        siteMonitor: http://<IP-de-oscar-core>:8008
+    - AdGuard Home:
+        href: http://<IP-del-LXC-100>
+        description: DNS y bloqueo de publicidad
+        icon: adguard-home.png
+        siteMonitor: http://<IP-del-LXC-100>
 - core01:
     - Uptime Kuma:
         href: https://kuma.oscarlab.com.ar
         description: Monitoreo de disponibilidad
+        icon: uptime-kuma.png
+        siteMonitor: http://<IP-de-core01>:3001
     - n8n:
         href: https://n8n.oscarlab.com.ar
         description: Automatización
+        icon: n8n.png
+        siteMonitor: http://<IP-de-core01>:5678/healthz
     - Vaultwarden:
         href: https://vault.oscarlab.com.ar
         description: Gestor de contraseñas
+        icon: vaultwarden.png
+        siteMonitor: https://vault.oscarlab.com.ar/alive
     - Beszel:
         href: https://beszel.oscarlab.com.ar
         description: Monitoreo de recursos
+        icon: beszel.png
+        siteMonitor: http://<IP-de-core01>:8090
+- Hogar:
+    - Home Assistant:
+        href: http://<IP-de-VM-101>
+        description: Automatización del hogar
+        icon: home-assistant.png
+        siteMonitor: http://<IP-de-VM-101>
 ```
 
-Los links usan los dominios reales (vía [Cloudflare Tunnel](./cloudflare-tunnel.md)) en vez de IP:puerto — así funcionan igual desde la LAN o desde afuera, y cada uno pide su propio login de Access al entrar.
+Los links usan los dominios reales (vía [Cloudflare Tunnel](./cloudflare-tunnel.md)) cuando el servicio está publicado, o la IP LAN cuando no (Proxmox, AdGuard, Home Assistant — deliberadamente sin dominio, ver [exposición a Internet](../seguridad/exposicion-internet.md)). Cada tarjeta tiene:
+
+- `icon`: nombre del ícono del set [dashboard-icons](https://github.com/homarr-labs/dashboard-icons) que Homepage bundlea — no hace falta subir imágenes propias;
+- `siteMonitor`: URL que Homepage chequea por su cuenta (HEAD, con fallback a GET) para mostrar el puntito de estado en vivo en la tarjeta — independiente de Uptime Kuma, es un chequeo propio de Homepage.
+
+`settings.yaml` también define el layout (columnas por grupo) y `headerStyle: boxedWidgets` para que se vea menos genérico que el default.
 
 `compose.yaml`:
 
