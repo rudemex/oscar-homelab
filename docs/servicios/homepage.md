@@ -219,11 +219,13 @@ Los nombres de clase (`.service`, `.service-name`, `.service-description`, `.ser
 Layout final pedido, en 4 filas apiladas:
 
 ```
-[ hora/fecha ]      [ CPU · RAM · disco ]      [ clima ]
-                          O.S.C.A.R.
-                          subtítulo
-                          buscador
+[ clima ]      [ CPU · RAM · disco ]      [ hora/fecha ]
+                     O.S.C.A.R.
+                     subtítulo
+                     buscador
 ```
+
+El clima y la hora/fecha arrancaron al revés (hora a la izquierda, clima a la derecha) y se intercambiaron de lado después — no hay una razón funcional para uno u otro orden, fue puramente estético. El intercambio es un cambio de una línea en `buildOscarHeader()`: qué `<span>`s van adentro de `.oscar-col-left` vs `.oscar-col-right`, sin tocar CSS (esas clases solo fijan el borde de alineación de la columna, no el contenido).
 
 ### Primer intento (revertido): mover los nodos nativos con `appendChild`
 
