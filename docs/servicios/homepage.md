@@ -241,18 +241,25 @@ Causa: el widget de recursos se refresca cada 1.5s vía React (`refreshInterval`
 Ninguno de los 4 bloques del header es hoy un widget nativo reposicionado. CPU/RAM/disco y el buscador se arman en `custom.js`, igual que ya se hacía con el reloj y el clima:
 
 ```js
+function formatGB(bytes) {
+  return (bytes / 1024 / 1024 / 1024).toFixed(1);
+}
+
 function updateResources() {
   var slot = document.getElementById("oscarResourcesSlot");
   fetch("/api/widgets/glances?index=0&version=4&disk=1")
     .then(function (r) { return r.json(); })
     .then(function (d) {
-      // arma el HTML propio (ícono + % + etiqueta) a partir de d.cpu, d.mem, d.fs
+      // CPU: % + núcleos · RAM: % + "usado/total GB" · disco: % + "usado/total GB"
+      // (mnt_point === "/hostroot", el bind mount de solo lectura de la raíz del host)
     });
 }
 setInterval(updateResources, 5000);
 ```
 
 `/api/widgets/glances` es la ruta **interna** de Homepage (mismo origen que la página) — el mismo endpoint que usaba el widget nativo por debajo. Pedirle los datos directo a Glances (`http://192.168.0.156:61208`) desde el navegador **no funciona para nadie que entre desde fuera de la LAN**: es una IP privada, e ir por afuera del túnel es exactamente el problema que Cloudflare Tunnel existe para resolver. Pasar por la ruta interna de Homepage evita ese problema (Homepage llama a Glances del lado del servidor) y de paso evita CORS.
+
+La primera versión de este bloque solo mostraba el ícono y el `%` — sin el valor absoluto (cuántos GB usados de cuántos totales), que es la parte que más importa para saber si hay margen real. Se agregó `formatGB()` para convertir los bytes crudos que trae Glances (`d.mem.used`/`d.mem.total`, y `used`/`size` de la entrada `/hostroot` en `d.fs`) a GB con un decimal, y CPU muestra la cantidad de núcleos (`d.cpu.cpucore`) en vez de repetir la etiqueta.
 
 El widget `glances` **sigue existiendo** en `widgets.yaml` — hace falta que esté configurado ahí para que esa ruta interna funcione (Homepage busca la URL/versión/disco por índice en su config real, no por lo que se le pase en la query). Lo que cambia es que ya no se muestra: se oculta con CSS, sin tocarlo de ningún otro modo —
 
