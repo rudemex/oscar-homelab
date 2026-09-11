@@ -98,6 +98,37 @@ widget:
 
 El token `root@pam!homepage` se creó con `privsep=1` (sin permisos hasta asignarle un rol explícito) — el rol `PVEAuditor` en el path `/` se asignó a mano desde la UI de Proxmox (Datacenter → Permissions → Add → Token Permission), porque asignar roles vía API quedó bloqueado por las reglas de seguridad del entorno de automatización usado para este build.
 
+## Widgets de información (barra superior)
+
+`settings.yaml` agrega tres widgets informativos arriba del todo, sin necesitar ninguna cuenta/API key:
+
+```yaml
+widgets:
+  - datetime:
+      text_size: xl
+      locale: es-AR
+      format:
+        dateStyle: long
+        timeStyle: short
+        hour12: false
+  - openmeteo:
+      label: Buenos Aires
+      latitude: -34.6037
+      longitude: -58.3816
+      timezone: America/Argentina/Buenos_Aires
+      units: metric
+  - search:
+      provider: google
+      showSearchSuggestions: true
+      target: _blank
+```
+
+`openmeteo` es el widget de clima recomendado por Homepage — no pide registro ni API key (a diferencia de OpenWeatherMap).
+
+## Sin soporte: páginas con carrusel/slide
+
+Homepage es un dashboard de una sola página — no tiene una función nativa para rotar entre distintas vistas o pantallas completas. Si eventualmente se quiere que la [pantalla táctil del rack](../observabilidad/dashboard-rack.md) cicle entre Homepage, Kuma, Beszel, etc., eso se resuelve del lado del navegador en modo kiosko (la Raspberry que maneje la pantalla), no configurando Homepage — queda para cuando se arme esa pieza.
+
 `compose.yaml`:
 
 ```yaml
