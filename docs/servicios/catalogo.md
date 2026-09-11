@@ -22,7 +22,7 @@ La tabla resume el rol previsto. **Objetivo** no significa “instalar ya”: ca
 | [n8n](./n8n.md) | **Actual** · Automatización | Docker Core | backups coordinados |
 | [Vaultwarden](./vaultwarden.md) | **Actual** · Seguridad | Docker Core | gestor de contraseñas propio (Bitwarden-compatible) |
 | [Homepage](./homepage.md) | **Actual** · Dashboard | Docker Core | landing con links/estado de todos los servicios |
-| [Beszel](./beszel.md) | **Actual, parcial** · Observabilidad | Docker Core | monitoreo liviano de CPU/RAM/disco, alternativa a Prometheus+Grafana |
+| [Beszel](./beszel.md) | **Actual** · Observabilidad | Docker Core | monitoreo liviano de CPU/RAM/disco, alternativa a Prometheus+Grafana |
 | [Home Assistant](./home-assistant.md) | Objetivo · Hogar | Raspberry Pi 5 futura o VM dedicada | automatización doméstica |
 | [Cloudflare Tunnel + Access](./cloudflare-tunnel.md) | Objetivo · Acceso remoto | VM Core o nodo dedicado de conectividad | publicar una demo web |
 | [Eclipse Mosquitto MQTT](./mosquitto.md) | Laboratorio / Hogar | Raspberry Pi o VM Core | sensores Pi Zero |

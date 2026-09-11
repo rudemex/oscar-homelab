@@ -29,10 +29,9 @@ services:
     criticality: C3
     target: core01
   - id: beszel
-    status: current-partial
+    status: current
     criticality: C3
     target: core01
-    note: "hub arriba, agente pendiente de key generada desde la UI"
   - id: prometheus
     status: planned
     criticality: C2

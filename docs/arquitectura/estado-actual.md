@@ -38,7 +38,7 @@ Proxmox ya está instalado, `core01` existe con Docker corriendo, y hay ocho ser
 | n8n + PostgreSQL 17 | Docker en `core01` | Actual | `/srv/oscar/apps/n8n/`, secretos (`POSTGRES_PASSWORD`, `N8N_ENCRYPTION_KEY`) generados únicos con `openssl rand`, no reutilizados. La encryption key ya se extrajo y se entregó fuera del chat — pendiente de confirmar que quedó guardada en un gestor de contraseñas. Ver [n8n](../servicios/n8n.md). |
 | Vaultwarden 1.37.2 | Docker en `core01` | Actual | `/srv/oscar/apps/vaultwarden/`, puerto 8087, solo LAN. Ver [Vaultwarden](../servicios/vaultwarden.md). |
 | Homepage v2.3.0 | Docker en `core01` | Actual | `/srv/oscar/apps/homepage/`, puerto 3005, dashboard con links a todos los servicios reales. Ver [Homepage](../servicios/homepage.md). |
-| Beszel 0.19.0 | Docker en `core01` | Actual, **parcial** | hub arriba (puerto 8090), agente todavía sin conectar — pendiente completar el primer acceso por navegador. Ver [Beszel](../servicios/beszel.md). |
+| Beszel 0.19.0 | Docker en `core01` | Actual | hub (puerto 8090) y agente (puerto 45876) conectados, reportando CPU/RAM/disco en tiempo real. Ver [Beszel](../servicios/beszel.md). |
 
 ## Backups — parcialmente resuelto
 
@@ -56,15 +56,14 @@ Lo que todavía falta, y es la parte que realmente importa para disaster recover
 - k3s / Argo CD;
 - red segmentada / VLANs / firewall dedicado (OPNsense);
 - copia de backup off-site, restore probado, backup de la config de Proxmox, backup de `core01` (ver arriba y abajo);
-- Raspberry Pi 5, NAS, switch gestionable definitivo;
-- agente de Beszel conectado (hub sí, agente no todavía).
+- Raspberry Pi 5, NAS, switch gestionable definitivo.
 
 ## Próximo paso real
 
 El build no siguió el orden lineal del [roadmap](../roadmap/roadmap-general.md) al pie de la letra — Proxmox y dos servicios del hogar (Fase 7) ya existían antes de que existiera `core01` (Fase 3), y el backup local (parte de Fase 4) ya estaba resuelto sin que se instalara nada del medio. Eso está bien: el roadmap es una guía de dependencias razonables, no una secuencia obligatoria. Lo que sí falta con prioridad, dado lo que ya hay corriendo:
 
 1. **Confirmar que la `N8N_ENCRYPTION_KEY` quedó guardada en un gestor** (Vaultwarden ya está arriba para esto) — se extrajo del servidor pero la única copia real es la que el usuario guarde.
-2. **Completar el primer acceso de Vaultwarden y Beszel** — crear la cuenta real en Vaultwarden y deshabilitar `SIGNUPS_ALLOWED`; conectar el agente de Beszel con la key generada desde su UI.
+2. **Completar el primer acceso de Vaultwarden** — crear la cuenta real y deshabilitar `SIGNUPS_ALLOWED`; sigue bloqueado por un problema de carga HTTPS en el navegador todavía sin resolver.
 3. **Copia off-site del backup** — sigue siendo la brecha real de disaster recovery; el backup local ya existe, pero no protege contra la pérdida del Dell completo.
 4. **`core01` todavía no está confirmado en el job de backup** — el `vzdump all:1` la incluye automáticamente en la próxima corrida programada; verificarlo en la próxima ejecución (lunes a viernes 00:00).
 5. Integrar el UPS (ver [backlog](../roadmap/backlog.md)) — más urgente ahora que hay servicios reales con estado (Postgres, Vaultwarden) que un corte de luz podría corromper.

@@ -5,7 +5,7 @@ sidebar_position: 22
 
 # Beszel
 
-**Estado:** Actual, parcial — hub corriendo en `core01`; agente pendiente de conectar (requiere completar el primer acceso por navegador)
+**Estado:** Actual — hub y agente corriendo en `core01`, conectados y reportando CPU/RAM/disco en tiempo real
 **Dónde corre:** Docker Core (`/srv/oscar/apps/beszel/`)
 **Sizing inicial:** ~50 MB hub + ~30 MB por agente
 **Red/puertos:** `8090` (hub, UI/API), agente en modo `network_mode: host` puerto `45876`
@@ -56,8 +56,8 @@ docker compose up -d beszel   # el hub primero, solo
 ## Primer acceso (obligatorio antes de levantar el agente)
 
 1. Entrar a `http://<IP-de-core01>:8090`, crear el usuario admin del hub.
-2. En la UI, "Add System" → nombre `core01` → el hub genera una clave pública SSH.
-3. Copiar esa clave a `BESZEL_AGENT_KEY` en `.env`.
+2. En la UI, "Add System" → nombre `core01`, **host = IP LAN real de `core01`** (nunca `localhost`: el hub corre en la red bridge por defecto de Docker, no en `network_mode: host`, así que `localhost` apunta al propio contenedor del hub, no al host) → puerto `45876`.
+3. El hub tiene su propio keypair SSH en `./hub-data/id_ed25519` (se genera solo al primer arranque); su clave pública es la que hay que copiar a `BESZEL_AGENT_KEY` en `.env` para que el agente confíe en ese hub.
 4. Recién ahí: `docker compose up -d beszel-agent`.
 
 El agente usa `network_mode: host` para poder reportar métricas de red/disco del host real, no de la red aislada de Docker — es una excepción deliberada a "no usar host networking", justificada por lo que necesita medir.
@@ -77,5 +77,6 @@ Es la propia herramienta de observabilidad — el "quién vigila al vigilante" a
 
 ## Troubleshooting
 
-- **El agente no aparece "conectado" en el hub** → `BESZEL_AGENT_KEY` no coincide con la clave que el hub generó para ese sistema, o el agente no arrancó → revisar `docker compose logs beszel-agent` y que la key en `.env` sea exactamente la que dio la UI.
+- **El agente no aparece "conectado" en el hub (status `down`)** → causa más común: el campo `host` del sistema en el hub quedó como `localhost` en vez de la IP LAN real de `core01`. El hub vive en la red bridge por defecto de Docker (no `network_mode: host`), así que `localhost` no llega al agente que escucha en la interfaz real del host — hay que usar la IP LAN. El log del agente (`docker compose logs beszel-agent`) muestra `WARN Error creating WebSocket client err="HUB_URL environment variable not set"` en arranque normal — ese warning es inofensivo (es una vía de conexión alternativa que este setup no usa) y no indica el problema real.
+- **`BESZEL_AGENT_KEY` no coincide** → si igual falla con el host correcto, confirmar que la key en `.env` es exactamente la pública derivada de `./hub-data/id_ed25519` (`ssh-keygen -y -f id_ed25519`), no una key vieja o de otro sistema.
 - **No hay datos de red/disco del host real** → el agente no está en `network_mode: host`, quedó en la red por defecto de Compose → confirmar esa línea en `compose.yaml`.
