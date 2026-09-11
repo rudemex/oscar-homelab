@@ -227,7 +227,7 @@ Layout final pedido, en 3 filas apiladas:
                 buscador
 ```
 
-Pasó por dos versiones intermedias antes de esta: primero clima/CPU-RAM-disco/hora los 3 en una fila con el título arriba de todo; después el título arriba y esa fila (con recursos en el centro) abajo, entre dos líneas. Ninguna de las dos convenció — la versión final saca los recursos de esa fila de 3 columnas y pone el título+subtítulo en el lugar que dejaron libres, en el centro, entre clima y hora. Los recursos pasan a ser su propia fila, debajo de una única línea divisoria.
+Pasó por dos versiones intermedias antes de esta: primero clima/CPU-RAM-disco/hora los 3 en una fila con el título arriba de todo; después el título arriba y esa fila (con recursos en el centro) abajo, entre dos líneas. Ninguna de las dos convenció — la versión final saca los recursos de esa fila de 3 columnas y pone el título+subtítulo en el lugar que dejaron libres, en el centro, entre clima y hora. Los recursos pasan a ser su propia fila, debajo de una única línea divisoria, alineada siempre a la derecha (`justify-content: flex-end` en `.oscar-row-resources`, no `center`) — a diferencia del resto de las filas del header, que están centradas.
 
 En el HTML de `buildOscarHeader()` esto es: `.oscar-col-center` (adentro de `.oscar-row-top`) pasó de contener `#oscarResourcesSlot` a contener el `<span class="oscar-title">` y el `<span class="oscar-subtitle">`; y `#oscarResourcesSlot` se independizó en su propia fila (`<div class="oscar-row-resources" id="oscarResourcesSlot">`), fuera del grid de 3 columnas. `.oscar-row-top` solo necesita `border-bottom` ahora — ya no está encerrada entre dos bloques, es la primera fila del header.
 
