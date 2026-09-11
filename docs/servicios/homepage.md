@@ -286,6 +286,29 @@ Estilo, sin caja/fondo, igual que fecha y clima:
 
 `:has()` (soportado en todos los navegadores modernos desde 2023) distingue el buscador del resto sin necesitar el nombre real de su clase — que es una clase Tailwind generada dinámicamente, no una constante fija en el código fuente de Homepage.
 
+### Ojo con lo que "CPU/RAM/disco" mide en realidad
+
+El widget `resources` de Homepage, sin nada más, mide el **contenedor de Homepage**, no `core01` entero — CPU y RAM son las del propio proceso de Homepage (casi siempre ~0%, porque es una app liviana), no las de la VM completa. Para eso ya está [Beszel](./beszel.md), que sí mide el host real.
+
+El disco tenía el mismo problema y sí se corrigió: `disk: /` apuntaba al filesystem interno del contenedor (la imagen de Homepage), no al disco real de `core01`. Se montó el filesystem del host de solo lectura y se apuntó ahí:
+
+```yaml
+# compose.yaml
+volumes:
+  - /:/hostfs:ro
+```
+
+```yaml
+# widgets.yaml
+- resources:
+    expanded: true
+    cpu: true
+    memory: true
+    disk: /hostfs
+```
+
+`expanded: true` agrega una segunda línea por métrica (total además del valor principal) — sin esto se veía un solo número suelto, sin contexto de cuánto es el total. También se agregó `language: es` en `settings.yaml`, así las etiquetas del widget (que veían en inglés — "cpu", "free", "total") salen en español.
+
 ## Header de 3 columnas: hora/fecha · O.S.C.A.R. · clima (custom.js)
 
 Homepage no tiene ningún lugar nativo para mostrar el nombre del proyecto en grande — el `title` de `settings.yaml` solo va al `<title>` del navegador y al manifest PWA, y el único widget relacionado ("logo") es un ícono de 48×48px, sin texto. La primera versión fue solo el título centrado con `datetime`/`openmeteo` como widgets nativos de Homepage abajo — pero esos widgets traen su propia caja/fondo (`.widget-container`) sin margen real para estilar cada uno suelto. Se reemplazó por un reloj y un clima **construidos desde cero** en `custom.js`, en 3 columnas: hora/fecha a la izquierda, "O.S.C.A.R." al centro, clima a la derecha — texto blanco sin caja, solo con sombra para que resalte contra la foto de fondo:
