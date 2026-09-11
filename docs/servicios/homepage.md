@@ -226,31 +226,41 @@ Homepage carga `config/custom.css` automáticamente (se sirve en `/api/config/cu
 Los nombres de clase (`.service`, `.service-name`, `.service-description`, `.service-group-name`, `.widget-container`) salen del código fuente de Homepage (`src/components/services/item.jsx` y `group.jsx`), no de la documentación pública — no están listados en `docs/configs/custom-css-js.md`, hubo que revisar el repo directo.
 
 
-## Reorganizar la barra de widgets superior
+## Barra de estado: CPU/RAM/disco + buscador
 
-Primer intento: separar los 4 widgets nativos de info (`resources`, `datetime`, `openmeteo`, `search`) en dos filas con puro CSS. Funcionó, pero tenía un techo real — los widgets nativos de Homepage traen su propia caja/fondo (`.widget-container`) y muy poco margen para estilar cada uno suelto. Se abandonó ese camino a favor de construir el reloj y el clima **desde cero** en `custom.js` (ver la sección del header más abajo) — sigue quedando `resources` en fila propia:
+`resources` (CPU/RAM/disco) y `search` son los únicos dos widgets nativos de Homepage que quedaron (`datetime`/`openmeteo` se reemplazaron por el header custom de abajo). Viven en una barra angosta entre el header y las tarjetas — recursos a la izquierda, buscador a la derecha, mismo tratamiento visual sin caja que la fecha/el clima:
 
 ```css
-/* CPU/RAM/disco: fila propia, con un divisor sutil arriba */
-.information-widget-resource {
-  order: 10;
-}
-.information-widget-resource:first-of-type {
-  flex-basis: 100%;      /* fuerza el salto de línea dentro del mismo flex row */
-  justify-content: center;
-  margin-top: 0.6rem;
-  padding-top: 0.6rem;
-  border-top: 1px solid rgba(56, 189, 248, 0.15);
+div:has(> .widget-container) {
+  justify-content: space-between !important;
+  align-items: center;
+  padding: 0.55rem 1.5rem;
+  border-top: 1px solid rgba(248, 250, 252, 0.12);
+  border-bottom: 1px solid rgba(248, 250, 252, 0.12);
 }
 
-/* buscador (único widget nativo que queda en la fila superior): centrado */
-div:has(> .widget-container) {
-  justify-content: center !important;
-  gap: 0.6rem;
+.widget-container {
+  background: transparent;
+  border: none;
+  color: #f8fafc;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
+  font-size: 0.78rem;
+}
+
+/* el buscador es el único de los dos que es interactivo — necesita alguna
+   pista visual de que se puede escribir ahí, aunque sea mínima */
+.widget-container:has(input) {
+  border-bottom: 1px solid rgba(248, 250, 252, 0.35);
+}
+.widget-container:has(input) input {
+  background: transparent;
+  color: #f8fafc;
 }
 ```
 
-El truco de `flex-basis: 100%` en el *primer* `.information-widget-resource` (CPU/RAM/disco son tres instancias del mismo widget) fuerza que ese y los siguientes salten a una fila nueva dentro del mismo contenedor flex-wrap, sin contenedor HTML distinto. `:has()` (soportado en todos los navegadores modernos desde 2023) llega al contenedor padre real sin depender de una clase propia de Homepage ahí — trae utilitarias de Tailwind (`flex`, `justify-between`), no una clase semántica estable.
+Por qué quedan en el mismo orden sin tocar nada más: en `widgets.yaml`, `resources` está listado antes que `search` — el flexbox nativo de Homepage ya los renderiza en ese orden (izquierda a derecha), así que `justify-content: space-between` alcanza para separarlos a los extremos sin necesitar `order` explícito.
+
+`:has()` (soportado en todos los navegadores modernos desde 2023) llega al contenedor padre real de estos widgets sin depender de una clase propia de Homepage ahí — trae utilitarias de Tailwind (`flex`, `justify-between`), no una clase semántica estable. El mismo selector distingue el buscador del resto: `.widget-container:has(input)` apunta puntual al que tiene un `<input>` adentro, sin necesitar el nombre real de la clase que Homepage le da al widget de búsqueda (es una clase Tailwind generada dinámicamente, no una constante fija en el código fuente).
 
 ## Header de 3 columnas: hora/fecha · O.S.C.A.R. · clima (custom.js)
 
