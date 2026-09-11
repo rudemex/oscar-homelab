@@ -100,30 +100,34 @@ El token `root@pam!homepage` se creó con `privsep=1` (sin permisos hasta asigna
 
 ## Widgets de información (barra superior)
 
-`settings.yaml` agrega tres widgets informativos arriba del todo, sin necesitar ninguna cuenta/API key:
+Van en **`widgets.yaml`**, un archivo separado de `settings.yaml` — es un error fácil de cometer (yo mismo lo cometí primero: los puse dentro de `settings.yaml` bajo una clave `widgets:`, y Homepage los ignoró en silencio sin tirar ningún error, así que la página siguió mostrando el widget de recursos viejo nomás; costó varias vueltas de "no veo cambios" hasta confirmar con curl directo al contenedor que el HTML servido no tenía el contenido nuevo).
 
 ```yaml
-widgets:
-  - datetime:
-      text_size: xl
-      locale: es-AR
-      format:
-        dateStyle: long
-        timeStyle: short
-        hour12: false
-  - openmeteo:
-      label: Buenos Aires
-      latitude: -34.6037
-      longitude: -58.3816
-      timezone: America/Argentina/Buenos_Aires
-      units: metric
-  - search:
-      provider: google
-      showSearchSuggestions: true
-      target: _blank
+# widgets.yaml
+- resources:
+    cpu: true
+    memory: true
+    disk: /
+- datetime:
+    text_size: xl
+    locale: es-AR
+    format:
+      dateStyle: long
+      timeStyle: short
+      hour12: false
+- openmeteo:
+    label: Buenos Aires
+    latitude: -34.6037
+    longitude: -58.3816
+    timezone: America/Argentina/Buenos_Aires
+    units: metric
+- search:
+    provider: google
+    showSearchSuggestions: true
+    target: _blank
 ```
 
-`openmeteo` es el widget de clima recomendado por Homepage — no pide registro ni API key (a diferencia de OpenWeatherMap).
+`openmeteo` es el widget de clima recomendado por Homepage — no pide registro ni API key (a diferencia de OpenWeatherMap). `settings.yaml` solo tiene título/tema/layout — nada de widgets de info ahí.
 
 ## Sin soporte: páginas con carrusel/slide
 
