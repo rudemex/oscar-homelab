@@ -32,6 +32,11 @@ services:
     status: current
     criticality: C3
     target: core01
+  - id: proxmenux-monitor
+    status: current
+    criticality: C3
+    target: oscar-core
+    note: "systemd nativo, no Docker; instalado por el autor fuera del stack de core01"
   - id: cloudflare-tunnel
     status: current
     criticality: C2

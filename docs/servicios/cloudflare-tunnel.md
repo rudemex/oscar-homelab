@@ -5,7 +5,7 @@ sidebar_position: 14
 
 # Cloudflare Tunnel + Access
 
-**Estado:** Actual — túnel `core01` corriendo y conectado, ingress configurado para 5 servicios, Cloudflare Access habilitado con una Access Application + política por servicio (solo el email del autor, código de un solo uso), y los 5 registros DNS ya publicados y protegidos
+**Estado:** Actual — túnel `core01` corriendo y conectado, ingress configurado para 6 servicios, Cloudflare Access habilitado con una Access Application + política por servicio (solo el email del autor, código de un solo uso), y los 6 registros DNS ya publicados y protegidos
 **Dónde corre:** `core01` (`/srv/oscar/apps/cloudflared/`), `network_mode: host`
 **Sizing inicial:** muy bajo (~20-30 MB RAM)
 **Red/puertos:** solo conexiones salientes (QUIC/HTTP2 hacia el edge de Cloudflare); ningún puerto inbound en el router
@@ -30,6 +30,7 @@ Ingress configurado (vía API, `config_src: cloudflare`):
 | `n8n.oscarlab.com.ar` | `http://localhost:5678` |
 | `home.oscarlab.com.ar` | `http://localhost:3005` |
 | `beszel.oscarlab.com.ar` | `http://localhost:8090` |
+| `monitor.oscarlab.com.ar` | `http://192.168.0.233:8008` — [ProxMenux Monitor](./proxmenux-monitor.md), corre en `oscar-core`, no en `core01`; es el único destino que no es `localhost` |
 | *(catch-all)* | `http_status:404` |
 
 Orden que se siguió (importa para no dejar una ventana pública sin protección): primero se creó la Access Application + política de cada hostname, y **recién después** el registro DNS (`CNAME` → `<tunnel-id>.cfargotunnel.com`, `proxied: true`) — así, en el instante exacto en que cada hostname empezó a resolver, Access ya estaba interceptando. Crear el DNS antes que la política habría dejado el servicio público sin nada delante durante esa ventana.

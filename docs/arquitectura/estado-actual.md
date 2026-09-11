@@ -10,7 +10,7 @@ Esta página es la única fuente de "qué existe de verdad hoy". El resto del si
 Se actualiza en cada cambio de fase real (ver [roadmap](../roadmap/roadmap-general.md)), no en cada edición de documentación.
 
 :::caution
-Proxmox ya está instalado, `core01` existe con Docker corriendo, y hay nueve servicios reales arriba (abajo) — cinco de ellos ya publicados en `oscarlab.com.ar` detrás de Cloudflare Access. Todo lo demás del sitio que dice "Objetivo" sigue sin existir — esta página es la línea exacta entre lo uno y lo otro.
+Proxmox ya está instalado, `core01` existe con Docker corriendo, y hay diez servicios reales arriba (abajo) — seis de ellos ya publicados en `oscarlab.com.ar` detrás de Cloudflare Access. Todo lo demás del sitio que dice "Objetivo" sigue sin existir — esta página es la línea exacta entre lo uno y lo otro.
 :::
 
 ## Hardware — existe físicamente
@@ -39,7 +39,8 @@ Proxmox ya está instalado, `core01` existe con Docker corriendo, y hay nueve se
 | Vaultwarden 1.37.2 | Docker en `core01` | Actual | `/srv/oscar/apps/vaultwarden/`, puerto publicado solo en `127.0.0.1:8082` (ya no en LAN). Ver [Vaultwarden](../servicios/vaultwarden.md). |
 | Homepage v2.3.0 | Docker en `core01` | Actual | `/srv/oscar/apps/homepage/`, puerto 3005, dashboard con links a todos los servicios reales. Ver [Homepage](../servicios/homepage.md). |
 | Beszel 0.19.0 | Docker en `core01` | Actual | hub (puerto 8090) y agente (puerto 45876) conectados, reportando CPU/RAM/disco en tiempo real. Ver [Beszel](../servicios/beszel.md). |
-| Cloudflare Tunnel + Access | Docker en `core01` | Actual | túnel conectado, 5 hostnames públicos (`vault`, `n8n`, `kuma`, `home`, `beszel` . `oscarlab.com.ar`), cada uno con su propia Access Application y protegido por login (código de un solo uso al email del autor). Ver [Cloudflare Tunnel](../servicios/cloudflare-tunnel.md). |
+| ProxMenux Monitor | systemd en `oscar-core` (no Docker) | Actual | instalado por el autor directo en el hipervisor, `proxmenux-monitor.service`, puerto 8008. Publicado como `monitor.oscarlab.com.ar`. Ver [ProxMenux Monitor](../servicios/proxmenux-monitor.md). |
+| Cloudflare Tunnel + Access | Docker en `core01` | Actual | túnel conectado, 6 hostnames públicos (`vault`, `n8n`, `kuma`, `home`, `beszel`, `monitor` . `oscarlab.com.ar`), cada uno con su propia Access Application y protegido por login (código de un solo uso al email del autor). Ver [Cloudflare Tunnel](../servicios/cloudflare-tunnel.md). |
 
 ## Dominio — en uso
 
