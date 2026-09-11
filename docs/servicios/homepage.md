@@ -183,11 +183,36 @@ Van en **`widgets.yaml`**, un archivo separado de `settings.yaml` — es un erro
 
 `openmeteo` es el widget de clima recomendado por Homepage — no pide registro ni API key (a diferencia de OpenWeatherMap). `settings.yaml` solo tiene título/tema/layout — nada de widgets de info ahí.
 
+## Fondo de pantalla
+
+Es una foto real (aurora boreal, provista por el autor), no el gradiente CSS que había antes — Homepage la sirve nativamente vía `background:` en `settings.yaml`, con blur/saturación/brillo/opacidad ajustables. Requiere montar un volumen aparte:
+
+```yaml
+# compose.yaml
+volumes:
+  - ./config:/app/config
+  - ./images:/app/public/images   # necesario para servir imágenes propias
+```
+
+```yaml
+# settings.yaml
+background:
+  image: /images/bg-1.jpg
+  blur: sm
+  saturate: 100
+  brightness: 55   # bajado para que el texto siga siendo legible arriba de una foto con zonas brillantes
+  opacity: 90
+```
+
+La imagen original pesaba 4.3 MB (PNG) — se convirtió a JPEG calidad 82 antes de subirla (441 KB), porque esto lo va a cargar también el navegador de la Raspberry que eventualmente maneje la pantalla táctil del rack, y 4+ MB por cada carga de página es innecesario para una foto de fondo.
+
+`custom.css` ya no define el fondo (antes tenía un gradiente + grilla armado en CSS puro, antes de tener esta imagen) — ahora la opacidad de las tarjetas y la barra de widgets se subió un poco (de 0.55/0.65 a 0.7/0.78) para mantener buen contraste de texto contra una foto real en vez de un fondo liso.
+
 ## Identidad visual (custom.css)
 
 Homepage carga `config/custom.css` automáticamente (se sirve en `/api/config/custom.css`, referenciado por la propia página) — no hace falta tocar nada del compose, solo poner el archivo ahí. Se usó para:
 
-- fondo oscuro con gradiente + grilla sutil (CSS puro, `repeating-linear-gradient`, sin ninguna imagen externa que hostear ni que se pueda romper);
+- fondo con foto real (ver arriba) — antes era un gradiente + grilla en CSS puro, sin imagen que hostear; se cambió cuando apareció una imagen mejor;
 - tarjetas de servicio (`.service`) con borde y efecto hover en vez del recuadro plano default;
 - nombres de grupo (`.service-group-name`) en mayúsculas con acento celeste, estilo "consola";
 - la barra de widgets superior (`.widget-container`) separada visualmente en pastillas, para que CPU/RAM/disco/reloj/clima/buscador no se vean todos pegados.
