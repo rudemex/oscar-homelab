@@ -238,7 +238,7 @@ function addOscarHeader() {
   header.id = "oscar-header";
   header.innerHTML =
     '<span class="oscar-title">O.S.C.A.R.</span>' +
-    '<span class="oscar-subtitle">Open Systems Control And Rack</span>';
+    '<span class="oscar-subtitle">Operations, Services, Compute, Automation &amp; Routing</span>';
   document.body.insertBefore(header, document.body.firstChild);
 }
 
