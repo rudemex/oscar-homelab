@@ -198,15 +198,15 @@ volumes:
 # settings.yaml
 background:
   image: /images/bg-1.jpg
-  blur: sm
-  saturate: 100
-  brightness: 55   # bajado para que el texto siga siendo legible arriba de una foto con zonas brillantes
-  opacity: 90
+  blur: xl    # bien alto: disimula que la foto (1672×941) se ve pixelada al estirarse en pantallas más grandes
+  saturate: 90
+  brightness: 45
+  opacity: 55   # bajado de 90 a 55 — con más se perdía el contraste contra las tarjetas
 ```
 
 La imagen original pesaba 4.3 MB (PNG) — se convirtió a JPEG calidad 82 antes de subirla (441 KB), porque esto lo va a cargar también el navegador de la Raspberry que eventualmente maneje la pantalla táctil del rack, y 4+ MB por cada carga de página es innecesario para una foto de fondo.
 
-`custom.css` ya no define el fondo (antes tenía un gradiente + grilla armado en CSS puro, antes de tener esta imagen) — ahora la opacidad de las tarjetas y la barra de widgets se subió un poco (de 0.55/0.65 a 0.7/0.78) para mantener buen contraste de texto contra una foto real en vez de un fondo liso.
+`custom.css` ya no define el fondo (antes tenía un gradiente + grilla armado en CSS puro, antes de tener esta imagen) — la opacidad de las tarjetas y la barra de widgets se subió dos veces (0.55/0.65 → 0.7/0.78 → **0.85/0.9**, casi opacas) porque con una foto de verdad de fondo, cualquier transparencia notoria le come contraste al texto — mucho más agresivo de lo que hacía falta con el gradiente CSS liso de antes.
 
 ## Identidad visual (custom.css)
 
