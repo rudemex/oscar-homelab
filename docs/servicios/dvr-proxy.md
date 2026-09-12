@@ -85,6 +85,28 @@ ctx.set_ciphers("DEFAULT:@SECLEVEL=1")
 
 Sin esto, cualquier intento de conexión HTTPS al DVR desde Python falla en el handshake, aunque el mismo request funcione perfecto desde la terminal con `curl`.
 
+### El otro detalle no obvio: framing sin `chunked`, video que nunca pinta
+
+Primera versión de `/stream` respondía sin `Content-Length` (imposible, es un stream sin fin) **ni** `Transfer-Encoding: chunked` — solo escribía bytes crudos y confiaba en que el cierre de la conexión marcara el final. `curl` no tiene problema con eso (lee hasta que el socket se cierra, y lo mostró bien en todas las pruebas por terminal) — pero un navegador real, recibiendo una respuesta sin ninguna forma declarada de delimitar el cuerpo, se quedaba esperando indefinidamente sin pintar un solo frame: la página cargaba (el `200 OK` llegaba), los 4 recuadros de cámara se veían negros, y en las herramientas de desarrollador la petición quedaba en estado "cargando" para siempre. Costó varias rondas de diagnóstico remoto (probar la URL sola vs. la página completa, confirmar que otro puerto LAN sí cargaba, comparar reglas de NAT/firewall entre puertos) llegar al dato real: no era de red, era el *framing* HTTP de la respuesta.
+
+La solución es `Transfer-Encoding: chunked` — el mecanismo estándar de HTTP para streams de longitud indefinida — junto con `protocol_version = "HTTP/1.1"` en el `Handler` (el default de `BaseHTTPRequestHandler` es HTTP/1.0, que no sabe de `chunked`):
+
+```python
+class Handler(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+    ...
+    self.send_header("Transfer-Encoding", "chunked")
+    self.end_headers()
+    while True:
+        chunk = upstream.read(4096)
+        if not chunk:
+            break
+        self.wfile.write(("%x\r\n" % len(chunk)).encode() + chunk + b"\r\n")
+    self.wfile.write(b"0\r\n\r\n")
+```
+
+Cada trozo de datos se envuelve con su tamaño en hexadecimal + `\r\n` antes, y `\r\n` después — el formato exacto que espera un cliente HTTP/1.1 para poder ir procesando el cuerpo a medida que llega, en vez de esperar a que la conexión se cierre.
+
 ```bash
 docker compose up -d
 ```
@@ -123,6 +145,7 @@ El `siteMonitor` de su propia tarjeta en Homepage ya cubre "¿está vivo?".
 - **La grilla carga pero las imágenes no aparecen** → confirmar `DVR_USER`/`DVR_PASS` en el `.env` — con credenciales incorrectas el DVR devuelve 401 y el proxy lo traduce a 502.
 - **El video se ve pero se congela después de un rato** → revisar que el contenedor siga `Up` (`docker ps`) y no se haya reiniciado; una conexión de stream cortada (por ejemplo al reiniciar el contenedor) no se reconecta sola del lado del `<img>` — hay que recargar la página.
 - **Varias cámaras a la vez y una no carga** → confirmar que el compose sigue usando `ThreadingHTTPServer`, no `HTTPServer` — con el servidor simple (no threaded), una sola conexión activa bloquea a las demás.
+- **La página carga (título visible) pero los 4 recuadros quedan negros, "cargando" para siempre en las devtools** → falta `Transfer-Encoding: chunked` en la respuesta de `/stream` (ver arriba). Síntoma clave para reconocer este caso: `curl` sí muestra el video bien (no distingue si el framing HTTP es correcto, solo lee hasta que el socket se cierra), pero un navegador real no pinta nada — si algo "funciona por curl pero no en el navegador" para un endpoint que hace streaming, sospechar del framing HTTP antes que de la red.
 
 ## Documentación oficial
 

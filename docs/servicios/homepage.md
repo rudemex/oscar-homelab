@@ -285,6 +285,19 @@ Cada estadística de un widget nativo (los recuadros con un valor y una etiqueta
 
 Los 3 grupos (Infraestructura, Servicios, Hogar) pasaron a tener cada uno su propio color de acento en el nombre — cian, verde-agua, violeta, el mismo trío que ya usa el brillo del título, la aurora del fondo y las barras de CPU/RAM/disco del header — en vez de los 3 en el mismo celeste. Como Homepage no expone el nombre del grupo como atributo de datos, el color se asigna por posición (`#services > .services-group:nth-of-type(1|2|3) .service-group-name`) — funciona porque, sin tabs ni carrusel, los 3 grupos son hermanos apilados siempre en el mismo orden.
 
+### Filas de tarjetas pegadas, y tarjetas vacías estiradas feo
+
+Dos problemas del mismo origen, encontrados leyendo el código fuente real de la grilla (`src/components/services/list.jsx` de Homepage): el `<ul class="services-list">` que envuelve las tarjetas es un CSS Grid con `gap-x-2` — **horizontal únicamente**, sin ningún gap vertical — así que con 4 columnas y más de 4 servicios en un grupo, la segunda fila quedaba pegada a la primera. Y CSS Grid, por defecto, estira cada elemento de una fila a la altura del más alto de esa fila (`align-items: stretch` es el valor por defecto de la propiedad, no algo que Homepage active a propósito) — una tarjeta sin widget (solo ícono+nombre+descripción, bastante más baja que una con 3 `.service-block`) quedaba estirada con un montón de aire vacío abajo, al lado de una tarjeta con datos reales.
+
+```css
+.services-list {
+  row-gap: 1rem;
+  align-items: start;
+}
+```
+
+`row-gap` agrega la separación vertical que faltaba. `align-items: start` hace que cada tarjeta mida lo que su propio contenido necesita, en vez de estirarse a la altura de la vecina más alta.
+
 ## CPU/RAM/disco y buscador: reconstruidos, no reubicados
 
 Layout final pedido, en 2 filas apiladas:
