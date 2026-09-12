@@ -313,6 +313,8 @@ El widget `glances` **sigue existiendo** en `widgets.yaml` — hace falta que es
 
 El buscador es más simple todavía — un `<input>` propio que en `Enter` abre `https://www.google.com/search?q=...` en una pestaña nueva. No hay necesidad de reusar el widget nativo de búsqueda para algo tan básico. Comparte fila con CPU/RAM/disco: `.oscar-row-bottom` los pone a los dos en la misma línea, buscador a la izquierda y recursos a la derecha (`justify-content: space-between`), no en dos filas apiladas.
 
+La primera versión era un `<input>` sin caja, solo con una línea (`border-bottom`) debajo del texto — funcional pero se perdía contra el resto del header. Se rediseñó como una píldora "glass": fondo semitransparente con `backdrop-filter: blur(8px)`, borde sutil, `border-radius: 999px`, y un ícono de lupa (`SEARCH_SVG`) a la izquierda del texto. Al enfocar el input, el brillo cian de la marca (`#38bdf8`) aparece en el borde, en el `box-shadow` (un halo suave) y tiñe también el ícono — con `:focus-within` en el contenedor en vez de `:focus` en el `<input>`, porque así el brillo abarca al ícono, no solo al campo de texto.
+
 **Regla que queda de esto para cualquier próxima idea de "reposicionar un widget nativo de Homepage con JS":** no. Si hace falta en otro lugar del layout, se reconstruye desde cero (fetch a la ruta interna si hay datos reales de por medio, como acá) y se oculta el original con `display: none`, nunca se lo mueve por el DOM.
 
 ### Por qué los datos vienen de `glances`, no de `resources`
