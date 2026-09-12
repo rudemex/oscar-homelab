@@ -114,6 +114,17 @@ Cada grupo pasa a ocupar el 100% del ancho, uno al lado del otro en fila, y arra
 
 Para saber en qué grupo estás y poder saltar directo a uno sin arrastrar, se agregó una fila de puntitos debajo de la barra de tabs vieja (ahora inexistente) — uno por grupo, inyectados por `wireGroupCarousel()`. Clickear un punto hace `scrollIntoView({ behavior: "smooth", inline: "start" })` sobre el grupo correspondiente; un listener de `scroll` en el contenedor (con `requestAnimationFrame` para no recalcular en cada pixel) detecta cuál grupo quedó más pegado al borde izquierdo y le pone la clase `active` a su punto. Todo esto es DOM nuevo agregado por `custom.js` (un `<div>` con botones, insertado como hermano de `#services`, nunca dentro) — no reposiciona ni oculta nada que Homepage ya haya renderizado, mismo patrón seguro que el resto del header.
 
+### Arrastrar con mouse, no solo con el dedo
+
+El scroll-snap nativo ya resolvía el swipe táctil y el scroll de trackpad/rueda gratis — lo único que el navegador **no** da de fábrica es "click sostenido + arrastrar" con mouse (eso normalmente solo funciona en listas verticales con la rueda, no arrastrando de un lado a otro). Se armó a mano, el patrón clásico de "grab to scroll":
+
+- `mousedown` en el contenedor guarda la posición inicial del mouse y el `scrollLeft` de ese momento.
+- `mousemove` (mientras el botón sigue apretado) calcula cuánto se movió el mouse y se lo resta al `scrollLeft` guardado — a partir de un umbral de 6px de movimiento, para no confundir un click normal con un arrastre de 1px.
+- `mouseup` termina el arrastre y, si hubo uno real, fuerza un snap explícito al grupo más cercano (mismo cálculo de distancia que ya usan los puntitos) — sin este paso, el navegador a veces no vuelve a aplicar el `scroll-snap` después de un `scrollLeft` puesto a mano.
+- Un listener en fase de captura sobre el `click` cancela la navegación si hubo arrastre real — sin esto, soltar el mouse arriba de una tarjeta después de arrastrar abriría el link del servicio sin querer.
+
+Todo esto solo lee/escribe `container.scrollLeft` (una propiedad, no la estructura del DOM) y agrega/saca una clase CSS (`oscar-carousel-dragging`, que saca el `scroll-snap-type` mientras se arrastra y pone `cursor: grabbing`) — no reordena nodos ni toca nada que Homepage renderice.
+
 ## Widgets nativos (datos en vivo en la tarjeta)
 
 Además del `siteMonitor` (puntito de estado), **6 de las 10 tarjetas** tienen un `widget:` que muestra datos reales directo en la card en vez de un link plano — Proxmox, AdGuard Home, Cloudflare Tunnel, Uptime Kuma, Beszel y Home Assistant. n8n, Vaultwarden y Glances se quedan con descripción fija: Homepage no tiene una integración nativa para ninguno de los tres — la de Glances existe (es la que usa el header, ver más abajo) pero es para pedir datos puntuales, no para armar una card con métricas en vivo.
