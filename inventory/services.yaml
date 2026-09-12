@@ -103,10 +103,10 @@ services:
     target: core01
     note: "reemplazado por go2rtc; contenedor parado, archivos sin borrar en core01"
   - id: go2rtc
-    status: current
+    status: retired
     criticality: C3
     target: core01
-    note: "sin autenticación propia; re-streaming RTSP->navegador del DVR Dahua, reemplazó a dvr-proxy; solo LAN, sin dominio público a propósito"
+    note: "reemplazó a dvr-proxy pero se retiró también; problema de rotación de cámaras sin resolver, se decidió no invertir más tiempo/recursos en video de cámaras dentro de Homepage; contenedor parado, archivos sin borrar en core01"
   - id: ai-operator
     status: future
     criticality: C4

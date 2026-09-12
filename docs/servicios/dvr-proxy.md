@@ -121,7 +121,7 @@ docker compose up -d
 
 ## Configuración en Homepage (histórica)
 
-La tarjeta del DVR en `services.yaml` llegó a tener tres formas distintas mientras este proxy estuvo activo (widget `mjpeg` apuntando a la IP LAN → el mismo widget por el Tunnel → una `<img>` propia armada en `custom.js` con `/snapshot` refrescado cada 1s). Ninguna de las tres sigue en pie — la config actual (widget `iframe` apuntando al visor de go2rtc) está documentada en [go2rtc](./go2rtc.md#configuración-en-homepage) y en [Homepage](./homepage.md).
+La tarjeta del DVR en `services.yaml` llegó a tener varias formas mientras este proxy y después go2rtc estuvieron activos (widget `mjpeg` apuntando a la IP LAN → el mismo widget por el Tunnel → una `<img>` propia armada en `custom.js` con `/snapshot` refrescado cada 1s → un `iframe` con video real vía go2rtc). Ninguna sigue en pie — hoy es un link simple con chequeo de estado, documentado en [Homepage](./homepage.md#dvr-dahua-de-video-en-vivo-a-solo-estado).
 
 ## Cloudflare Tunnel no sostiene un stream infinito
 

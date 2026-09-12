@@ -5,16 +5,19 @@ sidebar_position: 28
 
 # go2rtc
 
-**Estado:** Actual · Hogar — corriendo en `core01`
-**Dónde corre:** Docker Core (`/srv/oscar/apps/go2rtc/`)
+**Estado:** Retirado — la tarjeta del DVR volvió a ser un link simple con chequeo de estado (ver [Homepage](./homepage.md#dvr-dahua-de-video-en-vivo-a-solo-estado))
+**Dónde corría:** Docker Core (`/srv/oscar/apps/go2rtc/`) — contenedor parado (`docker compose down`), archivos sin borrar en `core01`
 **Sizing inicial:** liviano (un solo binario Go, imagen oficial `alexxit/go2rtc:1.9.14`)
-**Red/puertos:** `1984` (API HTTP + visor web), `8554` (RTSP, sin usar), `8555` (WebRTC)
-**Alcance:** solo LAN — sin dominio público, sin Cloudflare Tunnel ni Access (ver "Por qué solo LAN" más abajo)
-**Persistencia:** ninguna — no graba nada, solo relayea el video del DVR en vivo
+**Red/puertos:** `1984` (ya no en uso)
+**Alcance:** solo LAN — sin dominio público, sin Cloudflare Tunnel ni Access
 
-## Rol dentro de O.S.C.A.R.
+:::note Por qué se retiró
+Después de resolver casi todo (HD real, LAN-only, página propia con el estilo del dashboard) quedó pendiente un problema de orientación: 3 de las 4 cámaras graban en "modo pasillo" y el DVR las rota al mostrarlas — el RTSP crudo no trae esa rotación, y ninguno de los dos sentidos de giro probados en CSS (`rotate(90deg)`/`rotate(-90deg)`) coincidía con cómo se ven en el monitor real del DVR. En vez de seguir iterando, la decisión fue frenar del todo: **no vale la pena seguir invirtiendo tiempo y recursos en tener video de las cámaras dentro de Homepage** — la tarjeta volvió a ser un link + chequeo de estado, como la mayoría de las demás. Se deja esta página como referencia técnica (el truco de `static_dir`, el de rotación con unidades de container query, el porqué de LAN-only) por si en algún momento se retoma.
+:::
 
-Reemplaza a [DVR Proxy](./dvr-proxy.md) para ver las cámaras del [DVR Dahua](../hogar/cctv-dahua.md) — mismo objetivo (video en la tarjeta de Homepage y en una grilla de las 4, sin abrir la app nativa del DVR), pero por un camino distinto: en vez de que el proxy le hable HTTP al DVR y reenvíe eso, go2rtc le habla **RTSP** — el protocolo nativo de streaming de cualquier cámara/DVR IP, mucho más apto para esto que HTTP — y lo reempaqueta en formatos que un navegador puede reproducir directo.
+## Rol dentro de O.S.C.A.R. (histórico)
+
+Reemplazó a [DVR Proxy](./dvr-proxy.md) para ver las cámaras del [DVR Dahua](../hogar/cctv-dahua.md) — mismo objetivo (video en la tarjeta de Homepage y en una grilla de las 4, sin abrir la app nativa del DVR), pero por un camino distinto: en vez de que el proxy le hable HTTP al DVR y reenvíe eso, go2rtc le hablaba **RTSP** — el protocolo nativo de streaming de cualquier cámara/DVR IP, mucho más apto para esto que HTTP — y lo reempaquetaba en formatos que un navegador puede reproducir directo.
 
 ### Por qué go2rtc y no Frigate
 
@@ -99,7 +102,24 @@ Las 4 cámaras no comparten la misma orientación: 3 quedaron configuradas en mo
 .cam cam-video video { width: 100%; height: 100%; object-fit: contain; }
 ```
 
-## Configuración en Homepage
+### El problema que no se llegó a resolver: la rotación
+
+3 de las 4 cámaras graban en "modo pasillo" (vertical, pensado para aprovechar mejor un pasillo/balcón angosto) — el propio DVR las rota 90° al mostrarlas en su monitor, pero el RTSP crudo que recibe go2rtc no trae esa rotación aplicada. Se armó una corrección en CSS, detectando solas las cámaras verticales (`videoWidth < videoHeight` una vez que el navegador conoce las dimensiones reales) y rotándolas con `transform: rotate()`, usando unidades de container query (`cqw`/`cqh`) para que el elemento rotado siga ocupando el 100% de su celda sin quedar cortado:
+
+```css
+.cam cam-video.rotate {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100cqh;
+  height: 100cqw;
+  transform: translate(-50%, -50%) rotate(-90deg);
+}
+```
+
+El truco en sí funcionaba (la imagen pasaba de vertical a horizontal, llenando la celda), pero **ningún sentido de giro coincidió con el monitor real del DVR** — se probaron `rotate(90deg)` y `rotate(-90deg)`, los únicos dos sentidos posibles para pasar de vertical a horizontal, y los dos se reportaron como "se ven mal". No se investigó más a fondo (por ejemplo, si distintas cámaras necesitan sentidos de giro distintos entre sí, en vez de uno global para las tres) porque en ese punto se decidió retirar el servicio entero — queda esto documentado por si se retoma.
+
+## Configuración en Homepage (histórica)
 
 ```yaml
 - DVR Dahua:
@@ -113,44 +133,32 @@ Las 4 cámaras no comparten la misma orientación: 3 quedaron configuradas en mo
       allowPolicy: autoplay
 ```
 
-`href` y `siteMonitor` van a la IP LAN directa (no hay dominio público, ver "Por qué solo LAN" arriba) — un click en la tarjeta abre la grilla completa. El widget `iframe` de la tarjeta —nativo de Homepage, no código propio— muestra la cámara 1 sola, en vivo de verdad. `allowPolicy: autoplay` es necesario porque, sin eso, el navegador puede bloquear el autoplay del video dentro del iframe.
+`href` y `siteMonitor` iban a la IP LAN directa (no había dominio público) — un click en la tarjeta abría la grilla completa. El widget `iframe` de la tarjeta —nativo de Homepage, no código propio— mostraba la cámara 1 sola. `allowPolicy: autoplay` era necesario porque, sin eso, el navegador puede bloquear el autoplay del video dentro del iframe.
 
-**El video se veía estirado/deformado en la tarjeta.** `video-rtc.js` fuerza el `<video>` a `width:100%; height:100%` de su contenedor, sin `object-fit` propio — así que si el contenedor no respeta la proporción real del video, lo aplasta. No se usó `classes:` (el mecanismo normal de Homepage para el alto del iframe, vía clases de Tailwind) porque eso hubiera fijado una altura en píxeles sin relación con la proporción real del video — y además una clase de Tailwind "nueva", tipeada solo en `services.yaml` y nunca usada en ningún `.jsx` real de Homepage, no tiene garantizado tener CSS generado (Tailwind solo compila las clases que encuentra escaneando el código fuente en build time). Se resolvió con una regla en `custom.css` de Homepage, con la proporción real de la cámara 1 — **960×1080, vertical (8:9)** — confirmada mirando cómo se ve esa misma cámara en la grilla completa (una foto suelta de `/api/frame.jpeg` había dado la proporción al revés, por no aplicar la rotación que sí lleva el stream de video real):
+**El video se veía estirado/deformado en la tarjeta.** `video-rtc.js` fuerza el `<video>` a `width:100%; height:100%` de su contenedor, sin `object-fit` propio — así que si el contenedor no respeta la proporción real del video, lo aplasta. No se usó `classes:` (el mecanismo normal de Homepage para el alto del iframe, vía clases de Tailwind) porque eso hubiera fijado una altura en píxeles sin relación con la proporción real del video — y además una clase de Tailwind "nueva", tipeada solo en `services.yaml` y nunca usada en ningún `.jsx` real de Homepage, no tiene garantizado tener CSS generado (Tailwind solo compila las clases que encuentra escaneando el código fuente en build time). Se resolvió con una regla en `custom.css` de Homepage con la proporción real de la cámara 1 (aspect-ratio explícito) en vez de una clase.
 
-```css
-.service-block:has(iframe) {
-  padding: 0 !important;
-  aspect-ratio: 8 / 9;
-  overflow: hidden;
-}
-.service-block iframe {
-  aspect-ratio: 8 / 9;
-  height: auto !important;
-  border: none;
-}
-```
+## Seguridad (histórica)
 
-## Seguridad
-
-- las credenciales RTSP del DVR quedan solo en `go2rtc.yaml`, en `core01` — nunca en `custom.js`, nunca en git;
-- go2rtc **no tiene autenticación propia** (lo advierte su propia documentación: "passes requests from localhost... without HTTP authorization... it's your responsibility to set up secure external access") — cualquiera en la LAN que sepa la URL puede ver las cámaras sin login. Mismo modelo de riesgo ya aceptado para MySpeed/Glances y, antes, para `dvr-proxy`;
-- no hay ninguna puerta desde internet — ver "Por qué solo LAN" arriba. Esto es más estricto que el resto de los servicios de esta cuenta (que sí están detrás de Cloudflare Access), a propósito.
+- las credenciales RTSP del DVR quedaban solo en `go2rtc.yaml`, en `core01` — nunca en `custom.js`, nunca en git;
+- go2rtc **no tiene autenticación propia** (lo advierte su propia documentación: "passes requests from localhost... without HTTP authorization... it's your responsibility to set up secure external access") — cualquiera en la LAN que supiera la URL podía ver las cámaras sin login. Mismo modelo de riesgo que MySpeed/Glances y, antes, `dvr-proxy`;
+- no había ninguna puerta desde internet — más estricto que el resto de los servicios de esta cuenta (que sí están detrás de Cloudflare Access), a propósito.
 
 ## Backup y restore
 
-Nada que respaldar — sin estado propio, `docker compose up -d` lo reconstruye idéntico (siempre que `go2rtc.yaml` siga en el disco de `core01`, fuera de git).
+Nada que respaldar — sin estado propio.
 
 ## Observabilidad
 
-El `siteMonitor` de su propia tarjeta en Homepage cubre "¿está vivo?". Para ver el estado de cada stream (conectado, códec detectado, consumidores activos), la API expone `GET /api/streams` (sin auth desde la LAN).
+Ya no aplica — el contenedor está parado.
 
-## Troubleshooting
+## Troubleshooting (histórico)
 
 - **Un canal no conecta (`producers: []` o vacío en `/api/streams`)** → revisar `docker logs go2rtc` por el error RTSP puntual; casi siempre es la contraseña mal urlencodeada (el `@` sin `%40`) o el DVR rechazando una quinta conexión simultánea al mismo canal (algunos firmwares Dahua limitan conexiones RTSP concurrentes por canal — si hay otra app/NVR también conectada al mismo canal, puede fallar).
 - **Se ve sin audio** → el canal 4 sí trae audio (PCMA) en el stream principal, pero `<video>` arranca muteado a propósito (`this.video.muted = true` en `CamVideo`, necesario para que el autoplay funcione en cualquier navegador sin interacción) — no es que falte audio, está apagado por defecto. Otros canales pueden no tener audio configurado en el DVR directamente.
 - **Las cámaras verticales se ven angostas, con franjas negras a los costados** → es a propósito, ver "Barras negras, no recortada" arriba (`object-fit: contain` — se prefirió ver la escena completa antes que perder los bordes superior/inferior) — no es un bug.
-- **Cambié `go2rtc.yaml` y no se aplicó** → hace falta reiniciar el contenedor (`docker compose restart go2rtc`), no recarga la config solo.
-- **Cambié `www/index.html` y sigo viendo la versión vieja** → eso sí se sirve en caliente, sin reiniciar nada — el problema casi siempre es **caché del navegador**, no del servidor (`curl http://192.168.0.156:1984/` desde `core01` para confirmar qué está sirviendo de verdad de un lado, y comparar). A diferencia de Homepage, esta página no pasa por Cloudflare — no hay nada que purgar del lado del servidor, hace falta un hard refresh (`Cmd+Shift+R` / `Ctrl+Shift+R`) en el navegador.
+- **Las cámaras verticales se ven rotadas para el lado equivocado** → problema real, sin resolver — ver "El problema que no se llegó a resolver: la rotación" arriba.
+- **Cambié `go2rtc.yaml` y no se aplicó** → hacía falta reiniciar el contenedor (`docker compose restart go2rtc`), no recargaba la config solo.
+- **Cambié `www/index.html` y seguía viendo la versión vieja** → eso se servía en caliente, sin reiniciar nada — el problema casi siempre era **caché del navegador**, no del servidor. A diferencia de Homepage, esta página no pasaba por Cloudflare — no había nada que purgar del lado del servidor, hacía falta un hard refresh (`Cmd+Shift+R` / `Ctrl+Shift+R`) en el navegador.
 
 ## Documentación oficial
 
