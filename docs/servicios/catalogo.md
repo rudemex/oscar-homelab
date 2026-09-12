@@ -28,6 +28,7 @@ La tabla resume el rol previsto. **Objetivo** no significa “instalar ya”: ca
 | [Glances](./glances.md) | **Actual** · Observabilidad | Docker Core | fuente de datos real de CPU/RAM/disco de `core01` para el header de Homepage, con tarjeta y UI propia (procesos, red, contenedores) |
 | [MySpeed](./myspeed.md) | **Actual** · Observabilidad | Docker Core | historial de velocidad de internet, tests automáticos |
 | [Nginx Proxy Manager](./nginx-proxy-manager.md) | **Actual** · Infraestructura | Docker Core | reverse proxy interno para tráfico dentro de la LAN, no reemplaza al Tunnel |
+| [DVR Proxy](./dvr-proxy.md) | **Actual** · Hogar | Docker Core | grilla de las 4 cámaras del DVR Dahua, sin exponer sus credenciales al navegador |
 | [Cloudflare Tunnel + Access](./cloudflare-tunnel.md) | **Actual** · Acceso remoto | Docker Core | publica Vaultwarden/n8n/Kuma/Homepage/Beszel/ProxMenux Monitor sin abrir puertos, cada uno con Access delante |
 | [Eclipse Mosquitto MQTT](./mosquitto.md) | Laboratorio / Hogar | Raspberry Pi o VM Core | sensores Pi Zero |
 | [Ollama](./ollama.md) | Laboratorio · IA local | Dell/VM solo para modelos compatibles con recursos; hardware futuro para cargas mayores | probar LLM local |

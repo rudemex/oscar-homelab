@@ -97,6 +97,11 @@ services:
     criticality: C3
     target: "192.168.0.224 (LAN, hardware propio)"
     note: "4 canales, sin VLAN dedicada ni bandeja física propia todavía"
+  - id: dvr-proxy
+    status: current
+    criticality: C3
+    target: core01
+    note: "sin autenticación propia; snapshot proxy para no exponer la contraseña del DVR al navegador"
   - id: ai-operator
     status: future
     criticality: C4

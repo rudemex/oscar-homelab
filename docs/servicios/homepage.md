@@ -339,19 +339,29 @@ El buscador es más simple todavía — un `<input>` propio que en `Enter` abre 
 
 ### Saludo según la hora, no el widget nativo "greeting"
 
-Homepage tiene un widget de información llamado `greeting` (texto fijo, sin franja horaria, configurable en `widgets.yaml`) — pero vive en la barra de widgets de arriba, que en este header ya no existe (la reemplazó por completo el header custom). En vez de intentar reubicar ese widget nativo (la lección de siempre: no tocar nodos que React maneje), se construyó uno propio: `updateGreeting()` calcula la hora en la misma zona horaria que el reloj (`WEATHER_TZ`) y arma el texto en `<span id="oscarGreeting">`, insertado como tercer elemento de `.oscar-row-bottom`, entre el buscador y los recursos:
+Homepage tiene un widget de información llamado `greeting` (texto fijo, sin franja horaria, configurable en `widgets.yaml`) — pero vive en la barra de widgets de arriba, que en este header ya no existe (la reemplazó por completo el header custom). En vez de intentar reubicar ese widget nativo (la lección de siempre: no tocar nodos que React maneje), se construyó uno propio: `updateGreeting()` calcula la hora en la misma zona horaria que el reloj (`WEATHER_TZ`) y arma el texto en `<span id="oscarGreeting">`, insertado como elemento central de `.oscar-row-bottom`, entre el buscador y los recursos.
+
+La primera versión tenía una sola frase fija por franja horaria ("Buenos días"/"Buenas tardes"/"Buenas noches"). El pedido fue que variaran y tuvieran que ver con el homelab — se armó un pool de 4 frases por franja (madrugada/mañana/tarde/noche), todas relacionadas a O.S.C.A.R./el rack/`core01`, y en cada actualización se elige una al azar dentro de la franja que corresponda:
 
 ```js
+var GREETING_PHRASES = {
+  madrugada: ["El rack nunca duerme", "core01 sigue despierto", /* ... */],
+  mañana: ["Arrancando el día con O.S.C.A.R.", /* ... */],
+  tarde: ["La tarde avanza, el rack no para", /* ... */],
+  noche: ["O.S.C.A.R. cuidando el homelab mientras descansás", /* ... */]
+};
+
 function updateGreeting() {
   var hour = /* hora actual en WEATHER_TZ */;
-  if (hour < 6) text = "Buenas noches";
-  else if (hour < 12) text = "Buenos días";
-  else if (hour < 20) text = "Buenas tardes";
-  else text = "Buenas noches";
+  var bucket = hour < 6 ? "madrugada" : hour < 12 ? "mañana" : hour < 20 ? "tarde" : "noche";
+  var phrases = GREETING_PHRASES[bucket];
+  el.textContent = phrases[Math.floor(Math.random() * phrases.length)];
 }
 ```
 
-Se actualiza cada 5 minutos — de sobra para un texto que solo cambia 3 veces por día.
+Se actualiza cada 5 minutos — el pool tiene margen de sobra para no repetirse siempre igual dentro de una misma franja horaria (aunque, al ser al azar, nada impide que salga la misma frase dos veces seguidas). El texto también se agrandó (0.78rem → 1.05rem, peso 700) para que pese lo mismo visualmente que el resto de la fila.
+
+**Centrado real, no "en el medio del espacio sobrante":** con `justify-content: space-between` (buscador a la izquierda, recursos a la derecha, saludo en el medio), el saludo quedaba centrado *entre los otros dos elementos*, no en el centro real de la página — si el buscador y los recursos no miden lo mismo, ese "medio" se corre para un lado. Se cambió a la misma técnica que ya usa `.oscar-row-top` para centrar el título: grid de 3 columnas `1fr auto 1fr`, con el buscador en `justify-self: start` y los recursos en `justify-self: end` — así el elemento central queda matemáticamente centrado en el ancho total de la fila, sin importar cuánto midan los costados.
 
 La primera versión era un `<input>` sin caja, solo con una línea (`border-bottom`) debajo del texto — funcional pero se perdía contra el resto del header. Se rediseñó como una píldora "glass": fondo semitransparente con `backdrop-filter: blur(8px)`, borde sutil, `border-radius: 999px`, y un ícono de lupa (`SEARCH_SVG`) a la izquierda del texto.
 
@@ -510,3 +520,5 @@ Disponibilidad HTTP del puerto 3005 alcanza — es un dashboard, no un servicio 
   2. **El archivo está bien pero la herramienta de diagnóstico lo muestra mal** → si se inspecciona el contenido pasándolo por la respuesta JSON del `exec-status` de la API de Proxmox (usada para ejecutar comandos en `core01` sin SSH) y se imprime directo, esa capa de transporte re-codifica los bytes UTF-8 y se ve el mismo patrón `Ã³`. Para confirmar cuál de los dos es, pedir el archivo en base64 explícito y decodificarlo del lado de quien lo lee, en vez de confiar en el texto plano que devuelve esa API — si ahí se ve bien, el archivo nunca estuvo roto.
 - **Un `<div>` con dos clases distintas hereda un `flex-direction` que no le pusiste** → pasó con `#oscarResourcesSlot`: el mismo elemento tiene `class="oscar-col oscar-col-center"` (que define `flex-direction: column`) **e** `id="oscarResourcesSlot"` con su propio `display: flex`. Como nunca se declaró `flex-direction` en la regla del id, CPU/RAM/disco quedaban apiladas verticalmente en vez de en línea — la especificidad del id gana en las propiedades que sí define (`display`, `gap`, etc.), pero una propiedad que un selector no toca simplemente seguía viniendo del otro. Al reutilizar una clase de layout genérica (`.oscar-col`) en un elemento que también tiene su propio id con reglas de layout, conviene repasar cada propiedad que el genérico define y decidir explícitamente si el id la hereda o la pisa — no asumir que "más específico" alcanza para todo.
 - **Un botón gris sin texto ni ícono, que lleva a la IP LAN de un servicio (ej. `192.168.0.156:61208`, Glances)** → un widget nativo oculto solo a medias. Homepage envuelve el widget entero en un `<a class="information-widget-link">` que apunta a la `url` de `widgets.yaml`; si el CSS solo oculta el contenido de adentro (`.information-widget-resource` en este caso) el `<a>` sigue ahí, vacío pero clickeable. Hay que ocultar también `.information-widget-link` — ver la sección de arriba sobre CPU/RAM/disco. Para confirmar qué widget es el culpable antes de tocar CSS a ciegas: `curl -s -H "Host: <lo que use HOMEPAGE_ALLOWED_HOSTS>" http://localhost:3005/ | grep -o '<a href="http://<ip-sospechosa>"[^>]*>'` — la clase del `<a>` dice qué widget es (`information-widget-<nombre>`).
+- **Doble scroll vertical (una barra en el borde de la página, otra más adentro)** → Homepage diseña su layout para que exista **una sola** superficie de scroll: `#page_wrapper` y `#inner_wrapper` (adentro) son `height: 100%` de `html`/`body` (también `height: 100%`), y `#inner_wrapper` es el único con `overflow-auto`. `#oscar-header` se inyecta como hijo directo de `<body>`, *antes* de `#page_wrapper` — si `body` no hace nada especial, el header suma su alto por encima de ese 100%, el documento entero termina más alto que un viewport, y el navegador le agrega su propio scroll externo además del que ya tiña `#inner_wrapper`. Se arregla pasando `body` a `display:flex; flex-direction:column; height:100vh; overflow:hidden`, con `#oscar-header` en `flex-shrink:0` (ocupa su alto natural) y `#page_wrapper` en `flex:1 1 0%; height:0` (toma el espacio que sobra) — sin tocar ni una clase de Tailwind de Homepage, solo pisando `height` por especificidad de id (un id siempre gana contra una clase, sin necesitar `!important`).
+- **Un widget de Homepage se agrega a un elemento centrado con `flex` + `space-between` y no queda en el centro real de la página** → `space-between` centra un elemento del medio *entre los otros dos*, no en el centro geométrico de la fila — si esos otros dos no miden lo mismo, el del medio se corre. La forma de centrar de verdad (la que ya usa `.oscar-row-top` para el título) es un grid de 3 columnas `1fr auto 1fr`: las dos columnas de los costados, al ser fracciones iguales, dejan siempre el mismo espacio de sobra a cada lado sin importar cuánto midan los elementos — el del medio (`auto`) queda matemáticamente centrado.

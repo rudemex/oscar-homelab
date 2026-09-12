@@ -13,7 +13,7 @@ El DVR no es un componente que O.S.C.A.R. "necesite" — ya lo tenía antes de a
 
 ## Estado actual
 
-Ya tiene IP fija en la LAN (`192.168.0.224`) y la interfaz web responde (HTTP redirige a HTTPS, certificado propio del equipo). Tiene tarjeta de acceso directo en [Homepage](../servicios/homepage.md), grupo Hogar — solo un link, sin widget: Homepage no tiene una integración nativa para DVRs Dahua genéricos (lo más cercano en su catálogo es [Frigate](https://gethomepage.dev/widgets/services/frigate/), pensado para otro sistema de NVR/IA). Lo que sigue pendiente de la lista de objetivos de abajo: VLAN dedicada, bandeja física propia, y decidir si vale la pena integrar streams con Home Assistant/Frigate.
+Ya tiene IP fija en la LAN (`192.168.0.224`) y la interfaz web responde (HTTP redirige a HTTPS, certificado propio del equipo). La tarjeta en [Homepage](../servicios/homepage.md) (grupo Hogar) no lleva a la app nativa del DVR — lleva a una grilla propia con las 4 cámaras, cada una refrescándose sola cada 3 segundos, servida por [DVR Proxy](../servicios/dvr-proxy.md): un contenedor chiquito que guarda la contraseña del DVR del lado del servidor y re-sirve los snapshots ya autenticados, para que esa contraseña nunca viaje al navegador. Lo que sigue pendiente de la lista de objetivos de abajo: VLAN dedicada, bandeja física propia, y decidir si vale la pena integrar streams con Home Assistant/Frigate.
 
 ## Objetivos
 
@@ -35,6 +35,7 @@ Dimensiones conocidas del DVR: **197 × 192 × 41 mm**. La bandeja física debe 
 
 ## Seguridad
 
+- **el DVR reutiliza la misma contraseña que Proxmox, el router, Uptime Kuma y AdGuard Home** — quinto sistema confirmado con la contraseña repetida; sigue pendiente rotarla en todos lados;
 - cambiar credenciales por defecto;
 - actualizar firmware cuando sea seguro y aplicable;
 - no publicar interfaz web del DVR en Internet;
