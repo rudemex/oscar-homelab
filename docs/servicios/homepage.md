@@ -99,7 +99,7 @@ La versión que quedó es la más simple de las tres: **sin ningún JS ni CSS pr
 
 ## Widgets nativos (datos en vivo en la tarjeta)
 
-Además del `siteMonitor` (puntito de estado), **9 de las 13 tarjetas** tienen un `widget:` que muestra algo en vivo directo en la card en vez de un link plano. Siete son "bloques de números" — Proxmox, AdGuard Home, Cloudflare Tunnel, Uptime Kuma, Beszel, Home Assistant y [MySpeed](./myspeed.md) — y dos son distintas de las demás (Glances y el DVR, ver el porqué más abajo). n8n y Vaultwarden se quedan con descripción fija: Homepage no tiene una integración nativa para ninguno de los dos. [Nginx Proxy Manager](./nginx-proxy-manager.md) también queda sin widget por ahora — le falta cambiar su login de fábrica antes de tener credenciales reales que usar (Homepage sí tiene integración para NPM, tipo `npm`, campos `["enabled", "disabled", "total"]`).
+Además del `siteMonitor` (puntito de estado), **9 de las 13 tarjetas** tienen un `widget:` que muestra algo en vivo directo en la card en vez de un link plano. Siete son "bloques de números" — Proxmox, AdGuard Home, Cloudflare Tunnel, Uptime Kuma, Beszel, Home Assistant y [MySpeed](./myspeed.md) — el [DVR Dahua](./go2rtc.md) es un `iframe` con un video en vivo en vez de un número, pero usa el mismo `Container` compartido que los demás por debajo. Glances es la única realmente distinta (ver el porqué más abajo). n8n y Vaultwarden se quedan con descripción fija: Homepage no tiene una integración nativa para ninguno de los dos. [Nginx Proxy Manager](./nginx-proxy-manager.md) también queda sin widget por ahora — le falta cambiar su login de fábrica antes de tener credenciales reales que usar (Homepage sí tiene integración para NPM, tipo `npm`, campos `["enabled", "disabled", "total"]`).
 
 Glances tenía datos pero no tarjeta: se usaban sus métricas en el header (ver "CPU/RAM/disco y buscador" más abajo) pero nadie podía ir a su UI propia (procesos, red, contenedores — mucho más que lo que muestra el header) sin escribir la IP a mano. Se agregó como card en Infraestructura, al lado de ProxMenux Monitor — mismo criterio que el resto de las herramientas internas sin dominio público (Proxmox, AdGuard, Home Assistant): href a la IP LAN directa, sin pasar por el túnel.
 
@@ -175,15 +175,18 @@ widget:
   url: http://<IP-de-core01>:3001
   slug: oscar
   fields: ["up", "down", "uptime", "incident"]
+
+# DVR Dahua — no es un widget de datos, es un iframe con una página propia
+# adentro (servida por go2rtc, solo LAN — ver go2rtc.md)
+widget:
+  type: iframe
+  src: http://192.168.0.156:1984/?ch=1
+  allowPolicy: autoplay
 ```
 
-### Glances y el DVR: dos widgets que no son "bloques de números"
+### Glances: el único widget que no es un "bloque de números"
 
-Todos los widgets de arriba comparten los mismos dos componentes internos de Homepage (`components/services/widget/{container,block}.jsx`) — por eso todos se ven igual (mismo fondo, mismo tamaño de fuente, mismo color de acento por grupo) y por eso el `fields:` de `services.yaml` filtra prolijamente cuáles bloques mostrar. Glances y el DVR usan otro camino, así que no heredan ese estilo automático — no es un bug, es cómo están hechos en el código fuente de Homepage.
-
-**Glances** (`src/widgets/glances/`) tiene su propio `Container`/`Block` locales, pensados para superponer texto chico sobre un gráfico (uso normal del widget: una card dedicada por métrica, con `chart: true`). Acá se usa `metric: info` con `chart: false` — sin gráfico, solo texto (CPU% y RAM% superpuestos abajo de la card, sin el fondo/color de los `.service-block` del resto). No trae disco (ese metric no lo expone) — para eso ya está el header, y la tarjeta en sí llevaba a la UI completa de Glances.
-
-**DVR Dahua**: el widget `mjpeg` ni siquiera pasa por un `Container` — es un `<img>` directo apuntando al stream del [proxy](./dvr-proxy.md) (`/stream?channel=1`), envuelto en una tira de 68px de alto con blur de fondo. Es exactamente el mismo mecanismo MJPEG-en-`<img>` que ya usa la página completa del proxy — la diferencia es que acá se ve una miniatura de un solo canal, sin salir del dashboard, y el click en la tarjeta sigue llevando a la grilla completa de las 4 cámaras.
+Todos los widgets de la lista de arriba (el `iframe` del DVR incluido) comparten los mismos dos componentes internos de Homepage (`components/services/widget/{container,block}.jsx`) — por eso todos se ven igual por fuera (mismo fondo, mismo color de acento por grupo) y por eso el `fields:` de `services.yaml` filtra prolijamente cuáles bloques mostrar. Glances (`src/widgets/glances/`) usa otro camino: tiene su propio `Container`/`Block` locales, pensados para superponer texto chico sobre un gráfico (uso normal del widget: una card dedicada por métrica, con `chart: true`). Acá se usa `metric: info` con `chart: false` — sin gráfico, solo texto (CPU% y RAM% superpuestos abajo de la card, sin el fondo/color de los `.service-block` del resto). No trae disco (ese metric no lo expone) — para eso ya está el header, y la tarjeta en sí lleva a la UI completa de Glances.
 
 ```yaml
 # Glances — sin username/password porque no tiene auth habilitada en este setup
@@ -193,12 +196,22 @@ widget:
   version: 4
   metric: info
   chart: false
-
-# DVR Dahua — apunta al proxy propio, no al DVR directo (mismo motivo que el href/siteMonitor)
-widget:
-  type: mjpeg
-  stream: http://<IP-de-core01>:8099/stream?channel=1
 ```
+
+### DVR Dahua: de un widget de números a un iframe con video
+
+Esta tarjeta pasó por varias versiones: primero un `<img>` construido a mano en `custom.js` (fotos refrescándose), después el widget nativo `mjpeg` de Homepage apuntando a una IP LAN (rompía por **mixed content**: una página HTTPS cargando un `<img>` `http://` — Chrome lo bloquea sin avisar), después ese mismo widget mjpeg pero por HTTPS vía Cloudflare Tunnel (rompía distinto: Cloudflare no sostiene un stream MJPEG de longitud indefinida, el pedido quedaba "pending" para siempre) — se llegó a publicar `cam.oscarlab.com.ar` con Access adelante para eso, y después se dio de baja del todo: cámaras de seguridad no van a quedar con ninguna puerta hacia internet, ni siquiera autenticada (ver [go2rtc](./go2rtc.md#por-qué-solo-lan)). El detalle completo de esa saga quedó en [DVR Proxy](./dvr-proxy.md), que es justamente el servicio que se retiró al final de todo esto.
+
+La versión actual reemplaza el proxy HTTP propio por [go2rtc](./go2rtc.md), que habla RTSP con el DVR (su protocolo nativo) — todo LAN, sin dominio público. La tarjeta usa un `iframe` nativo de Homepage apuntando a una página propia (no la de go2rtc, que tiene una estética genérica que no combina con el resto del dashboard):
+
+```yaml
+widget:
+  type: iframe
+  src: http://192.168.0.156:1984/?ch=1
+  allowPolicy: autoplay
+```
+
+Sin `classes:` a propósito — el alto del iframe no se fija con una clase de Tailwind (el mecanismo normal para esto) porque el video venía deformado: `video-rtc.js` de go2rtc estira el `<video>` a `width:100%/height:100%` de su contenedor sin `object-fit`, así que cualquier alto fijo que no respete la proporción real de la cámara 1 (960×1080, vertical) lo aplasta. Se resolvió con `aspect-ratio: 8/9` en `custom.css` en vez de una clase — detalle completo en [go2rtc](./go2rtc.md#configuración-en-homepage).
 
 ### El bug de Beszel: "overview" en vez de las métricas reales
 

@@ -98,10 +98,15 @@ services:
     target: "192.168.0.224 (LAN, hardware propio)"
     note: "4 canales, sin VLAN dedicada ni bandeja física propia todavía"
   - id: dvr-proxy
+    status: retired
+    criticality: C3
+    target: core01
+    note: "reemplazado por go2rtc; contenedor parado, archivos sin borrar en core01"
+  - id: go2rtc
     status: current
     criticality: C3
     target: core01
-    note: "sin autenticación propia; snapshot proxy para no exponer la contraseña del DVR al navegador"
+    note: "sin autenticación propia; re-streaming RTSP->navegador del DVR Dahua, reemplazó a dvr-proxy; solo LAN, sin dominio público a propósito"
   - id: ai-operator
     status: future
     criticality: C4

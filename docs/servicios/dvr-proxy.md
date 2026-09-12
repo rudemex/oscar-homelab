@@ -5,17 +5,25 @@ sidebar_position: 27
 
 # DVR Proxy
 
-**Estado:** Actual · Hogar — corriendo en `core01`
-**Dónde corre:** Docker Core (`/srv/oscar/apps/dvr-proxy/`)
+**Estado:** Retirado — reemplazado por [go2rtc](./go2rtc.md)
+**Dónde corría:** Docker Core (`/srv/oscar/apps/dvr-proxy/`) — contenedor parado (`docker compose down`), archivos sin borrar en `core01` por si hace falta volver atrás
 **Sizing inicial:** liviano (imagen `python:3.12-slim`, un solo script, sin dependencias externas)
-**Red/puertos:** `8099` (grilla HTML + video en vivo)
-**Persistencia:** ninguna — no guarda nada, solo reenvía video en vivo
+**Red/puertos:** `8099` (ya no en uso)
+**Persistencia:** ninguna — no guardaba nada, solo reenviaba imágenes del DVR
 
-## Rol dentro de O.S.C.A.R.
+:::note Por qué se retiró
+Este proxy hablaba HTTP/Digest con el DVR — el mismo protocolo que usa su interfaz web, con todas sus rarezas (TLS viejo, snapshots o MJPEG). Después de tres vueltas completas (ver abajo) el techo real no estaba en el proxy sino en el protocolo: para tener video fluido de verdad, publicado por el dominio público, hacía falta hablarle al DVR por **RTSP** (su protocolo nativo de streaming) y reempaquetarlo en un formato que los navegadores entiendan — eso es exactamente lo que hace [go2rtc](./go2rtc.md), que lo reemplazó por completo. Se deja esta página como está — la saga completa (TLS viejo, framing HTTP, el límite real de Cloudflare con streams infinitos) tiene enseñanzas que valen la pena, aunque el código ya no corra.
+:::
 
-El [DVR Dahua](../hogar/cctv-dahua.md) tiene su propia app web, pero entrar ahí para ver las 4 cámaras es más fricción de la que vale la pena para un vistazo rápido — "para mí tiene más valor ver las cámaras" que un link a la aplicación. Este servicio es un proxy chiquito que arma una página con las 4 cámaras en grilla, **en vivo de verdad** — no fotos que se repiten cada tanto.
+## Rol dentro de O.S.C.A.R. (histórico)
 
-La primera versión sí era eso: un snapshot JPEG re-pedido cada 3 segundos por JS. Se corrigió después de probar si el DVR exponía algo mejor — y sí: además del snapshot puntual, el firmware Dahua expone un endpoint de **MJPEG** (`/cgi-bin/mjpg/video.cgi`), un stream HTTP de tipo `multipart/x-mixed-replace` que los navegadores reproducen nativo en un `<img>` — sin ningún JS de por medio, sin refrescos, video real a ~5-6 fps en la subresolución (`subtype=1`, la pensada para vigilancia en grilla, no para ver un canal solo en pantalla completa).
+El [DVR Dahua](../hogar/cctv-dahua.md) tiene su propia app web, pero entrar ahí para ver las 4 cámaras es más fricción de la que vale la pena para un vistazo rápido — "para mí tiene más valor ver las cámaras" que un link a la aplicación. Este servicio era un proxy chiquito que armaba una página con las 4 cámaras en grilla.
+
+Hubo tres vueltas completas antes de retirarlo, las tres documentadas abajo porque dejaron enseñanzas reales:
+
+1. **v1, snapshots cada 3s**: la versión más simple, un `<img>` con el `src` reescrito por JS cada tanto.
+2. **v2, MJPEG real**: el firmware Dahua expone un endpoint de **MJPEG** (`/cgi-bin/mjpg/video.cgi`), un stream HTTP `multipart/x-mixed-replace` que los navegadores reproducen nativo en un `<img>` sin ningún JS — video real a ~5-6 fps. Andaba perfecto **en la LAN**, pero se rompió al publicar el proxy por el Tunnel para que la tarjeta de Homepage cargara bien por HTTPS: Cloudflare no sostiene un stream de longitud indefinida (ver más abajo, "Cloudflare Tunnel no sostiene un stream infinito") — el pedido quedaba "pending" para siempre en el navegador, sin importar que el proxy funcionara perfecto.
+3. **v3, snapshots cada 1s**: mismo mecanismo que v1, pero mucho más frecuente — a simple vista se veía casi en vivo, y como cada pedido es una respuesta HTTP normal y acotada (no un stream sin fin), Cloudflare la manejaba sin problema. Funcionó técnicamente, pero el usuario lo probó y no le convenció — "se ve muy trabado". Eso llevó a evaluar Frigate para tener video real; se revisaron los recursos de `core01` (2 vCPUs, sin GPU, 45GB libres compartidos) y Frigate completo (detección + grabación continua) hubiera competido por esos recursos con el resto de los servicios — se optó por **go2rtc**, el mismo motor de re-streaming que usa Frigate por debajo pero sin detección ni grabación, que reemplazó a `dvr-proxy` del todo.
 
 ## Por qué un proxy y no apuntar directo al DVR
 
@@ -57,8 +65,9 @@ DVR_PASS=<contraseña real del DVR>
 
 `server.py` usa únicamente la librería estándar de Python (`http.server` + `urllib.request` con `HTTPDigestAuthHandler`) — sin `pip install`, arranca instantáneo y no depende de ningún paquete externo que pueda romperse con el tiempo. Expone:
 
-- `GET /` — la página HTML con la grilla de 4 cámaras, cada `<img>` apuntando a su `/stream`.
-- `GET /stream?channel=1..4` — el video en vivo (MJPEG) de un canal. A diferencia de `/snapshot`, esto **nunca termina la respuesta** hasta que el cliente corta la conexión — el handler abre el stream del DVR y va reenviando cada chunk que llega, sin bufferear nada:
+- `GET /` — la página HTML con la grilla de 4 cámaras. Cada `<img>` arranca con `src="/snapshot?channel=N"` y un `<script>` la reescribe cada 1 segundo con un cache-buster (`&t=` + timestamp) — ver "Cloudflare Tunnel no sostiene un stream infinito" más abajo para el porqué de este mecanismo en vez de `/stream`.
+- `GET /snapshot?channel=1..4` — el JPEG de un canal puntual (una sola foto, respuesta HTTP normal con `Content-Length`). Es lo que usan hoy tanto la página completa como la tarjeta de Homepage, refrescado por JS.
+- `GET /stream?channel=1..4` — el video en vivo (MJPEG) de un canal, **sigue existiendo y andando por LAN**, ya no lo usa nada público. A diferencia de `/snapshot`, esto **nunca termina la respuesta** hasta que el cliente corta la conexión — el handler abre el stream del DVR y va reenviando cada chunk que llega, sin bufferear nada:
   ```python
   upstream = opener.open(DVR_BASE + "/cgi-bin/mjpg/video.cgi?channel=" + str(channel) + "&subtype=1")
   self.send_header("Content-Type", upstream.headers.get("Content-Type"))  # multipart/x-mixed-replace; boundary=...
@@ -68,8 +77,7 @@ DVR_PASS=<contraseña real del DVR>
           break
       self.wfile.write(chunk)
   ```
-  `ThreadingHTTPServer` (no el `HTTPServer` simple) es necesario acá — con 4 cámaras abiertas a la vez, cada una es una conexión que se queda abierta indefinidamente; sin threads, la segunda cámara nunca podría empezar a servirse mientras la primera sigue transmitiendo.
-- `GET /snapshot?channel=1..4` — el JPEG de un canal puntual (una sola foto, no streaming) — se mantiene por si hace falta una miniatura o una verificación puntual en algún otro lado.
+  `ThreadingHTTPServer` (no el `HTTPServer` simple) es necesario acá — con varias cámaras abiertas a la vez, cada una es una conexión que se queda abierta indefinidamente; sin threads, la segunda cámara nunca podría empezar a servirse mientras la primera sigue transmitiendo.
 
 ### El detalle no obvio: TLS viejo
 
@@ -111,41 +119,51 @@ Cada trozo de datos se envuelve con su tamaño en hexadecimal + `\r\n` antes, y 
 docker compose up -d
 ```
 
-## Configuración en Homepage
+## Configuración en Homepage (histórica)
 
-La tarjeta del DVR en `services.yaml` apunta acá, no a la IP del DVR:
+La tarjeta del DVR en `services.yaml` llegó a tener tres formas distintas mientras este proxy estuvo activo (widget `mjpeg` apuntando a la IP LAN → el mismo widget por el Tunnel → una `<img>` propia armada en `custom.js` con `/snapshot` refrescado cada 1s). Ninguna de las tres sigue en pie — la config actual (widget `iframe` apuntando al visor de go2rtc) está documentada en [go2rtc](./go2rtc.md#configuración-en-homepage) y en [Homepage](./homepage.md).
 
-```yaml
-- DVR Dahua:
-    href: http://192.168.0.156:8099
-    description: Cámaras — grilla de las 4, sin abrir la app del DVR
-    icon: dahua.png
-    siteMonitor: http://192.168.0.156:8099
+## Cloudflare Tunnel no sostiene un stream infinito
+
+Publicar `cam.oscarlab.com.ar` por el Tunnel (ver más abajo) resolvía el problema original — mixed content al cargar por HTTPS un recurso `http://` — pero destapó uno nuevo: el widget `mjpeg` apuntando a `/stream?channel=1` a través del dominio público se quedaba **"pending" para siempre** en el navegador, sin cargar nunca ni tirar un error visible.
+
+Los logs de `cloudflared` (`docker logs cloudflared`) mostraron el porqué:
+
+```
+ERR error="stream 76773 canceled by remote with error code 0" ingressRule=7 originService=http://192.168.0.156:8099
+ERR Request failed error="stream 76773 canceled by remote with error code 0" dest=https://cam.oscarlab.com.ar/stream?channel=2
 ```
 
-`siteMonitor` sí puede apuntar acá (a diferencia de la IP directa del DVR — ver troubleshooting de [Homepage](./homepage.md)) porque este proxy responde HTTP normal y bien formado, sin las rarezas del firmware del DVR.
+El pedido sí llegaba hasta el proxy (`docker logs dvr-proxy` no mostraba ningún error, ni 502, ni traceback — la conexión al DVR y el reenvío andaban perfecto) pero el Tunnel cortaba el lado que mira hacia el navegador, una y otra vez. La causa es una limitación real de Cloudflare (sin ningún switch de "no bufferear" disponible en un plan gratuito): su proxy no está pensado para relayar una respuesta HTTP de longitud indefinida como esta — la bufferea esperando un final que nunca llega, y en algún momento la corta.
 
-## Seguridad
+Por eso el video en vivo real (`/stream`, MJPEG) quedó limitado a acceso directo por LAN, y tanto la página completa como la tarjeta de Homepage pasaron a usar `/snapshot` refrescado cada 1 segundo por JS — una respuesta HTTP acotada normal, que el Tunnel relaya sin ningún problema.
 
-- las credenciales del DVR quedan solo en el `.env` de este contenedor — nunca en `custom.js`, nunca en git;
-- el proxy en sí **no tiene autenticación propia** — cualquiera en la LAN que sepa la URL puede ver las cámaras. Es el mismo nivel de exposición que ya aceptan Glances/MySpeed (herramientas internas sin login, solo LAN, sin Tunnel) — aceptable para una red doméstica plana, a revisar si alguna vez hay visitas frecuentes con acceso a la LAN o se arma una VLAN de invitados;
-- no está publicado por el Tunnel — solo alcanzable dentro de la LAN.
+## Publicado por el Tunnel, atrás de Access (histórico)
+
+Mientras este proxy estuvo activo, `cam.oscarlab.com.ar` lo publicaba por el Cloudflare Tunnel con una app de Cloudflare Access adelante — mismo patrón que Beszel, Uptime Kuma, n8n, etc. Ese hostname **ya no existe**: cuando se retiró este proxy a favor de [go2rtc](./go2rtc.md), la decisión fue no volver a publicar las cámaras en ningún dominio público — ni siquiera protegido por Access. Se dieron de baja el DNS, la app de Access y la regla del Tunnel enteros; las cámaras hoy solo se ven estando en la LAN de casa (ver [go2rtc](./go2rtc.md#por-qué-solo-lan)).
+
+## Seguridad (histórica)
+
+- las credenciales del DVR quedaban solo en el `.env` de este contenedor — nunca en `custom.js`, nunca en git;
+- el proxy en sí **no tenía autenticación propia** — toda persona que llegara directo a `http://192.168.0.156:8099` desde la LAN podía ver las cámaras sin login. Mismo modelo de riesgo que sigue vigente hoy con go2rtc.
 
 ## Backup y restore
 
-Nada que respaldar — el contenedor no persiste estado, `docker compose up -d` lo reconstruye idéntico.
+Nada que respaldar — el contenedor no persistía estado.
 
 ## Observabilidad
 
-El `siteMonitor` de su propia tarjeta en Homepage ya cubre "¿está vivo?".
+Ya no aplica — el contenedor está parado.
 
-## Troubleshooting
+## Troubleshooting (histórico — el servicio está retirado)
+
+Se deja como referencia, por si algún día se vuelve a necesitar hablarle HTTP directo al DVR (por ejemplo, para un endpoint puntual que go2rtc no cubra):
 
 - **`502` al pedir un snapshot** → revisar `docker logs dvr-proxy`. Si dice `SSLV3_ALERT_HANDSHAKE_FAILURE`, el `ctx.set_ciphers(...)`/`minimum_version` no está aplicado — confirmar que el `server.py` en el contenedor tiene esas líneas.
 - **La grilla carga pero las imágenes no aparecen** → confirmar `DVR_USER`/`DVR_PASS` en el `.env` — con credenciales incorrectas el DVR devuelve 401 y el proxy lo traduce a 502.
-- **El video se ve pero se congela después de un rato** → revisar que el contenedor siga `Up` (`docker ps`) y no se haya reiniciado; una conexión de stream cortada (por ejemplo al reiniciar el contenedor) no se reconecta sola del lado del `<img>` — hay que recargar la página.
 - **Varias cámaras a la vez y una no carga** → confirmar que el compose sigue usando `ThreadingHTTPServer`, no `HTTPServer` — con el servidor simple (no threaded), una sola conexión activa bloquea a las demás.
-- **La página carga (título visible) pero los 4 recuadros quedan negros, "cargando" para siempre en las devtools** → falta `Transfer-Encoding: chunked` en la respuesta de `/stream` (ver arriba). Síntoma clave para reconocer este caso: `curl` sí muestra el video bien (no distingue si el framing HTTP es correcto, solo lee hasta que el socket se cierra), pero un navegador real no pinta nada — si algo "funciona por curl pero no en el navegador" para un endpoint que hace streaming, sospechar del framing HTTP antes que de la red.
+- **La página carga (título visible) pero los 4 recuadros quedan negros, "cargando" para siempre en las devtools, accediendo por LAN a `/stream`** → falta `Transfer-Encoding: chunked` en la respuesta de `/stream` (ver arriba). Síntoma clave para reconocer este caso: `curl` sí muestra el video bien (no distingue si el framing HTTP es correcto, solo lee hasta que el socket se cierra), pero un navegador real no pinta nada — si algo "funciona por curl pero no en el navegador" para un endpoint que hace streaming, sospechar del framing HTTP antes que de la red.
+- **Un `<img>` apuntando a un stream MJPEG se queda "pending" para siempre viendo por un dominio detrás de Cloudflare Tunnel** → no es un bug de esta app puntual, es una limitación real de Cloudflare con respuestas HTTP de longitud indefinida — ver "Cloudflare Tunnel no sostiene un stream infinito" arriba. Aplica a cualquier cosa que intente lo mismo, no solo a este proxy.
 
 ## Documentación oficial
 
