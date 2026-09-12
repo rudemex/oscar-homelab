@@ -88,6 +88,28 @@ Los links usan los dominios reales (vía [Cloudflare Tunnel](./cloudflare-tunnel
 
 `settings.yaml` también define el layout (columnas por grupo) y `headerStyle: boxedWidgets` para que se vea menos genérico que el default.
 
+### Grupos como pestañas, no apilados
+
+Los 3 grupos (Infraestructura, Servicios, Hogar) se veían uno debajo del otro, obligando a scrollear para llegar a Hogar. Homepage tiene soporte nativo para pestañas desde la v0.6.30 (muy por debajo de la v2.3.0 que corre acá) — alcanza con agregar `tab: <nombre>` a cada grupo en `layout:`:
+
+```yaml
+layout:
+  Infraestructura:
+    tab: Infraestructura
+    style: row
+    columns: 4
+  Servicios:
+    tab: Servicios
+    style: row
+    columns: 4
+  Hogar:
+    tab: Hogar
+    style: row
+    columns: 4
+```
+
+Basta con que **un** grupo tenga `tab:` para que Homepage arme la navegación de pestañas arriba de todo — un grupo sin `tab:` aparecería en todas las pestañas a la vez (útil para bookmarks compartidos, no es el caso acá). El orden de las pestañas sigue el orden en que aparecen los grupos en `layout:`. También se puede ir directo a una con `#infraestructura`, `#servicios` o `#hogar` en la URL (el nombre del grupo, en minúsculas).
+
 ## Widgets nativos (datos en vivo en la tarjeta)
 
 Además del `siteMonitor` (puntito de estado), **6 de las 9 tarjetas** tienen un `widget:` que muestra datos reales directo en la card en vez de un link plano — Proxmox, AdGuard Home, Cloudflare Tunnel, Uptime Kuma, Beszel y Home Assistant. Solo n8n y Vaultwarden se quedan con descripción fija: Homepage no tiene una integración nativa para ninguno de los dos.
