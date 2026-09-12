@@ -88,41 +88,37 @@ Los links usan los dominios reales (vía [Cloudflare Tunnel](./cloudflare-tunnel
 
 `settings.yaml` también define el layout (columnas por grupo) y `headerStyle: boxedWidgets` para que se vea menos genérico que el default.
 
-### Grupos como pestañas, no apilados
+### De pestañas a carrusel: un slide de verdad, no simulado
 
-Los 3 grupos (Infraestructura, Servicios, Hogar) se veían uno debajo del otro, obligando a scrollear para llegar a Hogar. Homepage tiene soporte nativo para pestañas desde la v0.6.30 (muy por debajo de la v2.3.0 que corre acá) — alcanza con agregar `tab: <nombre>` a cada grupo en `layout:`:
+Los 3 grupos (Infraestructura, Servicios, Hogar) se veían uno debajo del otro, obligando a scrollear para llegar a Hogar. El primer intento usó las **pestañas nativas de Homepage** (soporte desde la v0.6.30, agregando `tab: <nombre>` a cada grupo en `settings.yaml` → `layout:`) más un swipe táctil que simulaba el click en el botón de cada tab, con una animación CSS de "entrada" para que se sintiera como un slide. No convenció — se sentía a una animación simulada, no a un gesto real.
 
-```yaml
-layout:
-  Infraestructura:
-    tab: Infraestructura
-    style: row
-    columns: 4
-  Servicios:
-    tab: Servicios
-    style: row
-    columns: 4
-  Hogar:
-    tab: Hogar
-    style: row
-    columns: 4
+Antes de intentar otra cosa se revisó el código fuente real de Homepage ([`components/tab.jsx`](https://github.com/gethomepage/homepage/blob/main/src/components/tab.jsx), [`pages/index.jsx`](https://github.com/gethomepage/homepage/blob/main/src/pages/index.jsx)): al cambiar de tab, React **desmonta** el grupo de la tab anterior y **monta** el nuevo — nunca coexisten dos paneles en pantalla al mismo tiempo. Con ese diseño, cualquier intento de slide entre pestañas iba a ser necesariamente una animación simulada, nunca un gesto real — el problema no era la implementación, era el enfoque.
+
+**La solución real: sacar las pestañas y usar scroll horizontal nativo.** Sin `tab:` en `layout:`, Homepage vuelve a su comportamiento por defecto: los 3 grupos se renderizan **todos juntos**, dentro de un único contenedor (`#services`, con `display: flex; flex-wrap: wrap`). Eso es justo lo que hace falta para un carrusel de verdad — los 3 paneles coexisten en el DOM al mismo tiempo. `custom.css` convierte ese contenedor en un carrusel con [scroll-snap](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_scroll_snap) nativo:
+
+```css
+#services.oscar-carousel {
+  flex-wrap: nowrap !important;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+}
+#services.oscar-carousel > .services-group {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+}
 ```
 
-Basta con que **un** grupo tenga `tab:` para que Homepage arme la navegación de pestañas arriba de todo — un grupo sin `tab:` aparecería en todas las pestañas a la vez (útil para bookmarks compartidos, no es el caso acá). El orden de las pestañas sigue el orden en que aparecen los grupos en `layout:`. También se puede ir directo a una con `#infraestructura`, `#servicios` o `#hogar` en la URL (el nombre del grupo, en minúsculas).
+Cada grupo pasa a ocupar el 100% del ancho, uno al lado del otro en fila, y arrastrar con el dedo (o el mouse, o la rueda con Shift) es **scroll real del navegador** — no hay gesto simulado, no hay `.click()` en ningún botón, no se toca ningún nodo que React maneje. `scroll-snap-type: x mandatory` hace que el scroll "encastre" en cada grupo en vez de quedar a mitad de camino, dando la sensación de páginas discretas en vez de un scroll libre. `wireGroupCarousel()` en `custom.js` solo le agrega la clase `oscar-carousel` al contenedor una vez que existe — no arma el layout ni toca el gesto, eso es 100% CSS y comportamiento nativo del navegador.
 
-### Swipe táctil entre pestañas (pensado para una pantalla táctil)
+### Puntitos de navegación (el "slider")
 
-El pedido fue "que se sienta tipo slide" al cambiar de pestaña deslizando el dedo — pensando en una pantalla táctil futura para el rack. Antes de tocar nada se revisó el código fuente real de Homepage ([`components/tab.jsx`](https://github.com/gethomepage/homepage/blob/main/src/components/tab.jsx), [`pages/index.jsx`](https://github.com/gethomepage/homepage/blob/main/src/pages/index.jsx)): al cambiar de tab, React **desmonta** el grupo de la tab anterior y **monta** el nuevo — nunca coexisten dos paneles en pantalla. Eso significa que un slide real (dos paneles deslizando a la vez, uno saliendo y el otro entrando) no es posible sin forkear el código de Homepage — y tocar nodos que React maneja fue justo lo que rompió la página entera la vez pasada con CPU/RAM/disco (ver "Primer intento (revertido)" más arriba). No se va a repetir ese error acá.
-
-Lo que sí se hizo, sin tocar ningún nodo que React controle:
-
-- **Swipe → click en el botón real de la tab.** Cada tab es un `<button role="tab" id="{nombre}-tab">` con su propio `onClick` (código de Homepage, no de acá). `custom.js` escucha `touchstart`/`touchend`, mide el gesto (mínimo 70px, y que sea claramente horizontal — más horizontal que vertical, para no pisar el scroll normal de la página) y si es válido llama a `.click()` sobre el botón de la tab siguiente o anterior. Es exactamente lo mismo que tocar la pestaña con el dedo, solo que disparado por el gesto en cualquier parte de la pantalla, no solo en la barra de tabs de arriba.
-- **Animación de entrada direccional en el contenido.** `.services-group` es la clase raíz que Homepage le pone a cada grupo — y como se remonta de cero en cada cambio de tab, alcanza con ponerle una animación CSS (`@keyframes oscar-tab-slide-in`, opacidad + `translateX`) para que se dispare sola. La dirección (entra desde la derecha o desde la izquierda) la fija una variable CSS (`--oscar-tab-dir`) que `custom.js` actualiza antes de cada cambio — tanto por swipe como por tap directo en la barra de tabs (un listener en fase de *captura* sobre `#myTab` calcula la dirección comparando el índice de la tab actual contra la de destino, antes de que el `onClick` de React cambie de tab). Respeta `prefers-reduced-motion`.
-- **Sin wraparound**: deslizar hacia la izquierda en la última pestaña (Hogar) no da la vuelta a la primera — se queda ahí, como el resto de los gestos de swipe a los que la gente está acostumbrada (galerías de fotos, apps de listas).
+Para saber en qué grupo estás y poder saltar directo a uno sin arrastrar, se agregó una fila de puntitos debajo de la barra de tabs vieja (ahora inexistente) — uno por grupo, inyectados por `wireGroupCarousel()`. Clickear un punto hace `scrollIntoView({ behavior: "smooth", inline: "start" })` sobre el grupo correspondiente; un listener de `scroll` en el contenedor (con `requestAnimationFrame` para no recalcular en cada pixel) detecta cuál grupo quedó más pegado al borde izquierdo y le pone la clase `active` a su punto. Todo esto es DOM nuevo agregado por `custom.js` (un `<div>` con botones, insertado como hermano de `#services`, nunca dentro) — no reposiciona ni oculta nada que Homepage ya haya renderizado, mismo patrón seguro que el resto del header.
 
 ## Widgets nativos (datos en vivo en la tarjeta)
 
-Además del `siteMonitor` (puntito de estado), **6 de las 9 tarjetas** tienen un `widget:` que muestra datos reales directo en la card en vez de un link plano — Proxmox, AdGuard Home, Cloudflare Tunnel, Uptime Kuma, Beszel y Home Assistant. Solo n8n y Vaultwarden se quedan con descripción fija: Homepage no tiene una integración nativa para ninguno de los dos.
+Además del `siteMonitor` (puntito de estado), **6 de las 10 tarjetas** tienen un `widget:` que muestra datos reales directo en la card en vez de un link plano — Proxmox, AdGuard Home, Cloudflare Tunnel, Uptime Kuma, Beszel y Home Assistant. n8n, Vaultwarden y Glances se quedan con descripción fija: Homepage no tiene una integración nativa para ninguno de los tres — la de Glances existe (es la que usa el header, ver más abajo) pero es para pedir datos puntuales, no para armar una card con métricas en vivo.
+
+Glances tenía datos pero no tarjeta: se usaban sus métricas en el header (ver "CPU/RAM/disco y buscador" más abajo) pero nadie podía ir a su UI propia (procesos, red, contenedores — mucho más que lo que muestra el header) sin escribir la IP a mano. Se agregó como card en Infraestructura, al lado de ProxMenux Monitor — mismo criterio que el resto de las herramientas internas sin dominio público (Proxmox, AdGuard, Home Assistant): href a la IP LAN directa, sin pasar por el túnel.
 
 Cada widget necesitó su propia credencial, todas de solo lectura donde el servicio lo permite:
 
