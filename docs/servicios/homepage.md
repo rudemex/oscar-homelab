@@ -230,6 +230,16 @@ Regla práctica que quedó de esto: antes de usar cualquier imagen de un buscado
 
 `custom.css` ya no define el fondo (antes tenía un gradiente + grilla armado en CSS puro, antes de tener esta imagen) — la opacidad de las tarjetas y la barra de widgets se subió dos veces (0.55/0.65 → 0.7/0.78 → **0.85/0.9**, casi opacas) porque con una foto de verdad de fondo, cualquier transparencia notoria le come contraste al texto — mucho más agresivo de lo que hacía falta con el gradiente CSS liso de antes.
 
+### Aurora animada encima de la foto
+
+El pedido fue literal: "que la foto de fondo tenga algo animado tipo aurora". Antes de escribir código se revisó cómo Homepage arma el fondo ([`pages/index.jsx`](https://github.com/gethomepage/homepage/blob/main/src/pages/index.jsx), [`styles/globals.css`](https://github.com/gethomepage/homepage/blob/main/src/styles/globals.css)): la foto vive en un `<div id="background">` con `position: fixed; inset: 0; z-index: 0`, hermano de `#page_wrapper` (el contenido real) — sin ese div, no hay dónde "engancharse" con seguridad.
+
+`buildAuroraBackground()` en `custom.js` inserta un nuevo `<div id="oscar-aurora-bg">` **como hermano de `#background`, inmediatamente después** (`insertAdjacentElement("afterend", ...)`) — nunca adentro, nunca reemplazándolo. Con el mismo `z-index: 0` pero apareciendo más tarde en el DOM, pinta arriba de la foto y abajo de `#page_wrapper` (que sigue viniendo después todavía) — es el mismo principio de "agregar un nodo nuevo, nunca tocar uno existente" que ya rigió todo el header.
+
+Adentro van 3 manchas de color (`div.oscar-aurora-blob`) grandes (45-55% del ancho de pantalla), muy borroneadas (`filter: blur(90px)`) y con los mismos 3 colores del brillo animado del título — cian `#38bdf8`, verde-agua `#5eead4`, violeta `#a78bfa`. Cada una deriva sola con su propio `@keyframes` (`translate` + `scale`, 26s/32s/38s, todas con duración distinta para que nunca se sincronicen) — es pura animación CSS, sin ningún loop de JS corriendo, así que el costo real es GPU compositing, no CPU.
+
+El contenedor entero tiene `mix-blend-mode: screen`: en vez de tapar la foto con manchas de color planas, **suma luz** sobre lo que ya está debajo — el mismo comportamiento que la luz real de una aurora sobre el cielo nocturno, no una capa opaca encima. `opacity: 0.55` en el contenedor mantiene el efecto sutil — el objetivo era sumarle vida a la foto que ya estaba, no taparla ni competir con las tarjetas. Respeta `prefers-reduced-motion`.
+
 ## Identidad visual (custom.css)
 
 Homepage carga `config/custom.css` automáticamente (se sirve en `/api/config/custom.css`, referenciado por la propia página) — no hace falta tocar nada del compose, solo poner el archivo ahí. Se usó para:
