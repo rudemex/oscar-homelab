@@ -152,6 +152,8 @@ widget:
   username: homepage@oscar.home
   password: <secret, fuera de Git>
   version: 2   # Beszel >= 0.9.0
+  systemId: <id del sistema en Beszel>   # sin esto, "overview" en vez de las métricas reales
+  fields: ["cpu", "memory", "disk"]
 
 # Home Assistant — long-lived access token generado a mano desde el perfil de HA
 widget:
@@ -159,7 +161,48 @@ widget:
   url: http://<IP-de-VM-101>
   key: <token, fuera de Git>
   fields: ["people_home", "lights_on", "switches_on"]
+
+# MySpeed
+widget:
+  type: myspeed
+  url: http://<IP-de-core01>:5216
+  fields: ["ping", "download", "upload"]
+
+# Uptime Kuma — se le sumó "uptime" al default (up/down) para ver el % real
+widget:
+  type: uptimekuma
+  url: http://<IP-de-core01>:3001
+  slug: oscar
+  fields: ["up", "down", "uptime"]
 ```
+
+### El bug de Beszel: "overview" en vez de las métricas reales
+
+El widget de Beszel llevaba semanas configurado sin `systemId` — sin ese dato, Homepage lo pone en modo "overview" (`fields` disponibles: `systems`, `up` — solo cuenta cuántos sistemas hay conectados y cuántos están arriba), en vez de modo "sistema puntual" (`fields`: `name`, `status`, `updated`, `cpu`, `memory`, `disk`, `network` — las métricas reales de `core01`). La tarjeta nunca mostró un error, simplemente mostraba información **real pero irrelevante** ("1 sistema, 1 arriba" en vez de "CPU 4.6%, RAM 19%, disco 21%") — el tipo de bug que no salta a la vista si no se sabe qué buscar.
+
+El `systemId` de `core01` se sacó de la propia base de Beszel (es PocketBase por debajo, con su API REST estándar):
+
+```bash
+# autenticar como superusuario
+curl -X POST 'http://<host-beszel>:8090/api/collections/_superusers/auth-with-password' \
+  -H 'Content-Type: application/json' \
+  -d '{"identity":"homepage@oscar.home","password":"<password>"}'
+# con el token de la respuesta, listar sistemas
+curl 'http://<host-beszel>:8090/api/collections/systems/records' \
+  -H 'Authorization: <token>'
+```
+
+El `id` del sistema `core01` en esa respuesta es el `systemId` que hace falta en `services.yaml`. Nota al margen: el endpoint de auth es `_superusers` (con guion bajo, PocketBase reciente) — `admins` (el nombre viejo) da `404 Missing or invalid collection context`.
+
+### Verificar qué está pidiendo un widget, sin adivinar
+
+Para confirmar qué le llega realmente a una tarjeta (sin esperar a que se refresque sola, o para depurar un widget que "no muestra nada"), Homepage expone su propio proxy interno:
+
+```
+GET /api/services/proxy?group=<grupo>&service=<nombre>&index=0&type=<tipo>&endpoint=<endpoint>
+```
+
+El `endpoint` no es libre — tiene que ser una de las claves que el widget define en su propio `mappings` (código fuente de Homepage, `src/widgets/<tipo>/widget.js`) — para Beszel es `systems`, no `single_system` ni ningún nombre que suene razonable a ojo. Adivinar el nombre del endpoint devuelve `{"error":"Unsupported service endpoint"}`, no una pista de cuál es el correcto — hay que ir a leer el código fuente del widget puntual para saberlo con certeza.
 
 El token `root@pam!homepage` se creó con `privsep=1` (sin permisos hasta asignarle un rol explícito) — el rol `PVEAuditor` en el path `/` se asignó a mano desde la UI de Proxmox (Datacenter → Permissions → Add → Token Permission), porque asignar roles vía API quedó bloqueado por las reglas de seguridad del entorno de automatización usado para este build.
 
@@ -236,6 +279,11 @@ Homepage carga `config/custom.css` automáticamente (se sirve en `/api/config/cu
 
 Los nombres de clase (`.service`, `.service-name`, `.service-description`, `.service-group-name`, `.widget-container`) salen del código fuente de Homepage (`src/components/services/item.jsx` y `group.jsx`), no de la documentación pública — no están listados en `docs/configs/custom-css-js.md`, hubo que revisar el repo directo.
 
+### Números de los widgets: más peso visual, un color de acento por grupo
+
+Cada estadística de un widget nativo (los recuadros con un valor y una etiqueta abajo — "23%", "CPU", etc.) es un `.service-block` dentro de un `.service-container` (`src/components/services/widget/{block,container}.jsx` de Homepage) — sin nombre de clase propio para el valor y la etiqueta por separado, son simples `<div>` con clases utilitarias de Tailwind (`font-thin text-sm` el valor, `font-bold text-xs uppercase` la etiqueta). Por defecto se veían chicos y apagados contra la foto de fondo — para un widget cuya única razón de existir es mostrar un número real, que ese número no se lea bien es el peor resultado posible. Se le subió tamaño/peso al valor (`.service-block > div:first-child`, ahora `0.95rem`/`700`/`tabular-nums`) y se le dio a cada bloque un fondo sutil propio con borde, en vez de flotar suelto contra la tarjeta.
+
+Los 3 grupos (Infraestructura, Servicios, Hogar) pasaron a tener cada uno su propio color de acento en el nombre — cian, verde-agua, violeta, el mismo trío que ya usa el brillo del título, la aurora del fondo y las barras de CPU/RAM/disco del header — en vez de los 3 en el mismo celeste. Como Homepage no expone el nombre del grupo como atributo de datos, el color se asigna por posición (`#services > .services-group:nth-of-type(1|2|3) .service-group-name`) — funciona porque, sin tabs ni carrusel, los 3 grupos son hermanos apilados siempre en el mismo orden.
 
 ## CPU/RAM/disco y buscador: reconstruidos, no reubicados
 
