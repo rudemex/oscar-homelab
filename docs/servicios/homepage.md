@@ -304,7 +304,7 @@ La solución: dejar `.service` (el `<li>`) completamente neutro — sin fondo, s
   background: rgba(9, 13, 20, 0.45) !important;
   backdrop-filter: blur(14px);
   border: 1px solid rgba(148, 163, 184, 0.18) !important;
-  border-radius: 0.85rem !important;
+  border-radius: 0.5rem !important;
   padding: 0.9rem !important;
   transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
@@ -313,6 +313,8 @@ La solución: dejar `.service` (el `<li>`) completamente neutro — sin fondo, s
   transform: translateY(-2px);
 }
 ```
+
+(`border-radius` arrancó en `0.85rem`, bastante redondeado — se bajó a `0.5rem` después del primer feedback visual, "le sacaría un poco".)
 
 `background` semitransparente + `backdrop-filter: blur(14px)` es el mismo lenguaje "glass" que ya usa el header (al scrollear) y el buscador — antes las tarjetas eran una caja opaca sin relación con eso. Más padding (`0.9rem`, contra el `p-1` de 0.25rem que traía Homepage) resuelve el "muy chatas": las tarjetas sin widget (solo ícono+nombre+descripción, cortas desde que se sacó el `align-items: stretch`) ahora tienen aire real adentro en vez de sentirse apretadas contra el borde.
 
@@ -369,6 +371,8 @@ function wireMasonryGrids() {
 ```
 
 Por cada tarjeta, un `ResizeObserver` mide su alto real y le asigna `grid-row-end: span N` — cuántas de esas filas de 8px necesita para entrar (la fórmula suma el `row-gap` real, 16px = 1rem, para que el cálculo no se desfase de a poco). Un `ResizeObserver` por tarjeta, no un cálculo único al cargar la página, es necesario porque los datos de los widgets llegan async — una tarjeta de Beszel puede arrancar mostrando "cargando" (corta) y después crecer cuando llega el `%` de CPU/RAM/disco real; sin el observer, el `span` quedaría pegado al alto viejo y la tarjeta se superpondría con la de abajo. El mismo observer también recalcula solo ante un resize de ventana (cambia el ancho de columna, el texto envuelve distinto, cambia el alto).
+
+**Bug de la primera versión: tarjetas que se pisaban igual.** La medición usaba `entry.contentRect.height` — que es el alto del *contenido* únicamente, sin contar `padding` ni `border`. `.service-card` tiene `0.9rem` de padding arriba y abajo más `1px` de borde por lado — unos 30px que el cálculo no veía, quedando corto en el `span` y haciendo que la tarjeta de abajo empezara a dibujarse antes de que la de arriba terminara. La medición correcta es `entry.target.getBoundingClientRect().height`, que sí mide la caja completa tal como se renderiza (border-box) — la diferencia entre "cuánto mide el contenido" y "cuánto mide la tarjeta en pantalla" es exactamente el padding+borde que faltaba.
 
 ### Filas de tarjetas pegadas, y tarjetas vacías estiradas feo
 
