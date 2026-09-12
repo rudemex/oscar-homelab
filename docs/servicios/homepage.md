@@ -340,9 +340,16 @@ Con tarjetas de distinto alto (según si tienen widget o no, y cuántos `.servic
 **Versión final: el algoritmo clásico de las librerías de masonry** (Masonry.js, Isotope) — columna más corta primero, posicionamiento absoluto a mano, sin depender de que CSS Grid encuentre un hueco por su cuenta:
 
 ```js
+function columnsForWidth(width) {
+  if (width < 640) return 1;
+  if (width < 900) return 2;
+  if (width < 1220) return 3;
+  return 4;
+}
+
 function layoutMasonryList(list) {
   var items = Array.prototype.slice.call(list.querySelectorAll(":scope > .service"));
-  var columns = window.innerWidth >= 1024 ? 4 : window.innerWidth >= 768 ? 2 : 1;
+  var columns = columnsForWidth(list.clientWidth);
   var gap = 16;
 
   if (columns === 1) {
@@ -377,6 +384,8 @@ En una sola columna (celular) no hace falta nada de esto — se deja que Homepag
 `layoutMasonryList()` recalcula la lista **entera**, no una tarjeta sola — necesario porque cuando una tarjeta cambia de alto (un widget que tarda en traer sus datos), todas las que vienen después de ella en su columna tienen que correrse. Se dispara con un `ResizeObserver` sobre la lista (ancho — resize de ventana, cambio de cantidad de columnas) y sobre cada tarjeta (alto — datos de widget llegando async), juntado con `requestAnimationFrame` para no relayoutear a cada pixel si varias tarjetas cambian a la vez.
 
 **Separación vertical más grande que la horizontal, con el mismo `gap` en las dos cuentas.** El `gap = 16` del algoritmo es el mismo para columnas (horizontal) y filas (vertical) — pero visualmente la separación de arriba/abajo se veía más grande que la de los costados. La causa no estaba en el cálculo: `.service-card` sigue teniendo el `margin-bottom: 0.5rem` (`mb-2`) que le pone Homepage de fábrica, y nunca se había pisado — se sumaba a los 16px del `gap`, dejando 24px reales de separación vertical contra 16px de separación horizontal (que no tiene ningún margen de por medio). Se agregó `margin: 0 !important` a `.service-card` — con eso, el único espaciado entre tarjetas sale del `gap` del JS, igual en las dos direcciones.
+
+**De 3 saltos a 4: un escalón de 3 columnas que faltaba.** La primera versión de `columnsForWidth()` (entonces embebida como una sola línea dentro de `layoutMasonryList()`) solo tenía tres tramos: 1 columna en celular, 2 desde los 768px, y de ahí directo a 4 en los 1024px — sin ningún paso por 3. Una notebook común (1024-1400px más o menos) nunca llegaba a ver 3 columnas: pasaba de 2 a 4 de golpe, con tarjetas bastante angostas para el espacio real disponible. Se separó en su propia función `columnsForWidth()` con cuatro tramos (1 / 2 / 3 / 4, cortes en 640 / 900 / 1220px) y se cambió la medición de `window.innerWidth` (el ancho crudo de la ventana) a `list.clientWidth` (el ancho real que le queda a la lista de tarjetas, ya descontado el padding de la página) — más preciso si algún día la lista comparte fila con otra cosa o el layout de la página cambia. El ancho de cada tarjeta (`colWidth`) sale de dividir ese ancho real entre las columnas vigentes, así que el contenido interior (widgets, descripción) siempre se acomoda al espacio real de la tarjeta en cada breakpoint, no a un tamaño fijo.
 
 ### Filas de tarjetas pegadas, y tarjetas vacías estiradas feo
 
