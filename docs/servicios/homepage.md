@@ -300,31 +300,39 @@ Dos problemas del mismo origen, encontrados leyendo el código fuente real de la
 
 ### Grupos sin espacio entre sí, y con una flecha invisible
 
-Dos problemas de los grupos en sí (Infraestructura/Servicios/Hogar), no de las tarjetas adentro:
+Tres problemas de los grupos en sí (Infraestructura/Servicios/Hogar), no de las tarjetas adentro:
 
-- **`#services` (el contenedor que envuelve los 3 grupos) no tenía ningún `gap`** — cada `.services-group` ocupa el 100% del ancho (`basis-full`), así que sin gap, el final de las tarjetas de un grupo tocaba directo el título del siguiente. Se agregó `#services { gap: 1.75rem; }`.
+- **`#services` (el contenedor que envuelve los 3 grupos) no tenía ningún `gap`** — cada `.services-group` ocupa el 100% del ancho (`basis-full`), así que sin gap, el final de las tarjetas de un grupo tocaba directo el título del siguiente.
 - **La flecha de colapsar/expandir existe, pero es invisible por defecto.** El botón que arma cada header de grupo (`Disclosure.Button` de Homepage, un `<button>` sin clase propia) trae el ícono `MdKeyboardArrowDown` con las clases `opacity-0 group-hover:opacity-100` — literalmente invisible hasta que el mouse pasa por encima. Sin esa pista visual, un grupo se ve como un título suelto contra un lado, no como algo clickeable — que fue justo el reporte: "es poco entendible que tenga el título en un costado, y sin flecha".
+- **La línea divisoria bajo el título era del ancho del texto, no de punta a punta.** El `border-bottom` vivía en el `<h2 class="service-group-name">`, que adentro de un flex row sin `flex-grow` mide solo lo que su propio texto ocupa — la línea terminaba ahí, no llegaba "hasta el fondo".
 
-Como Homepage no le da una clase propia a ese `<button>`, hubo que engancharse con [`:has()`](https://developer.mozilla.org/en-US/docs/Web/CSS/:has) (selector CSS relativamente nuevo, pero ya soportado en todos los navegadores evergreen):
+Como Homepage no le da una clase propia al `<button>` del header, hubo que engancharse con [`:has()`](https://developer.mozilla.org/en-US/docs/Web/CSS/:has) (selector CSS relativamente nuevo, pero ya soportado en todos los navegadores evergreen):
 
 ```css
+#services {
+  gap: 2.25rem;   /* separación entre grupos */
+}
+
+.service-group-name {
+  flex: 1;   /* ocupa el ancho disponible del botón (salvo lo que usa la flecha) */
+}
+
 button:has(> .service-group-name) {
   display: flex;
   align-items: center;
   width: 100%;
-  padding: 0.5rem 0.6rem;
-  border-radius: 0.5rem;
-  transition: background 0.15s ease;
-}
-button:has(> .service-group-name):hover {
-  background: rgba(148, 163, 184, 0.08);
+  padding: 0.2rem 0.1rem 0.5rem;
+  margin-bottom: 0.3rem;   /* poco aire entre el título y sus propias tarjetas */
+  border-bottom: 1px solid;   /* la línea divisoria vive acá, no en el <h2> — llega de punta a punta */
 }
 .service-group-name ~ svg {
-  opacity: 0.75 !important;
+  opacity: 0.75 !important;   /* la flecha, siempre visible */
 }
 ```
 
-`button:has(> .service-group-name)` selecciona el botón que contiene directamente el `<h2 class="service-group-name">` — sin `:has()` no habría forma de darle padding/hover/radio a ese botón sin que Homepage lo exponga con una clase. `.service-group-name ~ svg` usa que la flecha es el próximo hermano del `<h2>` en el DOM (ambos son hijos directos del mismo botón) para sacarle el `opacity-0` sin necesitar su clase real, que tampoco es propia — son las mismas utilidades de Tailwind (`transition-all opacity-0 group-hover:opacity-100 ml-auto ...`) que trae cualquier ícono de Homepage.
+`button:has(> .service-group-name)` selecciona el botón que contiene directamente el `<h2 class="service-group-name">` — sin `:has()` no habría forma de tocar ese botón sin que Homepage lo exponga con una clase propia. Mover el `border-bottom` del `<h2>` al `<button>` (que sí ocupa `width: 100%`) es lo que hace que la línea llegue de punta a punta. `.service-group-name ~ svg` usa que la flecha es el próximo hermano del `<h2>` en el DOM (ambos son hijos directos del mismo botón) para sacarle el `opacity-0` sin necesitar su clase real, que tampoco es propia — son las mismas utilidades de Tailwind (`transition-all opacity-0 group-hover:opacity-100 ml-auto ...`) que trae cualquier ícono de Homepage.
+
+Se probó también un fondo sutil al pasar el mouse por el botón entero (`background` en `:hover`) — no gustó, se sacó. La flecha, ya visible siempre, alcanza como pista de que el header es clickeable, sin necesidad de un efecto de hover adicional. El espacio "sobrante" que antes separaba el título de sus propias tarjetas (`margin-bottom: 0.6rem` en el `<h2>`) se corrió al lugar donde de verdad hacía falta: entre el final de un grupo y el título del siguiente (`gap` de `#services`, subido a `2.25rem`).
 
 ## CPU/RAM/disco y buscador: reconstruidos, no reubicados
 
