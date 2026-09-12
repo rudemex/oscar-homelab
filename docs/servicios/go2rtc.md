@@ -91,12 +91,12 @@ Dos modos, según la URL:
 
 `video.mode = "webrtc,mse,hls"` en los dos modos — WebRTC necesita una conexión de medios UDP directa entre el navegador y `core01`, algo que solo existe estando en la misma LAN (por eso no hubiera servido de nada cuando esto pasaba por el Tunnel, ver "Por qué solo LAN" arriba). Ahora que todo es LAN, WebRTC sí conecta perfecto — es la opción de menor latencia, primera en la lista de prioridad, y de hecho es lo que termina usando el navegador en la práctica.
 
-### Recortada, no con barras negras
+### Barras negras, no recortada
 
-Las 4 cámaras no comparten la misma orientación: 3 quedaron configuradas en modo vertical (960×1080 real) y 1 en horizontal. En un grid parejo de 2×2, eso deja dos caminos: `object-fit: contain` (se ve la imagen completa, con barras negras a los costados de las verticales) o `object-fit: cover` (llena la celda entera, recortando arriba/abajo lo que no entra). Se probaron las dos lado a lado — **se eligió `cover`**, que aprovecha mejor el espacio de la pantalla a costa de perder los bordes superior/inferior de las cámaras verticales:
+Las 4 cámaras no comparten la misma orientación: 3 quedaron configuradas en modo vertical (960×1080 real) y 1 en horizontal. En un grid parejo de 2×2, eso deja dos caminos: `object-fit: contain` (se ve la imagen completa, con una franja negra a los costados de las verticales) o `object-fit: cover` (llena la celda entera, recortando arriba/abajo lo que no entra). Se probó primero `cover` — aprovecha mejor el espacio de la pantalla — pero al verlo en vivo se perdía contenido real de la escena en las cámaras verticales (justo lo que uno quiere ver en una cámara de seguridad), así que se volvió a `contain`: nunca se pierde nada, a costa de las franjas negras.
 
 ```css
-.cam cam-video video { width: 100%; height: 100%; object-fit: cover; }
+.cam cam-video video { width: 100%; height: 100%; object-fit: contain; }
 ```
 
 ## Configuración en Homepage
@@ -148,7 +148,7 @@ El `siteMonitor` de su propia tarjeta en Homepage cubre "¿está vivo?". Para ve
 
 - **Un canal no conecta (`producers: []` o vacío en `/api/streams`)** → revisar `docker logs go2rtc` por el error RTSP puntual; casi siempre es la contraseña mal urlencodeada (el `@` sin `%40`) o el DVR rechazando una quinta conexión simultánea al mismo canal (algunos firmwares Dahua limitan conexiones RTSP concurrentes por canal — si hay otra app/NVR también conectada al mismo canal, puede fallar).
 - **Se ve sin audio** → el canal 4 sí trae audio (PCMA) en el stream principal, pero `<video>` arranca muteado a propósito (`this.video.muted = true` en `CamVideo`, necesario para que el autoplay funcione en cualquier navegador sin interacción) — no es que falte audio, está apagado por defecto. Otros canales pueden no tener audio configurado en el DVR directamente.
-- **El video se ve recortado arriba/abajo en las cámaras verticales** → es a propósito, ver "Recortada, no con barras negras" arriba (`object-fit: cover`, decisión tomada después de comparar con `contain`) — no es un bug.
+- **Las cámaras verticales se ven angostas, con franjas negras a los costados** → es a propósito, ver "Barras negras, no recortada" arriba (`object-fit: contain` — se prefirió ver la escena completa antes que perder los bordes superior/inferior) — no es un bug.
 - **Cambié `go2rtc.yaml` y no se aplicó** → hace falta reiniciar el contenedor (`docker compose restart go2rtc`), no recarga la config solo.
 - **Cambié `www/index.html` y sigo viendo la versión vieja** → eso sí se sirve en caliente, sin reiniciar nada — el problema casi siempre es **caché del navegador**, no del servidor (`curl http://192.168.0.156:1984/` desde `core01` para confirmar qué está sirviendo de verdad de un lado, y comparar). A diferencia de Homepage, esta página no pasa por Cloudflare — no hay nada que purgar del lado del servidor, hace falta un hard refresh (`Cmd+Shift+R` / `Ctrl+Shift+R`) en el navegador.
 
