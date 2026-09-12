@@ -8,12 +8,14 @@ sidebar_position: 27
 **Estado:** Actual · Hogar — corriendo en `core01`
 **Dónde corre:** Docker Core (`/srv/oscar/apps/dvr-proxy/`)
 **Sizing inicial:** liviano (imagen `python:3.12-slim`, un solo script, sin dependencias externas)
-**Red/puertos:** `8099` (grilla HTML + snapshots)
-**Persistencia:** ninguna — no guarda nada, solo reenvía imágenes en vivo
+**Red/puertos:** `8099` (grilla HTML + video en vivo)
+**Persistencia:** ninguna — no guarda nada, solo reenvía video en vivo
 
 ## Rol dentro de O.S.C.A.R.
 
-El [DVR Dahua](../hogar/cctv-dahua.md) tiene su propia app web, pero entrar ahí para ver las 4 cámaras es más fricción de la que vale la pena para un vistazo rápido — "para mí tiene más valor ver las cámaras" que un link a la aplicación. Este servicio es un proxy chiquito que arma una página con las 4 cámaras en grilla, cada una refrescándose sola cada 3 segundos (snapshot JPEG, no video real — el DVR no expone video vía HTTP, solo RTSP, que un navegador no reproduce sin un servidor de transcodeo aparte).
+El [DVR Dahua](../hogar/cctv-dahua.md) tiene su propia app web, pero entrar ahí para ver las 4 cámaras es más fricción de la que vale la pena para un vistazo rápido — "para mí tiene más valor ver las cámaras" que un link a la aplicación. Este servicio es un proxy chiquito que arma una página con las 4 cámaras en grilla, **en vivo de verdad** — no fotos que se repiten cada tanto.
+
+La primera versión sí era eso: un snapshot JPEG re-pedido cada 3 segundos por JS. Se corrigió después de probar si el DVR exponía algo mejor — y sí: además del snapshot puntual, el firmware Dahua expone un endpoint de **MJPEG** (`/cgi-bin/mjpg/video.cgi`), un stream HTTP de tipo `multipart/x-mixed-replace` que los navegadores reproducen nativo en un `<img>` — sin ningún JS de por medio, sin refrescos, video real a ~5-6 fps en la subresolución (`subtype=1`, la pensada para vigilancia en grilla, no para ver un canal solo en pantalla completa).
 
 ## Por qué un proxy y no apuntar directo al DVR
 
@@ -55,8 +57,19 @@ DVR_PASS=<contraseña real del DVR>
 
 `server.py` usa únicamente la librería estándar de Python (`http.server` + `urllib.request` con `HTTPDigestAuthHandler`) — sin `pip install`, arranca instantáneo y no depende de ningún paquete externo que pueda romperse con el tiempo. Expone:
 
-- `GET /` — la página HTML con la grilla de 4 cámaras (se autorefresca sola con JS, cada 3s).
-- `GET /snapshot?channel=1..4` — el JPEG de un canal puntual, re-servido desde el DVR.
+- `GET /` — la página HTML con la grilla de 4 cámaras, cada `<img>` apuntando a su `/stream`.
+- `GET /stream?channel=1..4` — el video en vivo (MJPEG) de un canal. A diferencia de `/snapshot`, esto **nunca termina la respuesta** hasta que el cliente corta la conexión — el handler abre el stream del DVR y va reenviando cada chunk que llega, sin bufferear nada:
+  ```python
+  upstream = opener.open(DVR_BASE + "/cgi-bin/mjpg/video.cgi?channel=" + str(channel) + "&subtype=1")
+  self.send_header("Content-Type", upstream.headers.get("Content-Type"))  # multipart/x-mixed-replace; boundary=...
+  while True:
+      chunk = upstream.read(4096)
+      if not chunk:
+          break
+      self.wfile.write(chunk)
+  ```
+  `ThreadingHTTPServer` (no el `HTTPServer` simple) es necesario acá — con 4 cámaras abiertas a la vez, cada una es una conexión que se queda abierta indefinidamente; sin threads, la segunda cámara nunca podría empezar a servirse mientras la primera sigue transmitiendo.
+- `GET /snapshot?channel=1..4` — el JPEG de un canal puntual (una sola foto, no streaming) — se mantiene por si hace falta una miniatura o una verificación puntual en algún otro lado.
 
 ### El detalle no obvio: TLS viejo
 
@@ -108,7 +121,8 @@ El `siteMonitor` de su propia tarjeta en Homepage ya cubre "¿está vivo?".
 
 - **`502` al pedir un snapshot** → revisar `docker logs dvr-proxy`. Si dice `SSLV3_ALERT_HANDSHAKE_FAILURE`, el `ctx.set_ciphers(...)`/`minimum_version` no está aplicado — confirmar que el `server.py` en el contenedor tiene esas líneas.
 - **La grilla carga pero las imágenes no aparecen** → confirmar `DVR_USER`/`DVR_PASS` en el `.env` — con credenciales incorrectas el DVR devuelve 401 y el proxy lo traduce a 502.
-- **Imágenes se ven pero nunca cambian** → el snapshot es una foto, no video; si la escena real no cambia entre refrescos de 3s, es esperable que se vea igual.
+- **El video se ve pero se congela después de un rato** → revisar que el contenedor siga `Up` (`docker ps`) y no se haya reiniciado; una conexión de stream cortada (por ejemplo al reiniciar el contenedor) no se reconecta sola del lado del `<img>` — hay que recargar la página.
+- **Varias cámaras a la vez y una no carga** → confirmar que el compose sigue usando `ThreadingHTTPServer`, no `HTTPServer` — con el servidor simple (no threaded), una sola conexión activa bloquea a las demás.
 
 ## Documentación oficial
 
