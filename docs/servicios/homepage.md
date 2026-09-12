@@ -281,9 +281,94 @@ Los nombres de clase (`.service`, `.service-name`, `.service-description`, `.ser
 
 ### Números de los widgets: más peso visual, un color de acento por grupo
 
-Cada estadística de un widget nativo (los recuadros con un valor y una etiqueta abajo — "23%", "CPU", etc.) es un `.service-block` dentro de un `.service-container` (`src/components/services/widget/{block,container}.jsx` de Homepage) — sin nombre de clase propio para el valor y la etiqueta por separado, son simples `<div>` con clases utilitarias de Tailwind (`font-thin text-sm` el valor, `font-bold text-xs uppercase` la etiqueta). Por defecto se veían chicos y apagados contra la foto de fondo — para un widget cuya única razón de existir es mostrar un número real, que ese número no se lea bien es el peor resultado posible. Se le subió tamaño/peso al valor (`.service-block > div:first-child`, ahora `0.95rem`/`700`/`tabular-nums`) y se le dio a cada bloque un fondo sutil propio con borde, en vez de flotar suelto contra la tarjeta.
+Cada estadística de un widget nativo (los recuadros con un valor y una etiqueta abajo — "23%", "CPU", etc.) es un `.service-block` dentro de un `.service-container` (`src/components/services/widget/{block,container}.jsx` de Homepage) — sin nombre de clase propio para el valor y la etiqueta por separado, son simples `<div>` con clases utilitarias de Tailwind (`font-thin text-sm` el valor, `font-bold text-xs uppercase` la etiqueta). Por defecto se veían chicos y apagados contra la foto de fondo — para un widget cuya única razón de existir es mostrar un número real, que ese número no se lea bien es el peor resultado posible. Se le subió tamaño/peso al valor y se le dio a cada bloque un fondo sutil propio, en vez de flotar suelto contra la tarjeta.
 
-Los 3 grupos (Infraestructura, Servicios, Hogar) pasaron a tener cada uno su propio color de acento en el nombre — cian, verde-agua, violeta, el mismo trío que ya usa el brillo del título, la aurora del fondo y las barras de CPU/RAM/disco del header — en vez de los 3 en el mismo celeste. Como Homepage no expone el nombre del grupo como atributo de datos, el color se asigna por posición (`#services > .services-group:nth-of-type(1|2|3) .service-group-name`) — funciona porque, sin tabs ni carrusel, los 3 grupos son hermanos apilados siempre en el mismo orden.
+Los 3 grupos (Infraestructura, Servicios, Hogar) pasaron a tener cada uno su propio color de acento — cian, verde-agua, violeta, el mismo trío que ya usa el brillo del título, la aurora del fondo y las barras de CPU/RAM/disco del header — en vez de los 3 en el mismo celeste. Como Homepage no expone el nombre del grupo como atributo de datos, el color se asigna por posición (`#services > .services-group:nth-of-type(1|2|3) ...`) — funciona porque, sin tabs ni carrusel, los 3 grupos son hermanos apilados siempre en el mismo orden. Más abajo se explica cómo ese acento pasó a usarse también en las tarjetas y sus números, no solo en el nombre del grupo.
+
+### Rediseño de las tarjetas: "no van con el diseño de la homepage"
+
+El primer pase de las tarjetas (fondo casi negro + borde gris genérico) fue una mejora sobre el default de Homepage, pero seguía sin relación con el resto del dashboard — nada de vidrio esmerilado, nada del trío cian/verde-agua/violeta, colores sueltos que podrían pertenecer a cualquier sitio. El pedido fue concreto: forma/proporción, colores, y los números de los widgets, los tres "no van con el diseño".
+
+**El hallazgo antes de tocar CSS de nuevo:** el primer pase pisaba `.service` — el `<li>` exterior de cada tarjeta — con fondo y borde propios. Pero revisando `item.jsx` de Homepage, la superficie visual *real* de la tarjeta es un `<div class="service-card">` **adentro** de ese `<li>`, que Homepage ya arma con su propio fondo/padding/sombra (`bg-theme-100/20`, `p-1`, `rounded-md`, `shadow-md`, etc.). Pisar las dos capas a la vez — el `<li>` exterior con mi fondo, y el `<div>` interior con el suyo propio, sin tocar — dejaba una caja dentro de otra caja, un "doble marco" sutil que contribuía a que nada se sintiera prolijo, aunque no fuera obvio a simple vista sin mirar el DOM.
+
+La solución: dejar `.service` (el `<li>`) completamente neutro — sin fondo, sin borde, sin padding propio — y mover **todo** el tratamiento visual a `.service-card` (la superficie real):
+
+```css
+.service {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+.service-card {
+  background: rgba(9, 13, 20, 0.45) !important;
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(148, 163, 184, 0.18) !important;
+  border-radius: 0.85rem !important;
+  padding: 0.9rem !important;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.service-card:hover {
+  background: rgba(9, 13, 20, 0.6) !important;
+  transform: translateY(-2px);
+}
+```
+
+`background` semitransparente + `backdrop-filter: blur(14px)` es el mismo lenguaje "glass" que ya usa el header (al scrollear) y el buscador — antes las tarjetas eran una caja opaca sin relación con eso. Más padding (`0.9rem`, contra el `p-1` de 0.25rem que traía Homepage) resuelve el "muy chatas": las tarjetas sin widget (solo ícono+nombre+descripción, cortas desde que se sacó el `align-items: stretch`) ahora tienen aire real adentro en vez de sentirse apretadas contra el borde.
+
+El color de acento por grupo (cian/verde-agua/violeta) se extendió del nombre del grupo al **borde de cada tarjeta** y al **brillo del hover** — así una tarjeta de Infraestructura, Servicios o Hogar se siente parte de su sección, no una caja gris suelta que podría estar en cualquier lado:
+
+```css
+#services > .services-group:nth-of-type(1) .service-card { border-color: rgba(56, 189, 248, 0.3) !important; }
+#services > .services-group:nth-of-type(1) .service-card:hover {
+  border-color: rgba(56, 189, 248, 0.65) !important;
+  box-shadow: 0 6px 20px rgba(56, 189, 248, 0.18);
+}
+/* mismo patrón para nth-of-type(2) con verde-agua y nth-of-type(3) con violeta */
+```
+
+Y el mismo acento se usa para el **valor** de cada `.service-block` (`.service-block > div:first-child`), en vez de blanco genérico — el número de CPU de una tarjeta de Infraestructura sale cian, el de Servicios verde-agua, coherente con el resto del sitio (íconos de recursos del header, barras, brillo del título) en vez de un color sin relación con nada.
+
+### Masonry real, sin librerías
+
+Con tarjetas de distinto alto (según si tienen widget o no, y cuántos `.service-block` traen), un grid común deja o bien huecos feos o bien tarjetas estiradas (el problema resuelto más abajo). El pedido fue masonry de verdad — que las tarjetas rellenen los huecos, no solo que cada una mida lo suyo. CSS todavía no tiene esto resuelto de forma confiable entre navegadores (`grid-template-rows: masonry` es nativo en Firefox nomás, Chrome/Safari no lo soportan) — las alternativas sin eso son: `column-count` (sin JS, pero cambia el orden de lectura a "de arriba a abajo por columna" en vez de "de izquierda a derecha"), dejarlo como estaba (grid común con `align-items: start`, sin tarjetas estiradas pero con algún hueco entre alturas distintas en la misma fila), o un masonry real armado a mano. Se eligió la tercera.
+
+El truco (estándar, sin librería) es CSS Grid con filas finitas + JS que le dice a cada tarjeta cuántas ocupa:
+
+```css
+.services-list {
+  grid-auto-flow: dense;
+  grid-auto-rows: 8px;
+}
+```
+
+`grid-auto-rows: 8px` convierte al grid en un montón de filas muy finas. `grid-auto-flow: dense` deja que el navegador reordene visualmente para rellenar huecos — una tarjeta más chica que viene después en el DOM puede terminar ocupando un hueco que dejó una más alta antes; es lo que hace que sea masonry real y no un grid prolijo pero con aire de sobra.
+
+```js
+function wireMasonryGrids() {
+  var lists = document.querySelectorAll(".services-list");
+  lists.forEach(function (list) {
+    if (list.dataset.masonryWired) return;
+    var items = list.querySelectorAll(":scope > .service");
+    if (!items.length) return;
+    list.dataset.masonryWired = "1";
+
+    var ro = new ResizeObserver(function (entries) {
+      entries.forEach(function (entry) {
+        var item = entry.target.closest(".service");
+        var height = entry.contentRect.height;
+        var rowSpan = Math.ceil((height + 16) / (8 + 16));
+        item.style.gridRowEnd = "span " + rowSpan;
+      });
+    });
+    items.forEach(function (item) {
+      ro.observe(item.querySelector(".service-card") || item);
+    });
+  });
+}
+```
+
+Por cada tarjeta, un `ResizeObserver` mide su alto real y le asigna `grid-row-end: span N` — cuántas de esas filas de 8px necesita para entrar (la fórmula suma el `row-gap` real, 16px = 1rem, para que el cálculo no se desfase de a poco). Un `ResizeObserver` por tarjeta, no un cálculo único al cargar la página, es necesario porque los datos de los widgets llegan async — una tarjeta de Beszel puede arrancar mostrando "cargando" (corta) y después crecer cuando llega el `%` de CPU/RAM/disco real; sin el observer, el `span` quedaría pegado al alto viejo y la tarjeta se superpondría con la de abajo. El mismo observer también recalcula solo ante un resize de ventana (cambia el ancho de columna, el texto envuelve distinto, cambia el alto).
 
 ### Filas de tarjetas pegadas, y tarjetas vacías estiradas feo
 
