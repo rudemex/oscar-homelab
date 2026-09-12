@@ -302,7 +302,7 @@ Dos problemas del mismo origen, encontrados leyendo el código fuente real de la
 
 Tres problemas de los grupos en sí (Infraestructura/Servicios/Hogar), no de las tarjetas adentro:
 
-- **`#services` (el contenedor que envuelve los 3 grupos) no tenía ningún `gap`** — cada `.services-group` ocupa el 100% del ancho (`basis-full`), así que sin gap, el final de las tarjetas de un grupo tocaba directo el título del siguiente.
+- **Cada grupo tenía el padding-bottom en cero a propósito** (`p-1 pb-0` de Homepage) — el final de las tarjetas de un grupo tocaba directo el título del siguiente. Ver más abajo por qué la solución real terminó siendo otra que la primera que se probó.
 - **La flecha de colapsar/expandir existe, pero es invisible por defecto.** El botón que arma cada header de grupo (`Disclosure.Button` de Homepage, un `<button>` sin clase propia) trae el ícono `MdKeyboardArrowDown` con las clases `opacity-0 group-hover:opacity-100` — literalmente invisible hasta que el mouse pasa por encima. Sin esa pista visual, un grupo se ve como un título suelto contra un lado, no como algo clickeable — que fue justo el reporte: "es poco entendible que tenga el título en un costado, y sin flecha".
 - **La línea divisoria bajo el título era del ancho del texto, no de punta a punta.** El `border-bottom` vivía en el `<h2 class="service-group-name">`, que adentro de un flex row sin `flex-grow` mide solo lo que su propio texto ocupa — la línea terminaba ahí, no llegaba "hasta el fondo".
 
@@ -332,7 +332,17 @@ button:has(> .service-group-name) {
 
 `button:has(> .service-group-name)` selecciona el botón que contiene directamente el `<h2 class="service-group-name">` — sin `:has()` no habría forma de tocar ese botón sin que Homepage lo exponga con una clase propia. Mover el `border-bottom` del `<h2>` al `<button>` (que sí ocupa `width: 100%`) es lo que hace que la línea llegue de punta a punta. `.service-group-name ~ svg` usa que la flecha es el próximo hermano del `<h2>` en el DOM (ambos son hijos directos del mismo botón) para sacarle el `opacity-0` sin necesitar su clase real, que tampoco es propia — son las mismas utilidades de Tailwind (`transition-all opacity-0 group-hover:opacity-100 ml-auto ...`) que trae cualquier ícono de Homepage.
 
-Se probó también un fondo sutil al pasar el mouse por el botón entero (`background` en `:hover`) — no gustó, se sacó. La flecha, ya visible siempre, alcanza como pista de que el header es clickeable, sin necesidad de un efecto de hover adicional. El espacio "sobrante" que antes separaba el título de sus propias tarjetas (`margin-bottom: 0.6rem` en el `<h2>`) se corrió al lugar donde de verdad hacía falta: entre el final de un grupo y el título del siguiente (`gap` de `#services`, subido a `2.25rem`).
+Se probó también un fondo sutil al pasar el mouse por el botón entero (`background` en `:hover`) — no gustó, se sacó. La flecha, ya visible siempre, alcanza como pista de que el header es clickeable, sin necesidad de un efecto de hover adicional. El espacio "sobrante" que antes separaba el título de sus propias tarjetas (`margin-bottom: 0.6rem` en el `<h2>`) se corrió al lugar donde de verdad hacía falta: entre el final de un grupo y el título del siguiente.
+
+Ese espacio entre grupos pasó por dos mecanismos: primero un `gap: 2.25rem` en `#services`, que no alcanzaba a notarse — la causa real es que Homepage le pone `p-1 pb-0` a cada `.services-group` (`groupPadding` en `group.jsx`), un `padding-bottom: 0` puesto a propósito. Con eso en cero, un `gap` en el contenedor padre queda opacado: no hay diferencia visual entre "0 de padding + N de gap" y lo que se ve, porque el resto del layout interno del grupo no deja lugar para que ese gap se note limpio. La solución real fue pisar directamente esa clase:
+
+```css
+.services-group {
+  padding-bottom: 2rem !important;
+}
+```
+
+`!important` hace falta porque `.pb-0` es una utilidad de Tailwind con la misma especificidad que una clase propia — sin forzarlo, cuál gana depende del orden de las hojas de estilo, y no vale la pena apostar a eso. Con el padding real puesto, se sacó el `gap` de `#services` (quedaba redundante, y sumado hubiera dejado demasiado aire).
 
 ## CPU/RAM/disco y buscador: reconstruidos, no reubicados
 
