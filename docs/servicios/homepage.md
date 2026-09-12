@@ -88,46 +88,18 @@ Los links usan los dominios reales (vía [Cloudflare Tunnel](./cloudflare-tunnel
 
 `settings.yaml` también define el layout (columnas por grupo) y `headerStyle: boxedWidgets` para que se vea menos genérico que el default.
 
-### De pestañas a carrusel: un slide de verdad, no simulado
+### De carrusel a acordeón nativo
 
-Los 3 grupos (Infraestructura, Servicios, Hogar) se veían uno debajo del otro, obligando a scrollear para llegar a Hogar. El primer intento usó las **pestañas nativas de Homepage** (soporte desde la v0.6.30, agregando `tab: <nombre>` a cada grupo en `settings.yaml` → `layout:`) más un swipe táctil que simulaba el click en el botón de cada tab, con una animación CSS de "entrada" para que se sintiera como un slide. No convenció — se sentía a una animación simulada, no a un gesto real.
+Los 3 grupos (Infraestructura, Servicios, Hogar) pasaron por dos experimentos antes de asentarse en su forma actual:
 
-Antes de intentar otra cosa se revisó el código fuente real de Homepage ([`components/tab.jsx`](https://github.com/gethomepage/homepage/blob/main/src/components/tab.jsx), [`pages/index.jsx`](https://github.com/gethomepage/homepage/blob/main/src/pages/index.jsx)): al cambiar de tab, React **desmonta** el grupo de la tab anterior y **monta** el nuevo — nunca coexisten dos paneles en pantalla al mismo tiempo. Con ese diseño, cualquier intento de slide entre pestañas iba a ser necesariamente una animación simulada, nunca un gesto real — el problema no era la implementación, era el enfoque.
+1. **Pestañas nativas de Homepage** (`tab: <nombre>` en `settings.yaml` → `layout:`) + swipe simulado — se sentía a animación, no a gesto real (Homepage desmonta/monta cada tab, nunca coexisten dos paneles).
+2. **Carrusel de scroll horizontal** con `scroll-snap`, puntitos de navegación, y arrastre con mouse armado a mano (`mousedown`/`mousemove`/`mouseup` sobre `scrollLeft`) — técnicamente funcionaba (scroll real, no simulado), pero tampoco convenció como experiencia final.
 
-**La solución real: sacar las pestañas y usar scroll horizontal nativo.** Sin `tab:` en `layout:`, Homepage vuelve a su comportamiento por defecto: los 3 grupos se renderizan **todos juntos**, dentro de un único contenedor (`#services`, con `display: flex; flex-wrap: wrap`). Eso es justo lo que hace falta para un carrusel de verdad — los 3 paneles coexisten en el DOM al mismo tiempo. `custom.css` convierte ese contenedor en un carrusel con [scroll-snap](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_scroll_snap) nativo:
-
-```css
-#services.oscar-carousel {
-  flex-wrap: nowrap !important;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-}
-#services.oscar-carousel > .services-group {
-  flex: 0 0 100%;
-  scroll-snap-align: start;
-}
-```
-
-Cada grupo pasa a ocupar el 100% del ancho, uno al lado del otro en fila, y arrastrar con el dedo (o el mouse, o la rueda con Shift) es **scroll real del navegador** — no hay gesto simulado, no hay `.click()` en ningún botón, no se toca ningún nodo que React maneje. `scroll-snap-type: x mandatory` hace que el scroll "encastre" en cada grupo en vez de quedar a mitad de camino, dando la sensación de páginas discretas en vez de un scroll libre. `wireGroupCarousel()` en `custom.js` solo le agrega la clase `oscar-carousel` al contenedor una vez que existe — no arma el layout ni toca el gesto, eso es 100% CSS y comportamiento nativo del navegador.
-
-### Puntitos de navegación (el "slider")
-
-Para saber en qué grupo estás y poder saltar directo a uno sin arrastrar, se agregó una fila de puntitos debajo de la barra de tabs vieja (ahora inexistente) — uno por grupo, inyectados por `wireGroupCarousel()`. Clickear un punto hace `scrollIntoView({ behavior: "smooth", inline: "start" })` sobre el grupo correspondiente; un listener de `scroll` en el contenedor (con `requestAnimationFrame` para no recalcular en cada pixel) detecta cuál grupo quedó más pegado al borde izquierdo y le pone la clase `active` a su punto. Todo esto es DOM nuevo agregado por `custom.js` (un `<div>` con botones, insertado como hermano de `#services`, nunca dentro) — no reposiciona ni oculta nada que Homepage ya haya renderizado, mismo patrón seguro que el resto del header.
-
-### Arrastrar con mouse, no solo con el dedo
-
-El scroll-snap nativo ya resolvía el swipe táctil y el scroll de trackpad/rueda gratis — lo único que el navegador **no** da de fábrica es "click sostenido + arrastrar" con mouse (eso normalmente solo funciona en listas verticales con la rueda, no arrastrando de un lado a otro). Se armó a mano, el patrón clásico de "grab to scroll":
-
-- `mousedown` en el contenedor guarda la posición inicial del mouse y el `scrollLeft` de ese momento.
-- `mousemove` (mientras el botón sigue apretado) calcula cuánto se movió el mouse y se lo resta al `scrollLeft` guardado — a partir de un umbral de 6px de movimiento, para no confundir un click normal con un arrastre de 1px.
-- `mouseup` termina el arrastre y, si hubo uno real, fuerza un snap explícito al grupo más cercano (mismo cálculo de distancia que ya usan los puntitos) — sin este paso, el navegador a veces no vuelve a aplicar el `scroll-snap` después de un `scrollLeft` puesto a mano.
-- Un listener en fase de captura sobre el `click` cancela la navegación si hubo arrastre real — sin esto, soltar el mouse arriba de una tarjeta después de arrastrar abriría el link del servicio sin querer.
-
-Todo esto solo lee/escribe `container.scrollLeft` (una propiedad, no la estructura del DOM) y agrega/saca una clase CSS (`oscar-carousel-dragging`, que saca el `scroll-snap-type` mientras se arrastra y pone `cursor: grabbing`) — no reordena nodos ni toca nada que Homepage renderice.
+La versión que quedó es la más simple de las tres: **sin ningún JS ni CSS propio para la navegación entre grupos**. Sin `tab:` en `layout:`, los 3 grupos vuelven al comportamiento por defecto de Homepage — todos renderizados juntos, apilados verticalmente — y cada uno ya trae de fábrica su propio acordeón: `ServicesGroup` envuelve el contenido en un [`<Disclosure>`](https://headlessui.com/react/disclosure) de Headless UI, con una flechita que rota y colapsa/expande al clickear el nombre del grupo. Cada grupo es independiente (no es un acordeón estricto — pueden quedar varios abiertos a la vez), y arrancan todos abiertos por default, sin tocar `groupsInitiallyCollapsed` ni `initiallyCollapsed` en ningún grupo.
 
 ## Widgets nativos (datos en vivo en la tarjeta)
 
-Además del `siteMonitor` (puntito de estado), **6 de las 10 tarjetas** tienen un `widget:` que muestra datos reales directo en la card en vez de un link plano — Proxmox, AdGuard Home, Cloudflare Tunnel, Uptime Kuma, Beszel y Home Assistant. n8n, Vaultwarden y Glances se quedan con descripción fija: Homepage no tiene una integración nativa para ninguno de los tres — la de Glances existe (es la que usa el header, ver más abajo) pero es para pedir datos puntuales, no para armar una card con métricas en vivo.
+Además del `siteMonitor` (puntito de estado), **7 de las 13 tarjetas** tienen un `widget:` que muestra datos reales directo en la card en vez de un link plano — Proxmox, AdGuard Home, Cloudflare Tunnel, Uptime Kuma, Beszel, Home Assistant y [MySpeed](./myspeed.md). n8n, Vaultwarden y Glances se quedan con descripción fija: Homepage no tiene una integración nativa para ninguno de los tres — la de Glances existe (es la que usa el header, ver más abajo) pero es para pedir datos puntuales, no para armar una card con métricas en vivo. [Nginx Proxy Manager](./nginx-proxy-manager.md) y el [DVR Dahua](../hogar/cctv-dahua.md) también quedan sin widget por ahora: NPM porque falta cambiar su login de fábrica antes de tener credenciales reales que usar, y el DVR porque Homepage no tiene una integración nativa para DVRs Dahua genéricos.
 
 Glances tenía datos pero no tarjeta: se usaban sus métricas en el header (ver "CPU/RAM/disco y buscador" más abajo) pero nadie podía ir a su UI propia (procesos, red, contenedores — mucho más que lo que muestra el header) sin escribir la IP a mano. Se agregó como card en Infraestructura, al lado de ProxMenux Monitor — mismo criterio que el resto de las herramientas internas sin dominio público (Proxmox, AdGuard, Home Assistant): href a la IP LAN directa, sin pasar por el túnel.
 
@@ -271,7 +243,7 @@ Layout final pedido, en 2 filas apiladas:
 [ clima ]      O.S.C.A.R.      [ hora/fecha ]
               subtítulo
 ─────────────────────────────────────────────
-[ buscador ]                  [ CPU · RAM · Disco ]
+[ buscador ]     saludo     [ CPU · RAM · Disco ]
 ```
 
 Pasó por varias versiones intermedias antes de esta: primero clima/CPU-RAM-disco/hora los 3 en una fila con el título arriba de todo; después el título arriba y esa fila (con recursos en el centro) abajo, entre dos líneas; después recursos y buscador en dos filas separadas, cada una centrada; después esas mismas dos filas, cada una pegada a un borde (buscador a la izquierda, recursos a la derecha) pero todavía apiladas una arriba de la otra. Ninguna terminaba de convencer — la versión final: título+subtítulo en el centro de la fila de arriba (reemplazando ahí a los recursos), y abajo de la línea divisoria, **una sola fila** con el buscador a la izquierda y CPU/RAM/disco a la derecha, `justify-content: space-between` en `.oscar-row-bottom` en vez de dos filas con `flex-start`/`flex-end` por separado.
@@ -364,6 +336,22 @@ El widget `glances` **sigue existiendo** en `widgets.yaml` — hace falta que es
 `.information-widget-link` se sumó después: Homepage envuelve **todo** el widget de recursos en un `<a href="...">` que apunta a la URL configurada en `widgets.yaml` (`http://192.168.0.156:61208`, la IP LAN de Glances) — ocultar solo `.information-widget-resource` (el contenido de adentro) dejaba ese `<a>` vacío pero seguía ahí, clickeable: un botón gris sin texto ni ícono que llevaba directo a la UI de Glances en la LAN. Se encontró en producción — el usuario lo reportó como "un botón que no dice nada". Hubo que ocultar el wrapper entero, no solo su contenido.
 
 El buscador es más simple todavía — un `<input>` propio que en `Enter` abre `https://www.google.com/search?q=...` en una pestaña nueva. No hay necesidad de reusar el widget nativo de búsqueda para algo tan básico. Comparte fila con CPU/RAM/disco: `.oscar-row-bottom` los pone a los dos en la misma línea, buscador a la izquierda y recursos a la derecha (`justify-content: space-between`), no en dos filas apiladas.
+
+### Saludo según la hora, no el widget nativo "greeting"
+
+Homepage tiene un widget de información llamado `greeting` (texto fijo, sin franja horaria, configurable en `widgets.yaml`) — pero vive en la barra de widgets de arriba, que en este header ya no existe (la reemplazó por completo el header custom). En vez de intentar reubicar ese widget nativo (la lección de siempre: no tocar nodos que React maneje), se construyó uno propio: `updateGreeting()` calcula la hora en la misma zona horaria que el reloj (`WEATHER_TZ`) y arma el texto en `<span id="oscarGreeting">`, insertado como tercer elemento de `.oscar-row-bottom`, entre el buscador y los recursos:
+
+```js
+function updateGreeting() {
+  var hour = /* hora actual en WEATHER_TZ */;
+  if (hour < 6) text = "Buenas noches";
+  else if (hour < 12) text = "Buenos días";
+  else if (hour < 20) text = "Buenas tardes";
+  else text = "Buenas noches";
+}
+```
+
+Se actualiza cada 5 minutos — de sobra para un texto que solo cambia 3 veces por día.
 
 La primera versión era un `<input>` sin caja, solo con una línea (`border-bottom`) debajo del texto — funcional pero se perdía contra el resto del header. Se rediseñó como una píldora "glass": fondo semitransparente con `backdrop-filter: blur(8px)`, borde sutil, `border-radius: 999px`, y un ícono de lupa (`SEARCH_SVG`) a la izquierda del texto.
 

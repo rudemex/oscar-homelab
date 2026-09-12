@@ -10,7 +10,7 @@ Esta página es la única fuente de "qué existe de verdad hoy". El resto del si
 Se actualiza en cada cambio de fase real (ver [roadmap](../roadmap/roadmap-general.md)), no en cada edición de documentación.
 
 :::caution
-Proxmox ya está instalado, `core01` existe con Docker corriendo, y hay once servicios reales arriba (abajo) — siete de ellos ya publicados en `oscarlab.com.ar` detrás de Cloudflare Access. Todo lo demás del sitio que dice "Objetivo" sigue sin existir — esta página es la línea exacta entre lo uno y lo otro.
+Proxmox ya está instalado, `core01` existe con Docker corriendo, y hay trece servicios reales arriba (abajo) — siete de ellos ya publicados en `oscarlab.com.ar` detrás de Cloudflare Access. Todo lo demás del sitio que dice "Objetivo" sigue sin existir — esta página es la línea exacta entre lo uno y lo otro.
 :::
 
 ## Hardware — existe físicamente
@@ -24,7 +24,7 @@ Proxmox ya está instalado, `core01` existe con Docker corriendo, y hay once ser
 | Switch TP-Link TL-SF1008D (8p/100 Mbps) | Actual, marcado para reemplazo | Bloquea VLAN y gigabit real. |
 | Patch panel CAT6 12p, pantalla táctil 9", paneles de gestión/ventilación | Actual | Montaje físico, sin uso funcional todavía. |
 | UPS + estabilizador | Actual, **no integrado** | Existen pero están fuera del rack, sin conectar ni monitorear — ver [runbook de corte eléctrico](../runbooks/corte-electrico.md). |
-| DVR Dahua 4 canales | Actual, **no integrado** | Es hardware propio del autor, no un requisito de arquitectura — ver [CCTV](../hogar/cctv-dahua.md). |
+| DVR Dahua 4 canales | Actual, **con IP en la LAN** | `192.168.0.224`, interfaz web accesible (HTTP redirige a HTTPS). Es hardware propio del autor, no un requisito de arquitectura. Sin bandeja física propia ni VLAN dedicada todavía — ver [CCTV](../hogar/cctv-dahua.md). |
 
 ## Software — corriendo hoy en `oscar-core`
 
@@ -41,6 +41,8 @@ Proxmox ya está instalado, `core01` existe con Docker corriendo, y hay once ser
 | Beszel 0.19.0 | Docker en `core01` | Actual | hub (puerto 8090) y agente (puerto 45876) conectados, reportando CPU/RAM/disco en tiempo real. Ver [Beszel](../servicios/beszel.md). |
 | ProxMenux Monitor | systemd en `oscar-core` (no Docker) | Actual | instalado por el autor directo en el hipervisor, `proxmenux-monitor.service`, puerto 8008. Publicado como `monitor.oscarlab.com.ar`. Ver [ProxMenux Monitor](../servicios/proxmenux-monitor.md). |
 | Glances | Docker en `core01` | Actual | mide CPU/RAM/disco reales del host para el widget de Homepage — antes ese widget mostraba el uso del propio contenedor de Homepage, no el de `core01`. Ver [Glances](../servicios/glances.md). |
+| MySpeed 1.0.9 | Docker en `core01` | Actual | puerto 5216, historial de tests de velocidad de internet, sin autenticación propia todavía. Ver [MySpeed](../servicios/myspeed.md). |
+| Nginx Proxy Manager 2.15.1 | Docker en `core01` | Actual | puertos 80/81/443, reverse proxy interno — sigue con el login de fábrica (`admin@example.com`/`changeme`) sin cambiar, pendiente. Ver [Nginx Proxy Manager](../servicios/nginx-proxy-manager.md). |
 | Cloudflare Tunnel + Access | Docker en `core01` | Actual | túnel conectado, 7 hostnames públicos (`vault`, `n8n`, `kuma`, `home`, `beszel`, `monitor`, `ha` . `oscarlab.com.ar`), cada uno con su propia Access Application y protegido por login (código de un solo uso al email del autor). Ver [Cloudflare Tunnel](../servicios/cloudflare-tunnel.md). |
 
 ## Dominio — en uso
@@ -73,6 +75,7 @@ El build no siguió el orden lineal del [roadmap](../roadmap/roadmap-general.md)
 2. **Completar el primer acceso de Vaultwarden** — el bloqueo de HTTPS ya se resolvió (Cloudflare Tunnel + Access en `vault.oscarlab.com.ar`); falta crear la cuenta real y deshabilitar `SIGNUPS_ALLOWED`.
 3. **Copia off-site del backup** — sigue siendo la brecha real de disaster recovery; el backup local ya existe, pero no protege contra la pérdida del Dell completo.
 4. **`core01` todavía no está confirmado en el job de backup** — el `vzdump all:1` la incluye automáticamente en la próxima corrida programada; verificarlo en la próxima ejecución (lunes a viernes 00:00).
+5. **Cambiar el login de fábrica de Nginx Proxy Manager** (`admin@example.com`/`changeme`) — mientras siga así, cualquiera en la LAN con la IP puede administrar el proxy.
 5. Integrar el UPS (ver [backlog](../roadmap/backlog.md)) — más urgente ahora que hay servicios reales con estado (Postgres, Vaultwarden) que un corte de luz podría corromper.
 
 ## Por qué esta página existe

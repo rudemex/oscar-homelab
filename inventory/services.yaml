@@ -41,7 +41,17 @@ services:
     status: current
     criticality: C3
     target: core01
-    note: "solo lo consume Homepage internamente, sin exposición propia"
+    note: "usado por Homepage (header) y con tarjeta/UI propia en la LAN, sin Tunnel"
+  - id: myspeed
+    status: current
+    criticality: C3
+    target: core01
+    note: "sin autenticación propia todavía; solo LAN, sin Tunnel"
+  - id: nginx-proxy-manager
+    status: current
+    criticality: C2
+    target: core01
+    note: "login de fábrica sin cambiar (admin@example.com/changeme) — pendiente"
   - id: cloudflare-tunnel
     status: current
     criticality: C2
@@ -82,6 +92,11 @@ services:
     status: current
     criticality: C2
     target: oscar-core (vm 101, haos-18.2)
+  - id: dvr-dahua
+    status: current
+    criticality: C3
+    target: "192.168.0.224 (LAN, hardware propio)"
+    note: "4 canales, sin VLAN dedicada ni bandeja física propia todavía"
   - id: ai-operator
     status: future
     criticality: C4
