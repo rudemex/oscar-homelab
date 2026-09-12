@@ -333,46 +333,48 @@ Y el mismo acento se usa para el **valor** de cada `.service-block` (`.service-b
 
 ### Masonry real, sin librerías
 
-Con tarjetas de distinto alto (según si tienen widget o no, y cuántos `.service-block` traen), un grid común deja o bien huecos feos o bien tarjetas estiradas (el problema resuelto más abajo). El pedido fue masonry de verdad — que las tarjetas rellenen los huecos, no solo que cada una mida lo suyo. CSS todavía no tiene esto resuelto de forma confiable entre navegadores (`grid-template-rows: masonry` es nativo en Firefox nomás, Chrome/Safari no lo soportan) — las alternativas sin eso son: `column-count` (sin JS, pero cambia el orden de lectura a "de arriba a abajo por columna" en vez de "de izquierda a derecha"), dejarlo como estaba (grid común con `align-items: start`, sin tarjetas estiradas pero con algún hueco entre alturas distintas en la misma fila), o un masonry real armado a mano. Se eligió la tercera.
+Con tarjetas de distinto alto (según si tienen widget o no, y cuántos `.service-block` traen), un grid común deja o bien huecos feos o bien tarjetas estiradas (el problema resuelto más abajo). El pedido fue masonry de verdad — que las tarjetas rellenen los huecos, no solo que cada una mida lo suyo. CSS todavía no tiene esto resuelto de forma confiable entre navegadores (`grid-template-rows: masonry` es nativo en Firefox nomás, Chrome/Safari no lo soportan).
 
-El truco (estándar, sin librería) es CSS Grid con filas finitas + JS que le dice a cada tarjeta cuántas ocupa:
+**Primer intento: el truco de CSS Grid con filas finitas.** `grid-auto-rows: 8px` (montón de filas muy finas) + `grid-auto-flow: dense` (el navegador reordena para rellenar huecos) + un `ResizeObserver` por tarjeta que le asignaba `grid-row-end: span N` según su alto real. Funcionaba — hasta que no: con solo 5-6 tarjetas por grupo, el algoritmo de `dense` es "primer hueco que sirva", no "columna más corta primero" — a veces no había ninguna tarjeta más adelante en el orden con el tamaño justo para tapar el hueco que dejaba una columna corta, y quedaba un espacio grande al fondo sin nada que lo llenara. Con pocos ítems, ese tipo de packing "codicioso" no arma columnas parejas.
 
-```css
-.services-list {
-  grid-auto-flow: dense;
-  grid-auto-rows: 8px;
-}
-```
-
-`grid-auto-rows: 8px` convierte al grid en un montón de filas muy finas. `grid-auto-flow: dense` deja que el navegador reordene visualmente para rellenar huecos — una tarjeta más chica que viene después en el DOM puede terminar ocupando un hueco que dejó una más alta antes; es lo que hace que sea masonry real y no un grid prolijo pero con aire de sobra.
+**Versión final: el algoritmo clásico de las librerías de masonry** (Masonry.js, Isotope) — columna más corta primero, posicionamiento absoluto a mano, sin depender de que CSS Grid encuentre un hueco por su cuenta:
 
 ```js
-function wireMasonryGrids() {
-  var lists = document.querySelectorAll(".services-list");
-  lists.forEach(function (list) {
-    if (list.dataset.masonryWired) return;
-    var items = list.querySelectorAll(":scope > .service");
-    if (!items.length) return;
-    list.dataset.masonryWired = "1";
+function layoutMasonryList(list) {
+  var items = Array.prototype.slice.call(list.querySelectorAll(":scope > .service"));
+  var columns = window.innerWidth >= 1024 ? 4 : window.innerWidth >= 768 ? 2 : 1;
+  var gap = 16;
 
-    var ro = new ResizeObserver(function (entries) {
-      entries.forEach(function (entry) {
-        var item = entry.target.closest(".service");
-        var height = entry.contentRect.height;
-        var rowSpan = Math.ceil((height + 16) / (8 + 16));
-        item.style.gridRowEnd = "span " + rowSpan;
-      });
-    });
-    items.forEach(function (item) {
-      ro.observe(item.querySelector(".service-card") || item);
-    });
+  if (columns === 1) {
+    // fallback: sin JS, que fluya normal
+    return;
+  }
+
+  var colWidth = (list.clientWidth - gap * (columns - 1)) / columns;
+  var colHeights = new Array(columns).fill(0);
+  list.style.position = "relative";
+
+  items.forEach(function (item) {
+    var shortest = 0;
+    for (var i = 1; i < columns; i++) {
+      if (colHeights[i] < colHeights[shortest]) shortest = i;
+    }
+    item.style.position = "absolute";
+    item.style.width = colWidth + "px";
+    item.style.left = shortest * (colWidth + gap) + "px";
+    item.style.top = colHeights[shortest] + "px";
+    colHeights[shortest] += item.getBoundingClientRect().height + gap;
   });
+
+  list.style.height = Math.max.apply(null, colHeights) - gap + "px";
 }
 ```
 
-Por cada tarjeta, un `ResizeObserver` mide su alto real y le asigna `grid-row-end: span N` — cuántas de esas filas de 8px necesita para entrar (la fórmula suma el `row-gap` real, 16px = 1rem, para que el cálculo no se desfase de a poco). Un `ResizeObserver` por tarjeta, no un cálculo único al cargar la página, es necesario porque los datos de los widgets llegan async — una tarjeta de Beszel puede arrancar mostrando "cargando" (corta) y después crecer cuando llega el `%` de CPU/RAM/disco real; sin el observer, el `span` quedaría pegado al alto viejo y la tarjeta se superpondría con la de abajo. El mismo observer también recalcula solo ante un resize de ventana (cambia el ancho de columna, el texto envuelve distinto, cambia el alto).
+Por cada tarjeta, en orden, se busca la columna con **menos altura acumulada hasta ese momento** (no la primera que tenga hueco — la más corta de todas) y se la coloca ahí, actualizando esa columna con su nuevo alto total. Es determinístico y siempre produce columnas balanceadas, sin importar cuántas tarjetas haya — a diferencia del truco de CSS Grid, que dependía de que el orden de las tarjetas casualmente tuviera una del tamaño justo para el hueco.
 
-**Bug de la primera versión: tarjetas que se pisaban igual.** La medición usaba `entry.contentRect.height` — que es el alto del *contenido* únicamente, sin contar `padding` ni `border`. `.service-card` tiene `0.9rem` de padding arriba y abajo más `1px` de borde por lado — unos 30px que el cálculo no veía, quedando corto en el `span` y haciendo que la tarjeta de abajo empezara a dibujarse antes de que la de arriba terminara. La medición correcta es `entry.target.getBoundingClientRect().height`, que sí mide la caja completa tal como se renderiza (border-box) — la diferencia entre "cuánto mide el contenido" y "cuánto mide la tarjeta en pantalla" es exactamente el padding+borde que faltaba.
+En una sola columna (celular) no hace falta nada de esto — se deja que Homepage renderice su grid/flex normal, sin `position: absolute` de por medio.
+
+`layoutMasonryList()` recalcula la lista **entera**, no una tarjeta sola — necesario porque cuando una tarjeta cambia de alto (un widget que tarda en traer sus datos), todas las que vienen después de ella en su columna tienen que correrse. Se dispara con un `ResizeObserver` sobre la lista (ancho — resize de ventana, cambio de cantidad de columnas) y sobre cada tarjeta (alto — datos de widget llegando async), juntado con `requestAnimationFrame` para no relayoutear a cada pixel si varias tarjetas cambian a la vez.
 
 ### Filas de tarjetas pegadas, y tarjetas vacías estiradas feo
 
