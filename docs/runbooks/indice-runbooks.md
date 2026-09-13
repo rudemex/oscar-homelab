@@ -21,6 +21,7 @@ Un runbook es un procedimiento operativo, no una explicación teórica. Debe pod
 | [Rotar secreto](./rotacion-secreto.md) | exposición/renovación |
 | [Corte eléctrico](./corte-electrico.md) | UPS en batería o apagado planificado |
 | [Argo CD OutOfSync](./argocd-outofsync.md) | drift entre Git y el cluster, o sync fallido |
+| [Argo CD - password de admin inválida/perdida](./argocd-admin-password-perdida.md) | login rechazado con una password que debería ser válida |
 | [Prometheus target down](./prometheus-target-down.md) | un exporter/host deja de reportar métricas |
 | [Grafana no responde](./grafana-no-responde.md) | UI caída o extremadamente lenta |
 | [Nexus lleno](./nexus-lleno.md) | datastore de artefactos/registry al límite |

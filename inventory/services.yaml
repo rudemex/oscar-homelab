@@ -81,13 +81,14 @@ services:
     criticality: C3
     target: devops01
   - id: k3s
-    status: planned
+    status: current
+    criticality: C3
+    target: k3s01 (vm 103, oscar-core, 192.168.0.150, single-node, v1.36.4+k3s1)
+  - id: argocd
+    status: current
     criticality: C3
     target: k3s01
-  - id: argocd
-    status: planned
-    criticality: C3
-    target: k3s
+    note: "v3.5.2; app-of-apps desde github.com/rudemex/oscar-gitops (privado, deploy key de solo lectura); primer servicio migrado: oscar-led-controller (retirado de core01)"
   - id: home-assistant
     status: current
     criticality: C2
@@ -107,6 +108,11 @@ services:
     criticality: C3
     target: core01
     note: "reemplazó a dvr-proxy pero se retiró también; problema de rotación de cámaras sin resolver, se decidió no invertir más tiempo/recursos en video de cámaras dentro de Homepage; contenedor parado, archivos sin borrar en core01"
+  - id: oscar-led-controller
+    status: current
+    criticality: C4
+    target: k3s01 (namespace oscar-lab)
+    note: "identidad visual de OSCAR (tira WLED) — primer servicio migrado de Docker Compose (core01) a k3s/Argo CD; antes vivía en core01, ya retirado de ahí. Publicado en https://led.oscarlab.com.ar vía Cloudflare Tunnel (directo al Service de k3s01, sin NPM) + Cloudflare Access (solo mdelgado) — la API no tiene auth propia y tiene endpoints de escritura (POST /state/:state)"
   - id: ai-operator
     status: future
     criticality: C4

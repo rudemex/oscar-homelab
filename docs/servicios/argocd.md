@@ -5,11 +5,11 @@ sidebar_position: 7
 
 # Argo CD
 
-**Estado:** Objetivo · GitOps  
-**Dónde corre:** cluster k3s  
+**Estado:** Desplegado (v3.5.2) · GitOps  
+**Dónde corre:** `k3s01` (192.168.0.150), namespace `argocd`  
 **Sizing inicial:** ~1–2 GB RAM para instalación pequeña, validar métricas  
-**Red/puertos:** UI/API interna; acceso administrativo protegido  
-**Persistencia:** estado principalmente reconstruible; config declarativa en Git
+**Red/puertos:** UI/API expuesta en la LAN (`https://192.168.0.150:8081`, LoadBalancer vía ServiceLB) solo para que Uptime Kuma la monitoree — nunca a internet (ADR-005)  
+**Persistencia:** estado principalmente reconstruible; config declarativa en el repo privado `oscar-gitops`
 
 ## Rol dentro de O.S.C.A.R.
 

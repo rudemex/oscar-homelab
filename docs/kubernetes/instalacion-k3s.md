@@ -5,6 +5,10 @@ sidebar_position: 2
 
 # Instalación de k3s
 
+:::caution Corregido tras la experiencia real
+`k3s01` se creó sobre la red plana real (`192.168.0.0/24`, IP fija `192.168.0.150`), no sobre el esquema de VLANs `192.168.20.0/24` que usan los ejemplos de esta página y de [crear VM core01](../proxmox/crear-vm-core01.md) — la segmentación por VLAN sigue siendo un plan futuro (ver [plan de direccionamiento](../red/plan-direccionamiento.md)), `core01` tampoco la usa todavía. Reemplazar los ejemplos de IP de esta página por `192.168.0.x` hasta que la migración a VLANs sea real.
+:::
+
 ## VM recomendada para laboratorio inicial
 
 - Ubuntu/Debian estable;
