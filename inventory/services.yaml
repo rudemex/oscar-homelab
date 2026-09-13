@@ -7,11 +7,12 @@ services:
   - id: docker-core
     status: current
     criticality: C1
-    target: core01 (vm 102, DHCP — sin IP fija todavía)
+    target: core01 (vm 102, IP fija 192.168.0.156/24)
   - id: adguard-home
     status: current
     criticality: C1
     target: oscar-core (lxc 100)
+    note: "router (TP-Link Archer AX55) entrega 192.168.0.93 como DNS primario por DHCP a toda la LAN; rewrites locales para *.oscar.home (led.oscar.home, argocd.oscar.home -> 192.168.0.150). Chrome con DNS seguro (DoH) gestionado por política de empresa lo ignora — workaround: entrada manual en /etc/hosts por dispositivo"
   - id: uptime-kuma
     status: current
     criticality: C2
@@ -88,7 +89,7 @@ services:
     status: current
     criticality: C3
     target: k3s01
-    note: "v3.5.2; app-of-apps desde github.com/rudemex/oscar-gitops (privado, deploy key de solo lectura); primer servicio migrado: oscar-led-controller (retirado de core01)"
+    note: "v3.5.2; app-of-apps desde github.com/rudemex/oscar-gitops (privado, deploy key de solo lectura); primer servicio migrado: oscar-led-controller (retirado de core01). LAN: argocd.oscar.home (Ingress/Traefik, server.insecure=true — HTTP plano, sin TLS propio); no expuesto a internet (ADR-005)"
   - id: home-assistant
     status: current
     criticality: C2
@@ -112,7 +113,7 @@ services:
     status: current
     criticality: C4
     target: k3s01 (namespace oscar-lab)
-    note: "identidad visual de OSCAR (tira WLED) — primer servicio migrado de Docker Compose (core01) a k3s/Argo CD; antes vivía en core01, ya retirado de ahí. Publicado en https://led.oscarlab.com.ar vía Cloudflare Tunnel (directo al Service de k3s01, sin NPM) + Cloudflare Access (solo mdelgado) — la API no tiene auth propia y tiene endpoints de escritura (POST /state/:state)"
+    note: "identidad visual de OSCAR (tira WLED) — primer servicio migrado de Docker Compose (core01) a k3s/Argo CD; antes vivía en core01, ya retirado de ahí. LAN: led.oscar.home (DNS interno via AdGuard) -> Ingress (Traefik). Internet: https://led.oscarlab.com.ar vía Cloudflare Tunnel -> Traefik (Host header override) + Cloudflare Access (solo mdelgado) — la API no tiene auth propia y tiene endpoints de escritura (POST /state/:state)"
   - id: ai-operator
     status: future
     criticality: C4
