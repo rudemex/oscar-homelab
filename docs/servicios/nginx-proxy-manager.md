@@ -48,9 +48,17 @@ services:
 docker compose up -d
 ```
 
-## Primer acceso — pendiente
+## Primer acceso — hecho
 
-NPM arranca con un login por defecto (`admin@example.com` / `changeme`) que hay que cambiar entrando a `http://192.168.0.156:81` — hasta que eso no se haga, no hay credenciales reales para sumarle el widget de Homepage (que necesita usuario/contraseña reales, no los de fábrica). Card agregada sin `widget:` por ahora, solo `href` + `siteMonitor`.
+El login de fábrica (`admin@example.com`/`changeme`) ya fue cambiado por una cuenta real (`mdelgado@tresdoce.com.ar`) — quedó documentado acá como "pendiente" bastante después de que dejó de serlo; confirmado al intentar loguearse con las credenciales de fábrica y recibir `"Invalid email or password"`.
+
+## Proxy Hosts reales
+
+| Dominio | Forward a | Nota |
+|---|---|---|
+| `git.oscar.home` | `http://192.168.0.151:3000` ([Forgejo](./forgejo.md), `devops01`) | primer Proxy Host real, creado vía API (`POST /api/nginx/proxy-hosts`) |
+
+Antes de esto, `git.oscar.home` (rewrite en AdGuard) apuntaba directo a `192.168.0.151` con un nginx standalone corriendo en la propia `devops01` haciendo de reverse proxy por hostname — se migró acá para no mantener dos reverse proxies en paralelo (ver la nota de duplicación que existió en el [backlog](../roadmap/backlog.md)). El rewrite de AdGuard para `git.oscar.home` ahora apunta a `192.168.0.156` (`core01`, donde corre NPM), no a `192.168.0.151` directo — NPM es quien resuelve a qué backend real mandar cada request.
 
 ## Configuración en Homepage
 
@@ -76,13 +84,13 @@ Una vez creada la cuenta real, sumar:
 
 ## Seguridad
 
-- **Cambiar el login por defecto es prioritario** — mientras siga en `admin@example.com`/`changeme`, cualquiera en la LAN con la IP puede administrar el proxy;
+- login de fábrica ya cambiado (ver arriba) — no exponer estas credenciales reales en Git bajo ningún concepto;
 - no está publicado por el Tunnel — solo alcanzable dentro de la LAN;
 - los puertos 80/443 quedan abiertos en `core01` para lo que NPM enrute — repasar qué termina pasando por ahí a medida que se usa.
 
 ## Backup y restore
 
-`./data` y `./letsencrypt` tienen toda la config de proxy hosts y certificados — vale la pena respaldarlos una vez que haya reglas reales cargadas (hoy está vacío, recién instalado).
+`./data` y `./letsencrypt` tienen toda la config de proxy hosts y certificados — ahora que hay una regla real cargada (`git.oscar.home`), vale la pena respaldarlos; ya no está vacío como cuando se escribió esta página.
 
 ## Observabilidad
 
@@ -90,8 +98,8 @@ Pendiente sumar un chequeo en Uptime Kuma sobre el puerto 81.
 
 ## Troubleshooting
 
-- **No puedo entrar con el login de fábrica** → confirmar que se está usando `admin@example.com` / `changeme` en el primer arranque; si ya se cambió, no hay reset sin acceso a los archivos de `./data`.
-- **El widget de Homepage no autentica** → confirmar que el usuario/contraseña son los reales (no los de fábrica) y que el email va entre comillas en el YAML.
+- **El widget de Homepage no autentica** → confirmar que el usuario/contraseña son los reales y que el email va entre comillas en el YAML.
+- **Un Proxy Host devuelve 502/504** → el backend (`forward_host`/`forward_port`) no responde — confirmar que el servicio de destino está `Up` y alcanzable desde `core01` antes de sospechar de NPM.
 
 ## Documentación oficial
 

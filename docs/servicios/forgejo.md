@@ -87,67 +87,15 @@ Hecho: cuenta admin creada por el instalador web (SQLite, sin tocar el resto de 
 
 Pendiente de validar: clonar un repo de prueba por SSH contra `ssh://git@git.oscar.home:2222/<usuario>/<repo>.git` para confirmar el puerto 2222 antes de depender de él para algo real.
 
-## Reverse proxy (nginx)
+## Reverse proxy — Nginx Proxy Manager
 
-`http://git.oscar.home:3000` funcionaba, pero con puerto en la URL. Como `devops01` es una VM Docker simple (no k3s, así que no viene con Traefik gratis como [Argo CD](../kubernetes/argocd-bootstrap.md)), se sumó un nginx liviano propio para rutear por hostname en el puerto 80 — mismo resultado que el `Ingress` de Traefik para `argocd.oscar.home`, pieza distinta porque acá no había ningún ingress controller corriendo de antes.
+`http://git.oscar.home:3000` funcionaba, pero con puerto en la URL. Primer intento: un nginx standalone propio en `devops01` (network_mode: host, rutéo por hostname en el puerto 80) — funcionó, pero dejaba dos reverse proxies corriendo en paralelo en el homelab, porque [Nginx Proxy Manager](./nginx-proxy-manager.md) ya existía en `core01` sin usarse (login de fábrica sin cambiar en ese momento). Al confirmar que el login de NPM ya había sido cambiado —quedó desactualizado en su propia página, no en la realidad— se migró: el nginx standalone se bajó (`docker compose down` en `devops01`) y el Proxy Host quedó armado en NPM en su lugar. El detalle del Proxy Host, credenciales y troubleshooting vive en [Nginx Proxy Manager](./nginx-proxy-manager.md#proxy-hosts-reales), no se repite acá.
 
-`/srv/oscar/apps/nginx/`:
-
-```nginx
-# conf.d/git.conf
-server {
-    listen 80;
-    server_name git.oscar.home;
-
-    client_max_body_size 512M;
-
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-```yaml
-# compose.yaml
-services:
-  nginx:
-    image: nginx:1.27-alpine
-    container_name: nginx
-    restart: unless-stopped
-    # network_mode: host para llegar a 127.0.0.1:3000 (Forgejo) sin cruzar
-    # redes Docker separadas - mismo criterio que cloudflared/Beszel en core01.
-    network_mode: host
-    volumes:
-      - /srv/oscar/apps/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - /srv/oscar/apps/nginx/conf.d:/etc/nginx/conf.d:ro
-      - /srv/oscar/data/nginx-logs:/var/log/nginx
-```
-
-`FORGEJO_ROOT_URL` se actualizó a `http://git.oscar.home/` (sin `:3000`) para que los links/clone URLs que genera Forgejo coincidan con la URL real. El puerto 3000 sigue publicado en el host (nginx le pega por `127.0.0.1:3000`), así que `http://192.168.0.151:3000` también sigue andando en paralelo — no hubo que elegir uno.
-
-Preparado para escalar: cuando llegue Nexus a la misma VM, es otro `server_name nexus.oscar.home { ... }` en `conf.d/`, sin tocar el de git — por eso se armó con `conf.d/*.conf` desde el día 1 en vez de un solo archivo monolítico.
-
-**Bug real encontrado y corregido:** sin un `default_server` explícito, nginx cae al primer `server{}` definido para cualquier hostname sin bloque propio — `nexus.oscar.home` (rewrite ya creado en AdGuard, apuntando a esta VM, antes de que Nexus exista) servía el HTML de Forgejo en vez de un error. Se agregó `conf.d/default.conf`:
-
-```nginx
-server {
-    listen 80 default_server;
-    server_name _;
-    return 404;
-}
-```
-
-Con esto, cualquier hostname sin su propio bloque (incluido `nexus.oscar.home` hasta que Nexus se despliegue de verdad) devuelve `404` en vez de servir Forgejo por error.
-
-**No es [Nginx Proxy Manager](./nginx-proxy-manager.md)** (que corre en `core01`) — es un nginx plano nuevo, deliberado por dos razones: NPM está en otra VM (proxy cruzado innecesario) y sigue con el login de fábrica sin cambiar, sin credenciales reales para armar nada ahí. Queda como una duplicación consciente (dos reverse proxies en el homelab, uno por VM) hasta que valga la pena consolidar — no una decisión final.
+Cambio de arquitectura real: `git.oscar.home` (rewrite en AdGuard) ahora apunta a **`192.168.0.156`** (`core01`, donde corre NPM), no a `192.168.0.151` (`devops01`, donde corre Forgejo) — NPM es el frente, Forgejo es el backend (`forward_host: 192.168.0.151`, `forward_port: 3000`). `FORGEJO_ROOT_URL` sigue en `http://git.oscar.home/`, sin cambios — el hostname que ve el usuario es el mismo, solo cambió qué máquina lo atiende primero.
 
 ## Nota sobre AdGuard (dependencia real de `git.oscar.home`)
 
-AdGuard (`192.168.0.93`) sigue arriba y respondiendo bien, pero **no es el DNS de toda la LAN** — no hay DHCP apuntándolo (se evitó a propósito: hacerlo DNS de red completa coincidió con una caída real de throughput, 600→20 Mbps, causa todavía sin diagnosticar). Hoy, `git.oscar.home` solo resuelve en dispositivos con el DNS apuntado a mano a `192.168.0.93` — no es automático para cualquiera que se conecte a la LAN. Ver [DNS con AdGuard Home](../red/dns-adguard.md) y el hallazgo de la caída de velocidad, todavía sin investigar a fondo.
+AdGuard (`192.168.0.93`) sigue arriba y respondiendo bien, pero **no es el DNS de toda la LAN** — no hay DHCP apuntándolo (se evitó a propósito: hacerlo DNS de red completa coincidió con una caída real de throughput, 600→20 Mbps, causa todavía sin diagnosticar). El método real usado en las máquinas de administración es una entrada en `/etc/hosts` (`192.168.0.156 git.oscar.home`), no el DNS del sistema — ver [Cómo resuelven hoy las máquinas de administración](../red/dns-adguard.md#cómo-resuelven-hoy-las-máquinas-de-administración). No es automático para cualquiera que se conecte a la LAN.
 
 ## Pendiente real
 
