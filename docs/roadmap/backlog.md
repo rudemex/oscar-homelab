@@ -14,7 +14,7 @@ sidebar_position: 2
 ## Resueltas recientemente
 
 - **RAM del Dell**: ampliada de 16 GB a 32 GB (ambos slots ocupados — sin margen para ampliar más sin reemplazar módulos), y de paso el M.2 de 512 GB a 1 TB (slot único, reemplazo en vez de suma). Desbloquea separar observabilidad en su propia VM — ver [distribución con 32 GB](../hardware/dell-7060.md#distribución-con-32-gb).
-- **plataforma Git local**: Forgejo 16.0.4 desplegado en `devops01` ([ADR-010](../arquitectura/decisiones-arquitectonicas.md#adr-010--forgejo-con-forgejo-actions-como-plataforma-git-local)) — falta crear el admin inicial; el CI Runner (Forgejo Actions) todavía no está desplegado, ver [CI Runner](../servicios/ci-runner.md).
+- **plataforma Git local**: Forgejo 16.0.4 desplegado en `devops01` ([ADR-010](../arquitectura/decisiones-arquitectonicas.md#adr-010--forgejo-con-forgejo-actions-como-plataforma-git-local)), admin creado, DNS interno (`git.oscar.home`) resuelto vía AdGuard — falta el CI Runner (Forgejo Actions), ver [CI Runner](../servicios/ci-runner.md).
 
 ## Decisiones pendientes
 
@@ -22,7 +22,9 @@ sidebar_position: 2
 - NAS (Raspberry Pi vs equipo dedicado vs comercial);
 - gestor de secretos;
 - ubicación final de Home Assistant;
-- proveedor/backends de IA.
+- proveedor/backends de IA;
+- **acceso remoto tipo VPN**: recomendado Tailscale sobre WireGuard nativo (no depende de que exista OPNsense, sin port-forward, alta en segundos) — falta desplegar, ver [ADR-006](../arquitectura/decisiones-arquitectonicas.md#adr-006--cloudflare-tunnel--access-para-acceso-remoto) y [acceso remoto](../red/acceso-remoto.md);
+- **relay SMTP**: salida vía proveedor transaccional free-tier (Brevo/Resend/Mailgun) — falta elegir proveedor y crear la cuenta.
 
 ## Mejoras futuras
 

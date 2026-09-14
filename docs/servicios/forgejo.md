@@ -8,7 +8,7 @@ sidebar_position: 5
 **Estado:** Actual — Forgejo 16.0.4 corriendo en `devops01`, sano (`/api/healthz` en pass), falta completar el primer acceso (crear el admin) y el auto-registro público
 **Dónde corre:** VM `devops01` (vmid 104), `/srv/oscar/apps/forgejo/`
 **Sizing real de la VM:** 4 vCPU / 8 GB RAM / 60 GB disco — más grande que el 1-2 GB de ADR-010 a propósito, para dejar margen al runner de Forgejo Actions que va a compartir la misma VM
-**Red/puertos:** `192.168.0.151:3000` HTTP, `192.168.0.151:2222` SSH (Git) — el 22 del host lo ocupa el sshd de la VM, así que Forgejo escucha SSH en 2222 hacia afuera aunque el contenedor lo sirva en el 22 interno
+**Red/puertos:** `git.oscar.home:3000` HTTP (rewrite en AdGuard → `192.168.0.151`), `git.oscar.home:2222` SSH (Git) — el 22 del host lo ocupa el sshd de la VM, así que Forgejo escucha SSH en 2222 hacia afuera aunque el contenedor lo sirva en el 22 interno
 **Persistencia:** SQLite + repos + attachments + config, todo en `/srv/oscar/data/forgejo` (bind mount, container corre `/data`)
 
 ## Rol dentro de O.S.C.A.R.
@@ -82,16 +82,16 @@ docker compose up -d
 
 ## Primer acceso
 
-1. Entrar a `http://192.168.0.151:3000/` — como `DISABLE_REGISTRATION` no bloquea el instalador inicial, el propio asistente de instalación de Forgejo pide crear la cuenta administradora ahí mismo (usuario + contraseña real, no compartida ni generada por este chat).
-2. Confirmar que el usuario nuevo quedó como admin (`Configuración del sitio → Usuarios` en la UI).
-3. Clonar un repo de prueba por SSH contra `ssh://git@192.168.0.151:2222/<usuario>/<repo>.git` para validar el puerto 2222 antes de depender de él.
+Hecho: cuenta admin creada por el instalador web (SQLite, sin tocar el resto de los defaults), credencial guardada en Vaultwarden y rotada después de haber pasado por chat en algún momento del proceso — no quedó ninguna contraseña real en este repo ni en el historial de Git.
+
+Pendiente de validar: clonar un repo de prueba por SSH contra `ssh://git@git.oscar.home:2222/<usuario>/<repo>.git` para confirmar el puerto 2222 antes de depender de él para algo real.
 
 ## Pendiente real
 
-- **DNS interno** (`git.oscar.home` vía AdGuard) en vez de la IP cruda — hoy `ROOT_URL`/`SSH_DOMAIN` apuntan a `192.168.0.151` porque no hay rewrite creado todavía; cambiar la IP por un hostname después implica editar `FORGEJO_DOMAIN`/`FORGEJO_ROOT_URL` en `.env` y `docker compose up -d` de nuevo, más el rewrite en AdGuard.
 - **Migrar `oscar-gitops`** (hoy en GitHub) a Forgejo como origen o mirror — decisión de producto separada, no bloquea tener Forgejo corriendo.
 - **CI Runner (Forgejo Actions)** — la VM ya tiene RAM/CPU de sobra reservada para esto (ver "Sizing real" arriba), pero el runner en sí todavía no está desplegado.
-- **Exposición vía Cloudflare Tunnel** si en algún momento se necesita acceso remoto — hoy Forgejo es LAN-only, sin registro DNS público ni Access, correcto para esta etapa.
+- **Acceso remoto** — hoy Forgejo es LAN-only (`git.oscar.home` solo resuelve dentro de la red), correcto para esta etapa. Si en algún momento hace falta clonar/pushear desde afuera, la vía elegida es VPN (Tailscale, ver [backlog](../roadmap/backlog.md#decisiones-pendientes)) para SSH/administración, no exponer Forgejo directo por Cloudflare Tunnel — y si igual se decide exponer HTTP público, el SSH del puerto 2222 quedaría LAN/VPN-only de todas formas (tunelear TCP crudo es bastante más trabajo que el ingress HTTP simple que ya usan los otros 7 servicios).
+- **Sumarlo a Uptime Kuma** — todavía no tiene monitor, a diferencia del resto de los servicios reales.
 
 ## Ejemplo concreto
 
@@ -99,12 +99,12 @@ Ejemplo: repo `oscar-gitops` con manifests k3s; Argo CD observa el repo y sincro
 
 ## Checklist de despliegue
 
-- [x] hostname y ubicación decididos (`devops01`, `192.168.0.151` — DNS interno pendiente);
+- [x] hostname y ubicación decididos (`devops01`, `git.oscar.home` vía AdGuard);
 - [x] imagen/versión fijada, evitando tags flotantes en servicios importantes (`16.0.4`);
 - [x] puertos documentados (3000 HTTP, 2222 SSH externo → 22 interno);
 - [x] volumen/persistencia definida (`/srv/oscar/data/forgejo`);
 - [x] `.env.example` sin secretos en Git — no aplica todavía: nada de esto vive en un repo Git, solo en la VM;
-- [ ] credenciales reales fuera de Git — pendiente hasta crear el admin (paso manual, ver "Primer acceso");
+- [x] credenciales reales fuera de Git (admin creado, credencial en Vaultwarden, rotada tras pasar por chat);
 - [ ] backup definido antes de cargar datos importantes (`forgejo dump`, ver abajo — no automatizado todavía);
 - [x] healthcheck o monitor de disponibilidad (`/api/healthz` responde `pass`; falta sumarlo a Uptime Kuma);
 - [ ] métricas/logs incorporados cuando sea razonable;
