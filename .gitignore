@@ -12,6 +12,10 @@ build/
 # Editor/OS
 .DS_Store
 *.swp
+.idea/
+
+# Capturas de trabajo sueltas, no assets del sitio
+screenshots/
 
 # Logs
 npm-debug.log*
