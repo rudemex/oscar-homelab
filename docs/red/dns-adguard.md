@@ -66,4 +66,17 @@ Hipótesis sin confirmar, en orden de sospecha:
 - algo en el vSwitch/bridge de Proxmox se satura al concentrar tráfico DNS de toda la LAN por un solo LXC;
 - coincidencia con otra cosa (cambio de canal Wi-Fi, evento del ISP) no relacionada a AdGuard en sí.
 
-Mientras no se diagnostique, cada dispositivo que necesite `*.oscar.home` configura su DNS a mano (`192.168.0.93` + un fallback como `1.1.1.1`) — carga mínima comparada con ser el DNS de toda la red, no debería reproducir el problema.
+Mientras no se diagnostique, cada dispositivo que necesite `*.oscar.home` tiene dos formas de resolverlo sin tocar el DNS de toda la red — carga mínima comparada con ser el DNS de la LAN completa, no debería reproducir el problema:
+
+## Cómo resuelven hoy las máquinas de administración
+
+**Preferido: `/etc/hosts` por hostname puntual** (`sudo` para editar, en macOS/Linux):
+
+```text
+192.168.0.151 git.oscar.home
+192.168.0.151 nexus.oscar.home
+```
+
+Es lo que ya se usaba en la práctica para `argocd.oscar.home` y `led.oscar.home` (apuntando a `192.168.0.150`, `k3s01`) antes incluso de que existiera esta nota — se documenta acá recién ahora. Ventaja sobre cambiar el DNS del sistema: no depende de que AdGuard esté arriba en absoluto para esos hostnames puntuales, y no manda el resto del tráfico DNS de la máquina por AdGuard de paso.
+
+**Alternativa: DNS del sistema apuntado a `192.168.0.93`** (+ un fallback como `1.1.1.1`) — resuelve *cualquier* hostname de `*.oscar.home` sin mantener una lista a mano, pero depende de que AdGuard esté arriba y manda todo el tráfico DNS del dispositivo por él. Usar cuando hace falta resolver muchos hostnames nuevos seguido (ej. mientras se prueban servicios), no como default permanente.
