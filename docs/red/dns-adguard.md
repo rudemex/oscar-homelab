@@ -5,7 +5,7 @@ sidebar_position: 4
 
 # DNS con AdGuard Home
 
-**Estado:** Actual — corriendo como LXC (`vmid 100`, tag `adblock;community-script`) en `oscar-core`, instalado vía el script comunitario de [community-scripts.github.io/ProxmoxVE](https://community-scripts.github.io/ProxmoxVE/).
+**Estado:** Actual — corriendo como LXC (`vmid 100`, tag `adblock;community-script`) en `oscar-core`, instalado vía el script comunitario de [community-scripts.github.io/ProxmoxVE](https://community-scripts.github.io/ProxmoxVE/). El servicio DNS en sí responde bien (confirmado con `dig @192.168.0.93`), pero **no es el DNS de toda la LAN**: `dhcp.enabled: false` en su config, y no hay ninguna configuración en el router apuntando su DHCP a AdGuard — se evitó a propósito porque hacerlo coincidió con una caída real de throughput (600→20 Mbps), causa **todavía sin diagnosticar**. Hasta resolver eso, cada dispositivo que necesite resolver `*.oscar.home` tiene que apuntar su DNS a mano a `192.168.0.93` — no es automático.
 
 Reemplaza a Pi-hole en el rol de DNS/adblock de O.S.C.A.R. — cubre lo mismo (bloqueo por DNS, resolución de nombres locales, visibilidad de consultas) con una UI que a algunos les resulta más cómoda y con DNS-over-HTTPS/TLS nativo si se necesita salir cifrado hacia el resolver upstream. La elección fue simplemente cuál instaló el script comunitario primero — no hay una razón técnica fuerte para preferir uno sobre otro a esta escala; si en algún momento se quiere volver a Pi-hole, el rol y el diseño de abajo aplican igual.
 
@@ -56,3 +56,14 @@ nslookup example.com <IP-del-LXC-100>
 ```
 
 Registrar latencia, errores y volumen de consultas en observabilidad una vez que exista el stack de Prometheus/Grafana — ver [runbook de DNS caído](../runbooks/dns-caido.md) si el resolver deja de responder.
+
+## Incidente sin resolver: caída de throughput al usarlo como DNS de red
+
+Configurar el router para repartir AdGuard por DHCP a toda la LAN coincidió con una caída real de velocidad, 600→20 Mbps — se revirtió esa configuración (el router volvió a repartir su DNS de siempre) y se dejó anotado sin investigar a fondo. AdGuard como servicio sigue sano (`dig @192.168.0.93` resuelve bien, puerto 53 abierto) — el problema aparece específicamente al ponerlo como resolver de **toda la red simultáneamente**, no al consultarlo desde un dispositivo puntual.
+
+Hipótesis sin confirmar, en orden de sospecha:
+- el LXC 100 quedó con recursos (CPU/RAM) insuficientes para el volumen real de consultas de todos los dispositivos a la vez;
+- algo en el vSwitch/bridge de Proxmox se satura al concentrar tráfico DNS de toda la LAN por un solo LXC;
+- coincidencia con otra cosa (cambio de canal Wi-Fi, evento del ISP) no relacionada a AdGuard en sí.
+
+Mientras no se diagnostique, cada dispositivo que necesite `*.oscar.home` configura su DNS a mano (`192.168.0.93` + un fallback como `1.1.1.1`) — carga mínima comparada con ser el DNS de toda la red, no debería reproducir el problema.

@@ -21,7 +21,7 @@ sidebar_position: 11
 
 ## Monitores reales configurados
 
-9 monitores HTTP, chequeo cada 60s, apuntando a la IP LAN real de cada servicio (no al hostname público) para medir el backend directo y no depender de Cloudflare Access en el camino — cubre todo lo que el inventario marca como "Actual" excepto Kuma mismo (ver "nadie vigila al vigilante" más abajo):
+10 monitores HTTP, chequeo cada 60s, apuntando a la IP LAN real de cada servicio (no al hostname público) para medir el backend directo y no depender de Cloudflare Access en el camino — cubre todo lo que el inventario marca como "Actual" excepto Kuma mismo (ver "nadie vigila al vigilante" más abajo). **Pendiente detectado:** los monitores de `oscar-led-controller` (id 11) y Argo CD (id 12) existen en Kuma pero no están en esta tabla ni en el grupo "Servicios" de la status page — quedaron fuera de este barrido, sumarlos es la misma receta que Forgejo abajo.
 
 | Monitor | URL | Nota |
 |---|---|---|
@@ -34,14 +34,20 @@ sidebar_position: 11
 | AdGuard Home | `http://192.168.0.93:80` | LXC 100 |
 | Home Assistant | `http://192.168.0.195:80` | VM 101 — **no** el 8123 típico de otras instalaciones; esta usa el puerto 80, se descubrió por error al asumir el default |
 | Cloudflare Tunnel | `http://192.168.0.156:20241/ready` | endpoint de salud propio de `cloudflared`, expuesto porque corre en `network_mode: host` |
+| Forgejo | `http://192.168.0.151:3000/api/healthz` | en `devops01`, no en `core01`; medido por IP+puerto igual que el resto, no por `git.oscar.home` |
 
 Se armaron vía la API de socket.io (paquete `uptime-kuma-api`, no la REST API — Kuma no tiene una para crear monitores, el API Key propio de Kuma solo sirve para el endpoint de métricas de Prometheus, no para esto).
 
 ## Status page
 
-Existe una status page en `/status/oscar` con los 9 monitores agrupados en "Servicios" — no es solo para verla directamente, es lo que consume el [widget de Uptime Kuma en Homepage](./homepage.md#widgets-nativos-datos-en-vivo-en-la-tarjeta): ese widget lee de una status page (por `slug`), no de la lista de monitores directo.
+Existe una status page en `/status/oscar` con los 10 monitores agrupados en "Servicios" — no es solo para verla directamente, es lo que consume el [widget de Uptime Kuma en Homepage](./homepage.md#widgets-nativos-datos-en-vivo-en-la-tarjeta): ese widget lee de una status page (por `slug`), no de la lista de monitores directo.
 
-Nota técnica si se vuelve a tocar por API: la librería `uptime-kuma-api` (v1.x) tiene un bug de compatibilidad con Kuma 2.5.4 en `save_status_page()` (falla por una key `incident` que esta versión del servidor ya no devuelve) — hubo que armar el payload a mano y llamar `saveStatusPage` directo por socket.io. Un detalle no obvio ahí: **python-socketio necesita una `tuple` para mandar múltiples argumentos posicionales, no una `list`** — pasar una lista hace que el servidor reciba todo el array como un solo parámetro (`slug`), y falla con `"No slug?"`.
+Notas técnicas si se vuelve a tocar por API (`uptime-kuma-api` v1.x contra este Kuma 2.5.4, hay más de un bug de compatibilidad de versión):
+
+- **`add_monitor()` falla con `NOT NULL constraint failed: monitor.conditions`** — esta versión del servidor exige una columna `conditions` que la librería todavía no expone como parámetro. Workaround: armar el dict a mano con `api._build_monitor_data(...)`, agregar `data['conditions'] = []`, y llamar `api._call('add', data)` directo en vez de `api.add_monitor()`.
+- **`get_status_page()`/`save_status_page()` fallan con `KeyError: 'incident'`** — la librería espera una key `incident` (objeto singular) que este servidor ya no devuelve; la API pública (`GET /api/status-page/<slug>`) ahora manda `incidents` (array, en plural). Workaround: no usar `save_status_page()`, armar el payload a mano leyendo `publicGroupList`/`config` de esa misma respuesta REST y llamar `api._call('saveStatusPage', (slug, config, icon, publicGroupList))` directo.
+- **`saveStatusPage` responde `"Invalid array"`** si el `config` no incluye `domainNameList` — la respuesta REST de arriba no siempre trae esa key; agregarla a mano (`config.setdefault('domainNameList', [])`) antes de guardar.
+- **`python-socketio` necesita una `tuple` para mandar múltiples argumentos posicionales, no una `list`** — pasar una lista hace que el servidor reciba todo el array como un solo parámetro (`slug`), y falla con `"No slug?"`.
 
 ## Checklist de despliegue
 

@@ -5,11 +5,12 @@ sidebar_position: 5
 
 # Forgejo / Git local
 
-**Estado:** Actual — Forgejo 16.0.4 corriendo en `devops01`, sano (`/api/healthz` en pass), falta completar el primer acceso (crear el admin) y el auto-registro público
+**Estado:** Actual — Forgejo 16.0.4 corriendo en `devops01`, sano (`/api/healthz` en pass), admin creado
 **Dónde corre:** VM `devops01` (vmid 104), `/srv/oscar/apps/forgejo/`
 **Sizing real de la VM:** 4 vCPU / 8 GB RAM / 60 GB disco — más grande que el 1-2 GB de ADR-010 a propósito, para dejar margen al runner de Forgejo Actions que va a compartir la misma VM
-**Red/puertos:** `git.oscar.home:3000` HTTP (rewrite en AdGuard → `192.168.0.151`), `git.oscar.home:2222` SSH (Git) — el 22 del host lo ocupa el sshd de la VM, así que Forgejo escucha SSH en 2222 hacia afuera aunque el contenedor lo sirva en el 22 interno
+**Red/puertos:** `http://git.oscar.home` (sin puerto — nginx en `:80` hace de reverse proxy hacia `:3000` interno, ver "Reverse proxy" abajo), `git.oscar.home:2222` SSH (Git) — el 22 del host lo ocupa el sshd de la VM, así que Forgejo escucha SSH en 2222 hacia afuera aunque el contenedor lo sirva en el 22 interno
 **Persistencia:** SQLite + repos + attachments + config, todo en `/srv/oscar/data/forgejo` (bind mount, container corre `/data`)
+**Dependencia real:** todo lo anterior asume que el dispositivo que accede tiene su DNS apuntado a AdGuard (`192.168.0.93`) — ver "Nota sobre AdGuard" más abajo, no es DNS de toda la red hoy.
 
 ## Rol dentro de O.S.C.A.R.
 
@@ -86,12 +87,62 @@ Hecho: cuenta admin creada por el instalador web (SQLite, sin tocar el resto de 
 
 Pendiente de validar: clonar un repo de prueba por SSH contra `ssh://git@git.oscar.home:2222/<usuario>/<repo>.git` para confirmar el puerto 2222 antes de depender de él para algo real.
 
+## Reverse proxy (nginx)
+
+`http://git.oscar.home:3000` funcionaba, pero con puerto en la URL. Como `devops01` es una VM Docker simple (no k3s, así que no viene con Traefik gratis como [Argo CD](../kubernetes/argocd-bootstrap.md)), se sumó un nginx liviano propio para rutear por hostname en el puerto 80 — mismo resultado que el `Ingress` de Traefik para `argocd.oscar.home`, pieza distinta porque acá no había ningún ingress controller corriendo de antes.
+
+`/srv/oscar/apps/nginx/`:
+
+```nginx
+# conf.d/git.conf
+server {
+    listen 80;
+    server_name git.oscar.home;
+
+    client_max_body_size 512M;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+```yaml
+# compose.yaml
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: nginx
+    restart: unless-stopped
+    # network_mode: host para llegar a 127.0.0.1:3000 (Forgejo) sin cruzar
+    # redes Docker separadas - mismo criterio que cloudflared/Beszel en core01.
+    network_mode: host
+    volumes:
+      - /srv/oscar/apps/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /srv/oscar/apps/nginx/conf.d:/etc/nginx/conf.d:ro
+      - /srv/oscar/data/nginx-logs:/var/log/nginx
+```
+
+`FORGEJO_ROOT_URL` se actualizó a `http://git.oscar.home/` (sin `:3000`) para que los links/clone URLs que genera Forgejo coincidan con la URL real. El puerto 3000 sigue publicado en el host (nginx le pega por `127.0.0.1:3000`), así que `http://192.168.0.151:3000` también sigue andando en paralelo — no hubo que elegir uno.
+
+Preparado para escalar: cuando llegue Nexus a la misma VM, es otro `server_name nexus.oscar.home { ... }` en `conf.d/`, sin tocar el de git — por eso se armó con `conf.d/*.conf` desde el día 1 en vez de un solo archivo monolítico.
+
+**No es [Nginx Proxy Manager](./nginx-proxy-manager.md)** (que corre en `core01`) — es un nginx plano nuevo, deliberado por dos razones: NPM está en otra VM (proxy cruzado innecesario) y sigue con el login de fábrica sin cambiar, sin credenciales reales para armar nada ahí. Queda como una duplicación consciente (dos reverse proxies en el homelab, uno por VM) hasta que valga la pena consolidar — no una decisión final.
+
+## Nota sobre AdGuard (dependencia real de `git.oscar.home`)
+
+AdGuard (`192.168.0.93`) sigue arriba y respondiendo bien, pero **no es el DNS de toda la LAN** — no hay DHCP apuntándolo (se evitó a propósito: hacerlo DNS de red completa coincidió con una caída real de throughput, 600→20 Mbps, causa todavía sin diagnosticar). Hoy, `git.oscar.home` solo resuelve en dispositivos con el DNS apuntado a mano a `192.168.0.93` — no es automático para cualquiera que se conecte a la LAN. Ver [DNS con AdGuard Home](../red/dns-adguard.md) y el hallazgo de la caída de velocidad, todavía sin investigar a fondo.
+
 ## Pendiente real
 
 - **Migrar `oscar-gitops`** (hoy en GitHub) a Forgejo como origen o mirror — decisión de producto separada, no bloquea tener Forgejo corriendo.
 - **CI Runner (Forgejo Actions)** — la VM ya tiene RAM/CPU de sobra reservada para esto (ver "Sizing real" arriba), pero el runner en sí todavía no está desplegado.
+- **Diagnosticar la caída de velocidad de AdGuard** (ver nota arriba) — hasta resolverlo, `git.oscar.home` sigue dependiendo de configurar DNS a mano por dispositivo.
 - **Acceso remoto** — hoy Forgejo es LAN-only (`git.oscar.home` solo resuelve dentro de la red), correcto para esta etapa. Si en algún momento hace falta clonar/pushear desde afuera, la vía elegida es VPN (Tailscale, ver [backlog](../roadmap/backlog.md#decisiones-pendientes)) para SSH/administración, no exponer Forgejo directo por Cloudflare Tunnel — y si igual se decide exponer HTTP público, el SSH del puerto 2222 quedaría LAN/VPN-only de todas formas (tunelear TCP crudo es bastante más trabajo que el ingress HTTP simple que ya usan los otros 7 servicios).
-- **Sumarlo a Uptime Kuma** — todavía no tiene monitor, a diferencia del resto de los servicios reales.
 
 ## Ejemplo concreto
 
