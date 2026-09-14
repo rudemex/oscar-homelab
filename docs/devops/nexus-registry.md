@@ -19,6 +19,12 @@ sidebar_position: 2
 - proxy para cache si el caso lo justifica;
 - cleanup policies por antigüedad/uso.
 
+## Otros stacks tecnológicos
+
+Nexus Repository **OSS** (la edición gratuita, sin licencia Pro) soporta como hosted/proxy/group, además de npm y Docker: Maven/Java, PyPI, NuGet, RubyGems, Go, APT, YUM, Conda, Helm charts y `raw` (para artefactos genéricos, ej. binarios propios o backups). El mismo servicio cubre cualquier stack que se sume más adelante (Python, Go, un chart de Helm propio) sin necesidad de otro producto — solo hay que dar de alta el repositorio del formato correspondiente cuando haga falta.
+
+No confundir con las features que sí son Pro-only: SAML/LDAP avanzado, blob store con cifrado, staging/release workflows de Maven y soporte comercial — ninguna bloquea el uso como registry+proxy multi-stack de un homelab.
+
 ## Naming de imagen
 
 ```text

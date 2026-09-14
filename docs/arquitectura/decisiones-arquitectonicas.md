@@ -136,12 +136,27 @@ Antes de sumar muchos servicios se instala una base de métricas y disponibilida
 - (+) un solo servicio cubre registry de imágenes y proxy npm; UI de administración; políticas de cleanup evitan que el datastore crezca sin control (ver runbook [Nexus lleno](../runbooks/nexus-lleno.md));
 - (-) más pesado que un registry mínimo; requiere su propia política de backup/retención (ver [matriz de backup](../backup-dr/matriz-backup.md)).
 
+## ADR-010 · Forgejo (con Forgejo Actions) como plataforma Git local
+
+**Status:** Aceptado — pendiente de despliegue (ver [Forgejo / Git local](../servicios/forgejo.md), [CI Runner](../servicios/ci-runner.md)).
+
+**Context:** con Nexus ya resuelto como registry (ADR-009) y Argo CD como motor de GitOps (ADR-004), falta una plataforma Git self-hosted para repos privados y para ejecutar CI sin acoplar el pipeline a un SaaS externo.
+
+**Decision:** Forgejo self-hosted (VM `devops01` o VM pequeña dedicada) como plataforma Git, con **Forgejo Actions** (sintaxis compatible con GitHub Actions) como motor de CI — cierra en el mismo movimiento la decisión pendiente en [CI Runner](../servicios/ci-runner.md), ya que evita correr un producto de CI separado.
+
+**Alternatives considered:**
+- GitLab self-hosted — descartado por peso: el mínimo oficial son 4 GB RAM y en la práctica pide bastante más (Postgres, Redis, Gitaly, Sidekiq como servicios separados), muy por encima de cualquier otro servicio de O.S.C.A.R. hoy (la mayoría entre 50-300 MB); es una plataforma pensada para equipos, no para un operador único.
+- Gitea — mismo footprint liviano y API/UI casi idénticas (Forgejo es un fork de Gitea); se prefiere Forgejo por su gobernanza community-driven, sin que eso implique hoy una diferencia técnica real.
+- Woodpecker CI / Drone como motor de CI desacoplado del Git server — descartado en favor de Forgejo Actions integrado: un producto menos para operar, y la sintaxis compatible con GitHub Actions reutiliza lo ya conocido de `oscar-homelab`/`oscar-gitops`.
+
+**Consequences:**
+- (+) repos privados y CI en un solo producto liviano (1-2 GB RAM), sin depender de un SaaS externo para GitOps ni para credenciales de CI; sintaxis de Forgejo Actions ya familiar;
+- (-) proyecto más joven que GitLab/Gitea, comunidad menor aunque activa; sin la redundancia de infraestructura de un proveedor externo como GitHub — el backup de `forgejo dump` (ver [Forgejo / Git local](../servicios/forgejo.md#backup-y-restore)) pasa a ser crítico, no opcional.
+
 ## Próximas ADR
 
 - elección del switch gestionable definitivo;
 - firewall dedicado y hardware N100 (OPNsense);
 - NAS y estrategia de storage compartido;
 - gestor de secretos para GitOps (SOPS+age vs. Sealed Secrets — ver [gestión de secretos](../seguridad/secretos.md));
-- plataforma Git local definitiva (Forgejo vs. alternativas — ver [Forgejo / Git local](../servicios/forgejo.md));
-- motor de CI runner, dependiente de la decisión anterior (ver [CI Runner](../servicios/ci-runner.md));
 - motor de IA local cuando exista hardware adecuado (ver [IA local vs. remota](../ia/local-vs-remoto.md)).

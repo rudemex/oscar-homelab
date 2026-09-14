@@ -5,20 +5,18 @@ sidebar_position: 6
 
 # CI Runner
 
-**Estado:** Objetivo · Decisión pendiente
+**Estado:** Objetivo · Decisión tomada ([ADR-010](./forgejo.md)), pendiente de despliegue
 **Dónde corre:** VM `devops01` o runners efímeros
 **Sizing inicial:** depende de builds; comenzar 2 vCPU/4 GB y medir
 **Red/puertos:** salida HTTPS hacia la plataforma Git/CI elegida; no requiere panel público
 **Persistencia:** cache de builds, config y artefactos temporales
 
-:::info Decision Pending
-El motor de CI concreto depende de qué plataforma Git gane el ADR pendiente en [Forgejo / Git local](./forgejo.md). No se acopla GitOps a un producto de CI hasta cerrar esa decisión. Candidatos evaluados:
+:::info Motor decidido, despliegue pendiente
+[ADR-010](../arquitectura/decisiones-arquitectonicas.md#adr-010--forgejo-con-forgejo-actions-como-plataforma-git-local) cerró la decisión: **Forgejo Actions** (sintaxis compatible con GitHub Actions) es el motor de CI, corriendo sobre la instancia de Forgejo — no se suma un producto de CI separado.
 
-- **Forgejo Actions** (sintaxis compatible con GitHub Actions) si Forgejo es la plataforma Git elegida — opción por defecto dado el resto del stack self-hosted;
-- **GitLab Runner** solo si se decide correr GitLab (self-hosted o SaaS) como plataforma Git — requiere un servidor GitLab, que hoy no está planificado en ningún otro documento de este repositorio;
-- **Woodpecker CI / Drone** como runner desacoplado del Git server, si se prefiere mantener CI y Git como piezas independientes.
+Alternativas descartadas en el mismo ADR: GitLab Runner (implica correr GitLab, descartado por peso — ver ADR-010) y Woodpecker CI/Drone (runner desacoplado del Git server, redundante teniendo Actions integrado en Forgejo).
 
-Esta página describe el rol y las prácticas de seguridad del runner **independientemente del producto elegido**. Los detalles de instalación se agregan cuando el ADR se cierre.
+Esta página describe el rol y las prácticas de seguridad del runner; los detalles de instalación se agregan cuando Forgejo esté desplegado.
 :::
 
 ## Rol dentro de O.S.C.A.R.

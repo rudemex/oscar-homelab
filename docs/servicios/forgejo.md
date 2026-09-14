@@ -5,7 +5,7 @@ sidebar_position: 5
 
 # Forgejo / Git local
 
-**Estado:** Objetivo · Decisión pendiente  
+**Estado:** Objetivo · Decisión tomada ([ADR-010](../arquitectura/decisiones-arquitectonicas.md#adr-010--forgejo-con-forgejo-actions-como-plataforma-git-local)), pendiente de despliegue  
 **Dónde corre:** VM `devops01` o VM pequeña dedicada  
 **Sizing inicial:** 1–2 vCPU, 1–2 GB RAM para uso personal  
 **Red/puertos:** HTTP(S) y SSH si se habilita Git por SSH  
@@ -37,7 +37,7 @@ Ejemplo: repo `oscar-gitops` con manifests k3s; Argo CD observa el repo y sincro
 
 ## Seguridad
 
-La plataforma Git definitiva queda como decisión explícita. No acoplar GitOps a un producto hasta cerrar el ADR.
+La plataforma Git es Forgejo ([ADR-010](../arquitectura/decisiones-arquitectonicas.md#adr-010--forgejo-con-forgejo-actions-como-plataforma-git-local)). GitOps ya está acoplado a Git en general (Argo CD sincroniza desde `oscar-gitops`), no a Forgejo específicamente — migrar de `oscar-gitops` en GitHub a un mirror/origen en Forgejo es un paso de despliegue posterior, no un cambio de arquitectura.
 
 Como baseline:
 
