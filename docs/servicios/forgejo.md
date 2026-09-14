@@ -131,6 +131,18 @@ services:
 
 Preparado para escalar: cuando llegue Nexus a la misma VM, es otro `server_name nexus.oscar.home { ... }` en `conf.d/`, sin tocar el de git — por eso se armó con `conf.d/*.conf` desde el día 1 en vez de un solo archivo monolítico.
 
+**Bug real encontrado y corregido:** sin un `default_server` explícito, nginx cae al primer `server{}` definido para cualquier hostname sin bloque propio — `nexus.oscar.home` (rewrite ya creado en AdGuard, apuntando a esta VM, antes de que Nexus exista) servía el HTML de Forgejo en vez de un error. Se agregó `conf.d/default.conf`:
+
+```nginx
+server {
+    listen 80 default_server;
+    server_name _;
+    return 404;
+}
+```
+
+Con esto, cualquier hostname sin su propio bloque (incluido `nexus.oscar.home` hasta que Nexus se despliegue de verdad) devuelve `404` en vez de servir Forgejo por error.
+
 **No es [Nginx Proxy Manager](./nginx-proxy-manager.md)** (que corre en `core01`) — es un nginx plano nuevo, deliberado por dos razones: NPM está en otra VM (proxy cruzado innecesario) y sigue con el login de fábrica sin cambiar, sin credenciales reales para armar nada ahí. Queda como una duplicación consciente (dos reverse proxies en el homelab, uno por VM) hasta que valga la pena consolidar — no una decisión final.
 
 ## Nota sobre AdGuard (dependencia real de `git.oscar.home`)
