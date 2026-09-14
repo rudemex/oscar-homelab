@@ -5,11 +5,11 @@ sidebar_position: 5
 
 # Forgejo / Git local
 
-**Estado:** Objetivo · Decisión tomada ([ADR-010](../arquitectura/decisiones-arquitectonicas.md#adr-010--forgejo-con-forgejo-actions-como-plataforma-git-local)), pendiente de despliegue  
-**Dónde corre:** VM `devops01` o VM pequeña dedicada  
-**Sizing inicial:** 1–2 vCPU, 1–2 GB RAM para uso personal  
-**Red/puertos:** HTTP(S) y SSH si se habilita Git por SSH  
-**Persistencia:** repositorios, DB, attachments y configuración
+**Estado:** Actual — Forgejo 16.0.4 corriendo en `devops01`, sano (`/api/healthz` en pass), falta completar el primer acceso (crear el admin) y el auto-registro público
+**Dónde corre:** VM `devops01` (vmid 104), `/srv/oscar/apps/forgejo/`
+**Sizing real de la VM:** 4 vCPU / 8 GB RAM / 60 GB disco — más grande que el 1-2 GB de ADR-010 a propósito, para dejar margen al runner de Forgejo Actions que va a compartir la misma VM
+**Red/puertos:** `192.168.0.151:3000` HTTP, `192.168.0.151:2222` SSH (Git) — el 22 del host lo ocupa el sshd de la VM, así que Forgejo escucha SSH en 2222 hacia afuera aunque el contenedor lo sirva en el 22 interno
+**Persistencia:** SQLite + repos + attachments + config, todo en `/srv/oscar/data/forgejo` (bind mount, container corre `/data`)
 
 ## Rol dentro de O.S.C.A.R.
 
@@ -18,20 +18,95 @@ sidebar_position: 5
 - GitOps completamente local
 - practicar hooks y flujos de PR
 
+## Instalación
+
+VM creada por clon del template `9000` (ver [Templates y Cloud-Init](../proxmox/templates-cloud-init.md)):
+
+```bash
+qm clone 9000 104 --name devops01 --full
+qm resize 104 scsi0 60G
+qm set 104 --cores 4 --memory 8192
+qm set 104 --ipconfig0 ip=192.168.0.151/24,gw=192.168.0.1
+qm start 104
+```
+
+Setup base (paquetes, Docker) igual que [core01](../proxmox/crear-vm-core01.md), sin repetirlo acá.
+
+`.env`:
+
+```dotenv
+FORGEJO_VERSION=16.0.4
+FORGEJO_HTTP_PORT=3000
+FORGEJO_SSH_PORT=2222
+FORGEJO_DOMAIN=192.168.0.151
+FORGEJO_ROOT_URL=http://192.168.0.151:3000/
+```
+
+`compose.yaml`:
+
+```yaml
+services:
+  forgejo:
+    image: codeberg.org/forgejo/forgejo:${FORGEJO_VERSION}
+    container_name: forgejo
+    restart: unless-stopped
+    environment:
+      USER_UID: "1000"
+      USER_GID: "1000"
+      FORGEJO__database__DB_TYPE: sqlite3
+      FORGEJO__server__DOMAIN: ${FORGEJO_DOMAIN}
+      FORGEJO__server__ROOT_URL: ${FORGEJO_ROOT_URL}
+      # SSH_PORT es el puerto anunciado en las URLs de clone (host); SSH_LISTEN_PORT
+      # es el puerto interno del contenedor (22) — el host 22 ya lo usa el sshd de la VM.
+      FORGEJO__server__SSH_DOMAIN: ${FORGEJO_DOMAIN}
+      FORGEJO__server__SSH_PORT: ${FORGEJO_SSH_PORT}
+      FORGEJO__server__SSH_LISTEN_PORT: "22"
+      # Sin autoregistro público desde el día 1 (mismo criterio que Vaultwarden
+      # SIGNUPS_ALLOWED=false) — el admin se crea por el instalador inicial o por CLI,
+      # no depende de esta bandera.
+      FORGEJO__service__DISABLE_REGISTRATION: "true"
+    volumes:
+      - /srv/oscar/data/forgejo:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "${FORGEJO_HTTP_PORT}:3000"
+      - "${FORGEJO_SSH_PORT}:22"
+```
+
+SQLite en vez de Postgres a propósito: mismo criterio de sizing que Vaultwarden, no se justifica un motor de DB separado para uso personal.
+
+```bash
+docker compose up -d
+```
+
+## Primer acceso
+
+1. Entrar a `http://192.168.0.151:3000/` — como `DISABLE_REGISTRATION` no bloquea el instalador inicial, el propio asistente de instalación de Forgejo pide crear la cuenta administradora ahí mismo (usuario + contraseña real, no compartida ni generada por este chat).
+2. Confirmar que el usuario nuevo quedó como admin (`Configuración del sitio → Usuarios` en la UI).
+3. Clonar un repo de prueba por SSH contra `ssh://git@192.168.0.151:2222/<usuario>/<repo>.git` para validar el puerto 2222 antes de depender de él.
+
+## Pendiente real
+
+- **DNS interno** (`git.oscar.home` vía AdGuard) en vez de la IP cruda — hoy `ROOT_URL`/`SSH_DOMAIN` apuntan a `192.168.0.151` porque no hay rewrite creado todavía; cambiar la IP por un hostname después implica editar `FORGEJO_DOMAIN`/`FORGEJO_ROOT_URL` en `.env` y `docker compose up -d` de nuevo, más el rewrite en AdGuard.
+- **Migrar `oscar-gitops`** (hoy en GitHub) a Forgejo como origen o mirror — decisión de producto separada, no bloquea tener Forgejo corriendo.
+- **CI Runner (Forgejo Actions)** — la VM ya tiene RAM/CPU de sobra reservada para esto (ver "Sizing real" arriba), pero el runner en sí todavía no está desplegado.
+- **Exposición vía Cloudflare Tunnel** si en algún momento se necesita acceso remoto — hoy Forgejo es LAN-only, sin registro DNS público ni Access, correcto para esta etapa.
+
 ## Ejemplo concreto
 
 Ejemplo: repo `oscar-gitops` con manifests k3s; Argo CD observa el repo y sincroniza aplicaciones internas.
 
 ## Checklist de despliegue
 
-- [ ] hostname y ubicación decididos;
-- [ ] imagen/versión fijada, evitando tags flotantes en servicios importantes;
-- [ ] puertos documentados;
-- [ ] volumen/persistencia definida;
-- [ ] `.env.example` sin secretos en Git;
-- [ ] credenciales reales fuera de Git;
-- [ ] backup definido antes de cargar datos importantes;
-- [ ] healthcheck o monitor de disponibilidad;
+- [x] hostname y ubicación decididos (`devops01`, `192.168.0.151` — DNS interno pendiente);
+- [x] imagen/versión fijada, evitando tags flotantes en servicios importantes (`16.0.4`);
+- [x] puertos documentados (3000 HTTP, 2222 SSH externo → 22 interno);
+- [x] volumen/persistencia definida (`/srv/oscar/data/forgejo`);
+- [x] `.env.example` sin secretos en Git — no aplica todavía: nada de esto vive en un repo Git, solo en la VM;
+- [ ] credenciales reales fuera de Git — pendiente hasta crear el admin (paso manual, ver "Primer acceso");
+- [ ] backup definido antes de cargar datos importantes (`forgejo dump`, ver abajo — no automatizado todavía);
+- [x] healthcheck o monitor de disponibilidad (`/api/healthz` responde `pass`; falta sumarlo a Uptime Kuma);
 - [ ] métricas/logs incorporados cuando sea razonable;
 - [ ] procedimiento de actualización y rollback documentado.
 

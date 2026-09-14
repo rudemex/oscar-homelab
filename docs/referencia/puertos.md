@@ -21,7 +21,7 @@ La tabla ayuda a diagnosticar; no significa que deban abrirse entre todas las re
 | n8n | 5678 | interno/proxy |
 | Nexus | 8081 | interno (npm proxy/hosted) |
 | Argo CD | 8080 (port-forward local) → svc 443 | MGMT, sin publicar |
-| Forgejo | 3000 HTTP / 22 SSH | interno |
+| Forgejo | 3000 HTTP / 2222 SSH → 22 interno | interno (`devops01`) |
 | MinIO | 9000 API / 9001 consola | interno (laboratorio) |
 | Home Assistant | 8123 | interno/proxy |
 | MQTT | 1883/8883 | IoT/HA selectivo |

@@ -14,7 +14,7 @@ Una cosa es el mínimo técnico para correr algo (ver [requisitos mínimos](../r
 | Orquestación | [k3s](../kubernetes/instalacion-k3s.md) | Objetivo | Kubernetes real con bajo overhead en un nodo chico |
 | GitOps | [Argo CD](../kubernetes/instalacion-argocd.md) | Objetivo | reconciliación declarativa, UI para aprender el modelo |
 | Registry/artefactos | [Nexus Repository](../servicios/nexus.md) | Objetivo | un solo servicio para imágenes OCI + proxy npm |
-| Git | [Forgejo](../servicios/forgejo.md) | Objetivo (ADR-010) | self-hosted, liviano; CI con Forgejo Actions |
+| Git | [Forgejo](../servicios/forgejo.md) | **Actual** (ADR-010) | self-hosted, liviano, corriendo en `devops01`; CI con Forgejo Actions pendiente |
 | Observabilidad completa | [Prometheus + Grafana + Loki](../observabilidad/arquitectura.md) | Objetivo | métricas, logs y disponibilidad con el ecosistema más adoptado |
 | Observabilidad liviana | [Uptime Kuma](../servicios/uptime-kuma.md) + [Beszel](../servicios/beszel.md) | **Actual** — ambos completos (hub + agente) | disponibilidad + CPU/RAM/disco sin el setup de exporters de Prometheus |
 | Automatización | [n8n](../servicios/n8n.md) | **Actual** — `core01`, n8n 2.38.7 + Postgres 17 | workflows visuales, conecta el resto de los servicios |

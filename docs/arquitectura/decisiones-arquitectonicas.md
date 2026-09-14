@@ -138,7 +138,7 @@ Antes de sumar muchos servicios se instala una base de métricas y disponibilida
 
 ## ADR-010 · Forgejo (con Forgejo Actions) como plataforma Git local
 
-**Status:** Aceptado — pendiente de despliegue (ver [Forgejo / Git local](../servicios/forgejo.md), [CI Runner](../servicios/ci-runner.md)).
+**Status:** Aceptado — Forgejo 16.0.4 desplegado en `devops01`; falta crear el admin inicial y el CI Runner (Forgejo Actions) sigue sin desplegar (ver [Forgejo / Git local](../servicios/forgejo.md), [CI Runner](../servicios/ci-runner.md)).
 
 **Context:** con Nexus ya resuelto como registry (ADR-009) y Argo CD como motor de GitOps (ADR-004), falta una plataforma Git self-hosted para repos privados y para ejecutar CI sin acoplar el pipeline a un SaaS externo.
 

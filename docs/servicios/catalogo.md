@@ -12,7 +12,7 @@ La tabla resume el rol previsto. **Objetivo** no significa “instalar ya”: ca
 | [Docker y Docker Compose](./docker-compose.md) | **Actual** · Core | VM `core01` | ejecutar n8n, Uptime Kuma, dashboards y utilidades |
 | [EasyPanel](./easypanel.md) | Laboratorio · Plataforma de apps | VM Docker dedicada o `core01` durante la etapa inicial | comparar un PaaS casero contra el flujo GitOps; redundante con Compose+k3s si no aporta algo distinto |
 | [Sonatype Nexus Repository](./nexus.md) | Objetivo · DevOps | VM `devops01` | proxy/cache de npm |
-| [Forgejo / Git local](./forgejo.md) | Objetivo · Decidido (ADR-010) | VM `devops01` o VM pequeña dedicada | mirror de repositorios importantes |
+| [Forgejo / Git local](./forgejo.md) | **Actual** · DevOps | VM `devops01` | mirror de repositorios importantes |
 | [CI Runner](./ci-runner.md) | Objetivo · Decidido (ADR-010, Forgejo Actions) | VM `devops01` o runners efímeros | compilar proyectos Node |
 | [Argo CD](./argocd.md) | Objetivo · GitOps | cluster k3s | sincronizar Helm/manifests |
 | [Prometheus](./prometheus.md) | Objetivo · Observabilidad | VM observabilidad o k3s, según fase | métricas de hosts |
