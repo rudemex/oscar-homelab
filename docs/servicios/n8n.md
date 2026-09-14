@@ -40,6 +40,8 @@ Workflow: Alertmanager → webhook n8n → obtener contexto de Prometheus → en
 
 La encryption key de n8n es crítica para recuperar credenciales cifradas. Debe respaldarse fuera del contenedor.
 
+**Gap pendiente:** hoy `n8n.oscarlab.com.ar` no tiene ninguna ruta de bypass de Cloudflare Access documentada — ver el detalle en [Cloudflare Tunnel + Access](./cloudflare-tunnel.md#estado-real-del-despliegue). Si algún workflow depende de un webhook público real (por ejemplo el de Alertmanager del ejemplo de abajo), hoy quedaría bloqueado por el login OTP de Access antes de llegar a n8n.
+
 Como baseline:
 
 - no publicar el panel administrativo directamente a Internet;

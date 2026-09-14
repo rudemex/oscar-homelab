@@ -9,6 +9,25 @@ sidebar_position: 5
 
 **Ningún panel administrativo se expone directo a Internet.** Esto incluye, como mínimo: Proxmox, Grafana, Argo CD, Nexus, n8n y Home Assistant. [Cloudflare Tunnel](../servicios/cloudflare-tunnel.md) por sí solo **no** cumple esta regla — un Tunnel sin Access sigue siendo un servicio público, solo que sin puerto abierto en el router. Un servicio detrás de Tunnel se considera "privado" únicamente cuando también tiene Cloudflare Access (identidad + MFA + política) delante.
 
+```mermaid
+flowchart LR
+  subgraph SOLO["Tunnel sin Access — sigue siendo público"]
+    I1((Internet)) --> E1[Cloudflare Edge] --> T1[cloudflared] --> S1[Servicio interno]
+  end
+  subgraph CONACCESS["Tunnel + Access — recién ahí es privado"]
+    I2((Internet)) --> E2[Cloudflare Edge] --> A2{Access<br/>identidad + MFA}
+    A2 -->|sin login válido| X2[403]
+    A2 -->|autorizado| T2[cloudflared] --> S2[Servicio interno]
+  end
+
+  classDef bad fill:#c0392b,stroke:#333,color:#fff;
+  classDef good fill:#27ae60,stroke:#333,color:#fff;
+  class S1 bad
+  class S2 good
+```
+
+La diferencia entre los dos escenarios no es el Tunnel — es si existe una Access Application con política delante del hostname antes de crear el registro DNS. Ver el orden de despliegue seguido en la práctica en [Cloudflare Tunnel + Access](../servicios/cloudflare-tunnel.md).
+
 | Servicio | Exposición permitida |
 |---|---|
 | Proxmox UI | nunca directo a Internet; solo VPN/MGMT |

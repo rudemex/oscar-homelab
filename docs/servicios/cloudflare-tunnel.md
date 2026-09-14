@@ -17,6 +17,28 @@ sidebar_position: 14
 - reemplaza el intento anterior con Caddy + `tls internal` para Vaultwarden, que nunca terminó de funcionar bien en el navegador
 - acceder con identidad (Cloudflare Access) en vez de VPN para lo administrativo
 
+## Arquitectura
+
+```mermaid
+flowchart LR
+  INTERNET((Internet)) -->|HTTPS| EDGE[Cloudflare Edge<br/>WAF / DDoS / TLS]
+  EDGE --> ACCESS{Cloudflare Access<br/>política por hostname}
+  ACCESS -->|sin login válido| DENY[login OTP / 403]
+  ACCESS -->|identidad OK o ruta bypass| TUNNEL[cloudflared<br/>core01 · network_mode: host]
+  TUNNEL --> VAULT["vault<br/>127.0.0.1:8082"]
+  TUNNEL --> N8N["n8n<br/>:5678"]
+  TUNNEL --> KUMA["kuma<br/>:3001"]
+  TUNNEL --> HOME["home<br/>:3005"]
+  TUNNEL --> BESZEL["beszel<br/>:8090"]
+  TUNNEL --> MONITOR["monitor<br/>oscar-core:8008"]
+  TUNNEL --> HA["ha<br/>VM101:80"]
+
+  classDef deny fill:#c0392b,stroke:#333,color:#fff;
+  class DENY deny
+```
+
+El único tramo de red real hacia afuera es `cloudflared` iniciando la conexión saliente hacia el edge (QUIC/HTTP2) — las flechas de arriba representan el camino lógico de un request, no que exista un puerto escuchando en `core01` hacia Internet.
+
 ## Estado real del despliegue
 
 `network_mode: host` es deliberado (mismo criterio que [Beszel](./beszel.md)): así el túnel llega a cada servicio vía `http://localhost:<puerto>` sin importar en qué red Docker viva cada compose por separado.
@@ -36,9 +58,22 @@ Ingress configurado (vía API, `config_src: cloudflare`):
 
 Orden que se siguió (importa para no dejar una ventana pública sin protección): primero se creó la Access Application + política de cada hostname, y **recién después** el registro DNS (`CNAME` → `<tunnel-id>.cfargotunnel.com`, `proxied: true`) — así, en el instante exacto en que cada hostname empezó a resolver, Access ya estaba interceptando. Crear el DNS antes que la política habría dejado el servicio público sin nada delante durante esa ventana.
 
+```mermaid
+sequenceDiagram
+  participant Admin
+  participant Access as Cloudflare Access
+  participant DNS as Cloudflare DNS
+  Admin->>Access: 1. crear Access Application + política del hostname
+  Note over Access: hostname aún no resuelve — cero riesgo
+  Admin->>DNS: 2. crear CNAME -> <tunnel-id>.cfargotunnel.com (proxied)
+  Note over DNS: desde este instante el hostname resuelve,<br/>pero Access ya estaba interceptando antes de que existiera
+```
+
 Cada Access Application usa el método de login por defecto de Cloudflare (código de un solo uso enviado por email) — no hizo falta configurar ningún proveedor de identidad externo, alcanza con la política `include: email == <el único usuario real>`.
 
 Pendiente real: **`kuma.oscarlab.com.ar` y `home.oscarlab.com.ar`** quedaron con la misma política restrictiva que el resto por prolijidad, pero son candidatos a relajar más adelante si se quiere una página de estado o un dashboard público sin login — evaluarlo caso por caso, no por defecto.
+
+**Gap detectado (pendiente de resolver):** [exposición a Internet](../seguridad/exposicion-internet.md) y [n8n](./n8n.md) dan por sentado que los webhooks de n8n se publican "por endpoint específico, no por la UI completa" — el mismo patrón de bypass que ya existe para Vaultwarden. Hoy `n8n.oscarlab.com.ar` no tiene ningún bypass documentado en la tabla de arriba: si Access protege todo el hostname, un webhook entrante (Alertmanager, GitHub, etc.) no puede completar el login OTP interactivo y quedaría bloqueado. Falta crear una Access Application anclada a la ruta de webhooks de n8n (`/webhook/*` o la que corresponda) con `decision: bypass`, igual que se hizo con `/identity`/`/api`/`/notifications`/`/icons`/`/alive` en Vaultwarden — o confirmar que ningún workflow depende hoy de un webhook público real, en cuyo caso corresponde ajustar la redacción de `exposicion-internet.md` en vez del Tunnel.
 
 ### Rutas con bypass (Vaultwarden)
 

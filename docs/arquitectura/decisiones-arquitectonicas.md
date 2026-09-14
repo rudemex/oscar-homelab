@@ -84,7 +84,7 @@ Ver detalle en [exposición a Internet](../seguridad/exposicion-internet.md).
 
 ## ADR-006 · Cloudflare Tunnel + Access para acceso remoto
 
-**Status:** Aceptado (target state — no desplegado hoy).
+**Status:** Aceptado — desplegado. Túnel activo en `core01` con 7 hostnames públicos (`vault`, `n8n`, `kuma`, `home`, `beszel`, `monitor`, `ha` . `oscarlab.com.ar`), cada uno con su propia Access Application. Ver [Cloudflare Tunnel + Access](../servicios/cloudflare-tunnel.md).
 
 **Context:** dado ADR-005 (exposición mínima), se necesita un mecanismo concreto para acceder a paneles internos (Grafana, etc.) desde fuera de la LAN sin abrir puertos en el router.
 

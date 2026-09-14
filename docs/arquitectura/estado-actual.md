@@ -47,7 +47,7 @@ Proxmox ya está instalado, `core01` existe con Docker corriendo, y hay trece se
 
 ## Dominio — en uso
 
-`oscarlab.ar` y `oscarlab.com.ar` están registrados (NIC Argentina, pagos — $25.500 y $8.500 ARS respectivamente) y delegados a Cloudflare. `oscarlab.com.ar` es el dominio primario: los 5 servicios reales ya tienen subdominio público protegido por Cloudflare Access — ver [Cloudflare Tunnel](../servicios/cloudflare-tunnel.md).
+`oscarlab.ar` y `oscarlab.com.ar` están registrados (NIC Argentina, pagos — $25.500 y $8.500 ARS respectivamente) y delegados a Cloudflare. `oscarlab.com.ar` es el dominio primario: los 7 servicios reales ya tienen subdominio público protegido por Cloudflare Access — ver [Cloudflare Tunnel](../servicios/cloudflare-tunnel.md).
 
 ## Backups — parcialmente resuelto
 
