@@ -5,11 +5,11 @@ sidebar_position: 6
 
 # CI Runner
 
-**Estado:** Actual — `forgejo-runner` v13.1.0 corriendo en `devops01`, **validado con un workflow real de punta a punta** (repo de prueba → push → job tomado por el runner → corrido en contenedor Docker efímero → `status: success`, repo de prueba borrado después)
+**Estado:** Actual — `forgejo-runner` v13.1.0 corriendo en `devops01`, **validado con un pipeline real de punta a punta**: checkout → setup Node → install → lint → test → build de imagen Docker → push a Nexus, `status: success`, imagen confirmada en el registry (repo `ci-demo`, queda como referencia permanente — ver abajo)
 **Dónde corre:** VM `devops01`, `/srv/oscar/apps/forgejo-runner/`
 **Sizing real:** comparte la VM con Forgejo (6 vCPU / 12 GB totales tras la ampliación — ver [Forgejo / Git local](./forgejo.md))
-**Red/puertos:** `network_mode: host`, sale por HTTP a `127.0.0.1:3000` (Forgejo en la misma VM); no requiere panel público
-**Persistencia:** `/srv/oscar/apps/forgejo-runner/data` — credencial de registro (`.runner`) y config
+**Red/puertos:** `network_mode: host`, sale por HTTP a la **IP LAN de la VM** (`192.168.0.151:3000`, no `127.0.0.1` — ver "Gotcha: red del contenedor del job" abajo); no requiere panel público
+**Persistencia:** `/srv/oscar/apps/forgejo-runner/data` — credencial de registro (`.runner`) y `config.yaml` (`docker_host: automount`, ver abajo)
 
 [ADR-010](../arquitectura/decisiones-arquitectonicas.md#adr-010--forgejo-con-forgejo-actions-como-plataforma-git-local) cerró la decisión: **Forgejo Actions** (sintaxis compatible con GitHub Actions) es el motor de CI, corriendo sobre la instancia de Forgejo — no se suma un producto de CI separado. Alternativas descartadas en el mismo ADR: GitLab Runner y Woodpecker CI/Drone.
 
@@ -25,9 +25,19 @@ docker exec -u 1000 forgejo forgejo actions generate-runner-token
 
 ```dotenv
 RUNNER_VERSION=13.1.0
-FORGEJO_INSTANCE_URL=http://127.0.0.1:3000
+FORGEJO_INSTANCE_URL=http://192.168.0.151:3000
 RUNNER_TOKEN=<token generado arriba>
 RUNNER_NAME=devops01-runner
+```
+
+`data/config.yaml` (generado con `forgejo-runner generate-config`, un solo campo cambiado):
+
+```yaml
+container:
+  # "automount" monta el socket Docker del host dentro del contenedor del
+  # job automáticamente - sin esto, "docker: command not found" ni siquiera
+  # llega a ser el error, porque no hay socket para hablarle.
+  docker_host: "automount"
 ```
 
 `compose.yaml`:
@@ -57,12 +67,24 @@ services:
             --name "${RUNNER_NAME}" \
             --labels docker:docker://node:20-bookworm
         fi
-        forgejo-runner daemon
+        forgejo-runner daemon --config /data/config.yaml
 ```
 
-El `command` registra solo la primera vez (`if [ ! -f /data/.runner ]`) — reinicios posteriores del contenedor saltan directo a `daemon` sin volver a registrarse. Label `docker:docker://node:20-bookworm` significa que los jobs corren en contenedores Docker efímeros (imagen `node:20-bookworm` como base), no directo sobre el host — mismo motivo por el que el socket Docker está montado.
+El `command` registra solo la primera vez (`if [ ! -f /data/.runner ]`) — reinicios posteriores del contenedor saltan directo a `daemon` sin volver a registrarse. Label `docker:docker://node:20-bookworm` significa que los jobs corren en contenedores Docker efímeros (imagen `node:20-bookworm` como base), no directo sobre el host — mismo motivo por el que el socket Docker está montado. Cambiar `FORGEJO_INSTANCE_URL` o `docker_host` requiere borrar `data/.runner` y dejar que se re-registre — la URL de instancia queda cacheada ahí, no se relee del `.env` en cada arranque.
 
-**Validado:** repo `ci-smoke-test` creado vía API, workflow con un solo step (`echo`) en `.forgejo/workflows/test.yml`, push disparó el run automáticamente, pasó por `running` → `success` en ~20 segundos. Repo de prueba borrado después — mismo patrón que "Ideas de laboratorio" abajo.
+**Validado dos veces:**
+- Smoke test: repo `ci-smoke-test` (borrado después), workflow de un solo step (`echo`), `running` → `success` en ~20s — confirmó el registro básico.
+- **Pipeline real:** repo [`ci-demo`](http://git.oscar.home/mdelgado/ci-demo) (dejado como referencia permanente, no se borra) — checkout, `setup-node`, `npm install`, lint, test, `docker build`, login e imagen pusheada a Nexus. Encontró y resolvió 5 problemas reales que el smoke test, al no usar ninguna `action` externa ni Docker, nunca hubiera destapado — ver "Gotchas reales" abajo.
+
+## Gotchas reales (encontrados con el pipeline completo, no obvios de antemano)
+
+Cada uno costó un ciclo completo de push→esperar→fallar→diagnosticar. Quedan acá para no repetir el proceso:
+
+1. **`${{ gitea.sha }}` no es una variable válida** → `Unknown Variable Access gitea` en la validación del schema, falla instantáneo sin llegar al runner. Forgejo Actions valida contra el contexto de **GitHub** Actions (`github.sha`, `github.actor`, etc.), no uno propio de Gitea — coherente con que la promesa del producto es compatibilidad con sintaxis de GitHub Actions.
+2. **ESLint sin `globals` de Node declarados** → `'process' is not defined no-undef` — el flat config (`eslint.config.js`) no asume ningún entorno por default, hay que declarar `process`/`console` a mano en `languageOptions.globals`.
+3. **`node --test` no setea `NODE_ENV=test` solo** — esa es convención de Jest/Mocha, no del test runner nativo de Node. Un `index.js` que arrancaba un servidor HTTP salvo que `NODE_ENV === "test"` seguía arrancándolo igual durante los tests (el `import` desde el test dispara el side-effect), dejando un socket abierto que nunca deja terminar al proceso — el job quedó colgado 5 minutos hasta matarlo a mano. Fix real: separar el módulo testeable (sin side effects) del entrypoint que hace `.listen()`, no tratar de detectar "soy el módulo principal" con una condición frágil.
+4. **La IP de instancia del runner no puede ser `127.0.0.1`** → `Failed to connect to 127.0.0.1 port 3000` al hacer checkout. El runner corre en `network_mode: host` (ve el `127.0.0.1` de `devops01` real), pero el **contenedor del job es otro contenedor separado**, con su propio loopback — para él, `127.0.0.1` es él mismo, no el host. Hace falta la IP LAN real (`192.168.0.151`) en `FORGEJO_INSTANCE_URL`.
+5. **Docker asume HTTPS por defecto en cualquier registry** → `http: server gave HTTP response to HTTPS client` al pushear a Nexus (`8082`, HTTP plano, sin TLS). Hace falta `insecure-registries` en `/etc/docker/daemon.json` del **host** (`devops01`, no del contenedor del job — el `docker` del job habla con el daemon del host vía el socket montado) + `systemctl restart docker`, lo que reinicia brevemente todos los contenedores de esa VM.
 
 ## Rol dentro de O.S.C.A.R.
 
@@ -73,7 +95,7 @@ El `command` registra solo la primera vez (`if [ ! -f /data/.runner ]`) — rein
 
 ## Ejemplo concreto
 
-Pipeline: lint → test → build image → push Nexus → actualizar tag GitOps → Argo CD despliega. Ver [pipeline de referencia](../devops/pipeline-ejemplo.md) para el detalle de cada etapa.
+Pipeline real y funcionando en [`ci-demo`](http://git.oscar.home/mdelgado/ci-demo): lint → test → build image → push Nexus. Ver [pipeline de referencia](../devops/pipeline-ejemplo.md) para el workflow completo y la etapa que todavía falta (actualizar tag en GitOps → Argo CD despliega — no encadenada todavía).
 
 ## Checklist de despliegue
 
