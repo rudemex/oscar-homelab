@@ -9,9 +9,19 @@ El objetivo es administrar O.S.C.A.R. sin publicar paneles directamente en Inter
 
 ## Opciones
 
-### VPN
+### VPN — Tailscale (Actual)
 
-Adecuada para acceso administrativo completo a redes internas. Puede implementarse en OPNsense o mediante una solución overlay.
+Desplegado: `core01` corre como **subnet router**, advirtiendo `192.168.0.0/24` — cualquier dispositivo sumado al mismo tailnet puede alcanzar cualquier IP de la LAN de casa, no solo `core01`.
+
+Se prefirió sobre WireGuard nativo por no depender de OPNsense (no desplegado todavía) ni de port-forward en el router — ver [ADR-006](../arquitectura/decisiones-arquitectonicas.md#adr-006--cloudflare-tunnel--access-para-acceso-remoto).
+
+Dos pasos de aprobación separados, ambos manuales por diseño de Tailscale (no hay forma de saltarlos por API sin un auth key pre-generado):
+1. **Login del dispositivo** (`tailscale up` imprime una URL de auth — visitarla y aprobar el dispositivo).
+2. **Aprobar el subnet route** aparte, en `https://login.tailscale.com/admin/machines` → `core01` → habilitar `192.168.0.0/24` — un dispositivo puede estar "conectado" sin que su ruta esté activa todavía.
+
+**Ojo con el tailnet:** loguearse con un email corporativo (Google Workspace, Microsoft 365) puede unir el dispositivo automáticamente al tailnet de esa organización en vez de crear/usar uno personal — repasar las ACLs de ese tailnet antes de advertir una LAN doméstica completa ahí, porque un tailnet con políticas permisivas puede dejar la red de casa alcanzable para otros dispositivos/personas de la organización.
+
+Instalar el cliente en cada dispositivo desde el que se quiera acceder (laptop, celular) con la misma cuenta — paso manual, no se automatiza desde acá.
 
 ### Cloudflare Tunnel + Access
 

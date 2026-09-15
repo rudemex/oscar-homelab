@@ -153,6 +153,39 @@ Antes de sumar muchos servicios se instala una base de métricas y disponibilida
 - (+) repos privados y CI en un solo producto liviano (1-2 GB RAM), sin depender de un SaaS externo para GitOps ni para credenciales de CI; sintaxis de Forgejo Actions ya familiar;
 - (-) proyecto más joven que GitLab/Gitea, comunidad menor aunque activa; sin la redundancia de infraestructura de un proveedor externo como GitHub — el backup de `forgejo dump` (ver [Forgejo / Git local](../servicios/forgejo.md#backup-y-restore)) pasa a ser crítico, no opcional.
 
+## ADR-011 · Tailscale como VPN de acceso remoto
+
+**Status:** Aceptado — desplegado. `core01` como subnet router advirtiendo `192.168.0.0/24`, aprobado y activo.
+
+**Context:** ADR-006 ya reservaba "VPN propia (WireGuard/Tailscale)" como el camino preferido para acceso administrativo tipo SSH — faltaba desplegarlo.
+
+**Decision:** Tailscale sobre WireGuard nativo, con `core01` como subnet router de toda la LAN (no un túnel punto a punto a un solo host).
+
+**Alternatives considered:**
+- WireGuard nativo vía OPNsense — descartado por ahora: OPNsense no está desplegado (decisión de hardware N100 sigue pendiente en el backlog), y no tiene sentido bloquear el acceso remoto a que eso se resuelva.
+- WireGuard nativo con port-forward manual en el router — technically posible sin OPNsense, pero implica gestión manual de claves por dispositivo y abrir un puerto UDP; Tailscale resuelve el NAT traversal solo.
+
+**Consequences:**
+- (+) acceso a toda la LAN de casa desde cualquier dispositivo sumado al tailnet, no solo a un host puntual; sin port-forward ni gestión manual de claves;
+- (-) dependencia de un proveedor externo (Tailscale/su infraestructura de coordinación) para el acceso remoto — mismo tipo de trade-off que ADR-006 con Cloudflare;
+- (-) **riesgo real encontrado en el despliegue**: loguearse con un email corporativo puede unir el dispositivo al tailnet de esa organización en vez de a uno personal — se confirmó explícitamente con el usuario antes de advertir la LAN completa ahí, ver [acceso remoto](../red/acceso-remoto.md).
+
+## ADR-012 · Forgejo como mirror de solo lectura de oscar-gitops (no origen)
+
+**Status:** Aceptado — desplegado. Mirror pull cada 10 minutos, `mdelgado/oscar-gitops` en Forgejo.
+
+**Context:** [ADR-010](#adr-010--forgejo-con-forgejo-actions-como-plataforma-git-local) dejó abierto si `oscar-gitops` (hoy en GitHub, origen real que sincroniza Argo CD) migraba a Forgejo como origen o como mirror.
+
+**Decision:** mirror de solo lectura primero, no migración completa. Forgejo hace pull automático desde GitHub cada 10 minutos; GitHub sigue siendo el origen real, Argo CD no se toca.
+
+**Alternatives considered:**
+- Forgejo como origen real (reconfigurar `repoURL` de las Applications de Argo CD) — descartado por ahora: es un cambio con superficie de error sobre un GitOps que ya está sincronizando en producción, sin beneficio inmediato que justifique el riesgo hoy. Revisitar si en algún momento se quiere independencia real de GitHub.
+
+**Consequences:**
+- (+) copia local de `oscar-gitops` sin ningún riesgo para Argo CD — cero cambios en el flujo real de sync;
+- (+) probó el flujo de migración/mirror de Forgejo (`POST /api/v1/repos/migrate` con `mirror: true`) para cuando se decida ir por la opción más grande;
+- (-) sigue habiendo dependencia de GitHub como origen real — este ADR no resuelve esa dependencia, solo agrega una copia de respaldo.
+
 ## Próximas ADR
 
 - elección del switch gestionable definitivo;

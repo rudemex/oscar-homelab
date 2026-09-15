@@ -99,7 +99,7 @@ AdGuard (`192.168.0.93`) sigue arriba y respondiendo bien, pero **no es el DNS d
 
 ## Pendiente real
 
-- **Migrar `oscar-gitops`** (hoy en GitHub) a Forgejo como origen o mirror — decisión de producto separada, no bloquea tener Forgejo corriendo.
+- **`oscar-gitops` en Forgejo**: resuelto como **mirror de solo lectura** ([ADR-012](../arquitectura/decisiones-arquitectonicas.md#adr-012--forgejo-como-mirror-de-solo-lectura-de-oscar-gitops-no-origen)), no como origen — GitHub sigue siendo lo que sincroniza Argo CD. Migrar a origen real queda como decisión futura si hace falta independencia real de GitHub.
 - **CI Runner (Forgejo Actions)** — la VM ya tiene RAM/CPU de sobra reservada para esto (ver "Sizing real" arriba), pero el runner en sí todavía no está desplegado.
 - **Diagnosticar la caída de velocidad de AdGuard** (ver nota arriba) — hasta resolverlo, `git.oscar.home` sigue dependiendo de configurar DNS a mano por dispositivo.
 - **Acceso remoto** — hoy Forgejo es LAN-only (`git.oscar.home` solo resuelve dentro de la red), correcto para esta etapa. Si en algún momento hace falta clonar/pushear desde afuera, la vía elegida es VPN (Tailscale, ver [backlog](../roadmap/backlog.md#decisiones-pendientes)) para SSH/administración, no exponer Forgejo directo por Cloudflare Tunnel — y si igual se decide exponer HTTP público, el SSH del puerto 2222 quedaría LAN/VPN-only de todas formas (tunelear TCP crudo es bastante más trabajo que el ingress HTTP simple que ya usan los otros 7 servicios).

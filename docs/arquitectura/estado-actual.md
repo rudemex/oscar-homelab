@@ -49,6 +49,8 @@ Proxmox ya está instalado, `core01` y `devops01` existen con Docker corriendo, 
 | MySpeed 1.0.9 | Docker en `core01` | Actual | puerto 5216, historial de tests de velocidad de internet, sin autenticación propia todavía. Ver [MySpeed](../servicios/myspeed.md). |
 | Nginx Proxy Manager 2.15.1 | Docker en `core01` | Actual | puertos 80/81/443, reverse proxy interno — sigue con el login de fábrica (`admin@example.com`/`changeme`) sin cambiar, pendiente. Ver [Nginx Proxy Manager](../servicios/nginx-proxy-manager.md). |
 | Cloudflare Tunnel + Access | Docker en `core01` | Actual | túnel conectado, 7 hostnames públicos (`vault`, `n8n`, `kuma`, `home`, `beszel`, `monitor`, `ha` . `oscarlab.com.ar`), cada uno con su propia Access Application y protegido por login (código de un solo uso al email del autor). Ver [Cloudflare Tunnel](../servicios/cloudflare-tunnel.md). |
+| Tailscale | `core01` (subnet router) | Actual | `192.168.0.0/24` advertido y aprobado — cualquier dispositivo del tailnet alcanza toda la LAN de casa, no solo `core01`. Ver [ADR-011](./decisiones-arquitectonicas.md#adr-011--tailscale-como-vpn-de-acceso-remoto) y [acceso remoto](../red/acceso-remoto.md). |
+| oscar-gitops (mirror) | Forgejo en `devops01` | Actual | mirror de solo lectura de `github.com/rudemex/oscar-gitops`, pull automático cada 10 min. Origen real sigue siendo GitHub — Argo CD no se tocó. Ver [ADR-012](./decisiones-arquitectonicas.md#adr-012--forgejo-como-mirror-de-solo-lectura-de-oscar-gitops-no-origen). |
 
 ## Dominio — en uso
 
