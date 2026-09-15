@@ -199,13 +199,12 @@ Esta tarjeta pasó por varias versiones — un `<img>` construido a mano con fot
 
 ```yaml
 - DVR Dahua:
-    href: http://192.168.0.224
+    href: https://192.168.0.224
     description: DVR de 4 canales — solo estado, sin video en el dashboard
     icon: dahua.png
-    siteMonitor: http://192.168.0.224
 ```
 
-Sin `widget:` — el click en la tarjeta lleva directo a la interfaz web nativa del DVR (HTTP redirige a HTTPS, certificado propio del equipo), y el `siteMonitor` es el mismo puntito verde/rojo que usa el resto de las tarjetas sin datos en vivo.
+Sin `widget:` ni `siteMonitor` — el click en la tarjeta lleva directo a la interfaz web nativa del DVR (HTTP redirige a HTTPS, certificado propio del equipo). El `siteMonitor` se sacó (2026-09-15): el DVR mostraba `500` de forma permanente aunque el equipo estuviera sano, por una incompatibilidad real entre su servidor HTTP embebido y el parser estricto de Node — ver el [troubleshooting](#troubleshooting) para el detalle.
 
 ### El bug de Beszel: "overview" en vez de las métricas reales
 
@@ -757,6 +756,9 @@ Disponibilidad HTTP del puerto 3005 alcanza — es un dashboard, no un servicio 
 
 ## Troubleshooting
 
+- **Tarjeta con `500` pero el servicio real anda bien** → dos causas reales encontradas (2026-09-15), ninguna era el servicio en sí:
+  1. **`siteMonitor` apuntando al puerto equivocado.** Pasó con "Beszel devops01" y "Beszel k3s01": el `widget:` (que trae CPU/RAM/disco) estaba bien apuntado al hub (`192.168.0.156:8090`), pero el `siteMonitor` — el puntito de estado — apuntaba al puerto del *agente* (`45876`), que habla el protocolo SSH-like propio de Beszel, no HTTP. El log del contenedor (`docker logs homepage-homepage-1`) lo delata clarísimo: `Error: Parse Error: Expected HTTP/, RTSP/ or ICE/` con el `rawPacket` mostrando un banner `SSH-2.0-beszel_...` en vez de una respuesta HTTP. Fix: `siteMonitor` al mismo host:puerto que ya usa `widget.url` (el hub), nunca al puerto del agente.
+  2. **Incompatibilidad real entre el parser HTTP de Node y un dispositivo con servidor embebido no estricto.** Pasó con "DVR Dahua" (`https://192.168.0.224`): el DVR responde `200 OK` con `Connection: keep-alive`, pero el cuerpo real no coincide exactamente con el `Content-Length` declarado — al reusar la conexión keep-alive para el siguiente chequeo, el parser de Node (`llhttp`, estricto) arranca a leer basura en medio del stream siguiente y tira el mismo `HPE_INVALID_CONSTANT`. `curl` no lo reproduce porque es mucho más tolerante que `llhttp`. No es arreglable por config — la salida fue sacarle el `siteMonitor` a esa tarjeta (queda solo como link, sin puntito de estado), documentado como límite conocido del dispositivo, no como pendiente.
 - **`400` o `{"error": "Host validation failed"}`** → el host/dominio usado no está en `HOMEPAGE_ALLOWED_HOSTS` — ver nota arriba; hay que agregar cada forma de acceso (IP:puerto, dominio) por separado, no alcanza con una sola.
 - **Un servicio aparece pero el link no funciona** → URL puesta en `services.yaml` no coincide con la IP/puerto real del servicio — confirmar contra el [catálogo de servicios](./catalogo.md).
 - **Los acentos/ñ aparecen como `Ã³`/`Ã±` en `services.yaml`** → dos causas posibles, hay que distinguirlas antes de "arreglar" algo que no está roto:
