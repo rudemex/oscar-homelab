@@ -5,11 +5,24 @@ sidebar_position: 4
 
 # Sonatype Nexus Repository
 
-**Estado:** Objetivo · DevOps  
-**Dónde corre:** VM `devops01`  
-**Sizing inicial:** 2–4 vCPU, 4–8 GB RAM; storage según artefactos  
-**Red/puertos:** UI/repositories; publicar solo lo necesario en LAN  
-**Persistencia:** blob stores, configuración y metadata
+**Estado:** Actual — Nexus 3.96.1 corriendo en `devops01`, admin real configurado, acceso anónimo deshabilitado, repos npm y Docker creados y verificados
+**Dónde corre:** VM `devops01`, `/srv/oscar/apps/nexus/` (comparte la VM con Forgejo y el CI Runner — ver [sizing real](./forgejo.md) tras la ampliación a 6 vCPU/12 GB)
+**Sizing real:** sin overrides de JVM propios, usando los defaults de la imagen — medir antes de ajustar
+**Red/puertos:** `8081` (UI/API), `8082` (registry Docker — puerto HTTP dedicado, Nexus lo requiere aparte de la UI)
+**Persistencia:** `/srv/oscar/data/nexus` (blob stores, config, metadata — `chown 200:200`, uid con el que corre el proceso dentro del contenedor)
+
+## Repositorios configurados
+
+| Repositorio | Formato/tipo | Para qué |
+|---|---|---|
+| `npm-proxy` | npm, proxy | cache de `https://registry.npmjs.org` |
+| `npm-hosted` | npm, hosted | paquetes propios |
+| `npm-group` | npm, group (`npm-hosted`+`npm-proxy`) | endpoint único que usan los proyectos — `http://nexus.oscar.home:8081/repository/npm-group/` |
+| `docker-hosted` | docker, hosted | destino real del `docker push` del [CI Runner](./ci-runner.md) — `192.168.0.151:8082` (puerto dedicado, no pasa por NPM) |
+
+Todos creados vía la API REST (`POST /service/rest/v1/repositories/<formato>/<tipo>`), no a mano por la UI. Acceso anónimo deshabilitado durante el wizard de primer login — confirmado que **todos** los repos (incluido el proxy de npm, que en teoría solo cachea algo público) devuelven `401` sin credenciales.
+
+**Pendiente real (solo por UI, sin API disponible):** cleanup policy para `docker-hosted` — el endpoint REST de cleanup policies devuelve `404` en esta versión (probado `v1` y `beta`, y no aparece en el propio swagger). Se arma a mano: **Administration → Repository → Cleanup Policies**, formato `docker`, criterio de antigüedad/último `pull`, y asignarla a `docker-hosted` en su configuración — sin esto, el blob store puede crecer sin límite (ver "Troubleshooting" abajo).
 
 ## Rol dentro de O.S.C.A.R.
 
@@ -25,16 +38,17 @@ Laboratorio: configurar npm proxy, apuntar un proyecto Node al registry interno,
 
 ## Checklist de despliegue
 
-- [ ] hostname y ubicación decididos;
-- [ ] imagen/versión fijada, evitando tags flotantes en servicios importantes;
-- [ ] puertos documentados;
-- [ ] volumen/persistencia definida;
-- [ ] `.env.example` sin secretos en Git;
-- [ ] credenciales reales fuera de Git;
-- [ ] backup definido antes de cargar datos importantes;
-- [ ] healthcheck o monitor de disponibilidad;
+- [x] hostname y ubicación decididos (`devops01`, `nexus.oscar.home` para la UI, IP directa para el registry Docker);
+- [x] imagen/versión fijada, evitando tags flotantes en servicios importantes (`3.96.1`);
+- [x] puertos documentados (`8081` UI/API, `8082` Docker registry);
+- [x] volumen/persistencia definida (`/srv/oscar/data/nexus`);
+- [x] `.env.example` sin secretos en Git — no aplica, nada de esto vive en un repo Git, solo en la VM;
+- [x] credenciales reales fuera de Git (admin real creado, en Vaultwarden);
+- [ ] backup definido antes de cargar datos importantes — pendiente, hoy no hay artefactos reales cargados todavía;
+- [ ] healthcheck o monitor de disponibilidad — falta sumarlo a Uptime Kuma/Beszel;
 - [ ] métricas/logs incorporados cuando sea razonable;
-- [ ] procedimiento de actualización y rollback documentado.
+- [ ] procedimiento de actualización y rollback documentado;
+- [ ] **cleanup policy del repo Docker** — bloqueada por API (ver arriba), pendiente por UI.
 
 ## Seguridad
 
