@@ -100,4 +100,4 @@ Deliberadamente **no** se unificó bajo NPM (ej. `*.oscar.home` → NPM → Trae
 192.168.0.151 nexus.oscar.home
 ```
 
-**Tailscale Split DNS** (pendiente de activar por el usuario en `login.tailscale.com/admin/dns` — nameserver custom `192.168.0.93`, restringido al dominio `oscar.home`): resuelve el mismo problema que las dos opciones de arriba pero para *todos* los dispositivos del tailnet a la vez, sin configurar el DNS a mano en cada uno — incluye el caso ya reportado de `argocd.oscar.home` no resolviendo en el celular vía Tailscale. Una sola configuración, no por dispositivo.
+**Descartado a propósito: Tailscale Split DNS.** Resolvería lo mismo para cualquier dispositivo del tailnet sin configurar DNS a mano en cada uno, incluido el acceso remoto desde el celular — pero el objetivo acá es explícitamente **DNS por nombre dentro de la LAN, no acceso desde afuera**, así que no aporta nada sobre el wildcard de arriba para este caso de uso y suma una dependencia (Tailscale) que no hace falta. Queda anotado por si en algún momento sí se busca resolver el acceso remoto (que sigue roto para `*.oscar.home` vía Tailscale, caso reportado con el celular).
