@@ -5,11 +5,23 @@ sidebar_position: 22
 
 # Beszel
 
-**Estado:** Actual — hub y agente corriendo en `core01`, conectados y reportando CPU/RAM/disco en tiempo real
-**Dónde corre:** Docker Core (`/srv/oscar/apps/beszel/`)
+**Estado:** Actual — hub en `core01`, agentes en **3 hosts** (`core01`, `devops01`, `k3s01`), los tres `up` y reportando CPU/RAM/disco en tiempo real
+**Dónde corre:** hub en Docker Core (`/srv/oscar/apps/beszel/`); agentes en `/srv/oscar/apps/beszel-agent/` en cada host adicional
 **Sizing inicial:** ~50 MB hub + ~30 MB por agente
-**Red/puertos:** `8090` (hub, UI/API), agente en modo `network_mode: host` puerto `45876`
+**Red/puertos:** `8090` (hub, UI/API), cada agente en modo `network_mode: host` puerto `45876`
 **Persistencia:** SQLite del hub en `./hub-data`
+
+## Agentes registrados
+
+| Host | IP | Por qué |
+|---|---|---|
+| `core01` | `192.168.0.156` | co-instalado con el hub desde el arranque |
+| `devops01` | `192.168.0.151` | corre [Forgejo](./forgejo.md) y va a sumar Nexus/CI Runner — sin esto, cero visibilidad de recursos ahí (mismo blind spot que ya pasó con `core01` llegando al 91% de RAM sin que nadie lo viera venir) |
+| `k3s01` | `192.168.0.150` | corre Argo CD y `oscar-led-controller`, mismo problema de visibilidad cero |
+
+Cada agente nuevo usa la misma `BESZEL_AGENT_KEY` (clave pública del hub) que ya existía en `core01` — no hace falta generar una por host, es la identidad del hub, no del agente. El registro del "System" en el hub (`host`+`port`+`users`) se hizo vía la API REST de PocketBase (`POST /api/collections/systems/records`), mismo mecanismo que documenta [Homepage](./homepage.md#el-bug-de-beszel-overview-en-vez-de-las-métricas-reales) para sacar el `systemId`.
+
+No se agregó agente en `oscar-core` (el hipervisor, ya cubierto por [ProxMenux Monitor](./proxmenux-monitor.md) + el widget de Proxmox en Homepage) ni en el LXC de AdGuard/VM de Home Assistant (más livianos, Uptime Kuma ya da el chequeo básico de arriba/abajo que alcanza a ese tamaño).
 
 ## Rol dentro de O.S.C.A.R.
 
