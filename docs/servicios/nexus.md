@@ -24,6 +24,15 @@ Todos creados vía la API REST (`POST /service/rest/v1/repositories/<formato>/<t
 
 **Hecho (por UI, sin API disponible):** cleanup policy para `docker-hosted` creada y asignada a mano — el endpoint REST de cleanup policies devuelve `404` en esta versión (probado `v1` y `beta`, no aparece en el swagger), así que no se pudo automatizar.
 
+## Configuración para CI
+
+Dos cosas que hicieron falta para que el [CI Runner](./ci-runner.md) pudiera pushear de verdad, ninguna obvia desde el wizard inicial:
+
+- **`writePolicy: "allow"` en `docker-hosted`**, no el `"allow_once"` con el que se creó originalmente — con `allow_once`, re-pushear el mismo tag (`:latest` en cada build) falla con `cannot be updated as asset already exists and redeploy is not allowed`. `allow_once` tiene sentido para tags inmutables tipo versión semántica, no para el patrón normal de CI de sobreescribir `latest`.
+- **Usuario dedicado `ci-forgejo`**, rol `ci-docker-push` acotado a `nx-repository-view-docker-docker-hosted-{add,edit,read,browse}` — ni el CI ni el `imagePullSecret` de k3s usan la cuenta `admin`. Mismo criterio que el resto de las credenciales acotadas del homelab (token de solo lectura de Argo CD, runner separado del admin de Forgejo, etc.).
+
+Este mismo usuario se reutiliza para el `imagePullSecret` de k3s — Nexus exige auth tanto para `push` como para `pull` con el acceso anónimo deshabilitado, así que un Deployment sin `imagePullSecrets` falla con `pull access denied` aunque el CI haya pusheado bien.
+
 ## Rol dentro de O.S.C.A.R.
 
 - proxy/cache de npm

@@ -97,11 +97,17 @@ Cambio de arquitectura real: `git.oscar.home` (rewrite en AdGuard) ahora apunta 
 
 AdGuard (`192.168.0.93`) sigue arriba y respondiendo bien, pero **no es el DNS de toda la LAN** — no hay DHCP apuntándolo (se evitó a propósito: hacerlo DNS de red completa coincidió con una caída real de throughput, 600→20 Mbps, causa todavía sin diagnosticar). El método real usado en las máquinas de administración es una entrada en `/etc/hosts` (`192.168.0.156 git.oscar.home`), no el DNS del sistema — ver [Cómo resuelven hoy las máquinas de administración](../red/dns-adguard.md#cómo-resuelven-hoy-las-máquinas-de-administración). No es automático para cualquiera que se conecte a la LAN.
 
+## Secrets y variables de Actions: nivel usuario, no solo por repo
+
+Forgejo soporta secrets/variables de Actions a nivel **usuario** (`/api/v1/user/actions/secrets/{name}`, vía `PUT` — el endpoint de listar da `404` pero crear/actualizar/borrar funciona bien, simplemente no está expuesto para listar en esta versión), heredados por **todos** los repos de esa cuenta, igual que los secrets de organización en GitHub Actions. Un secret a nivel repo con el mismo nombre tapa al de usuario si ambos existen.
+
+Se migraron ahí `NEXUS_USER`, `NEXUS_PASSWORD` y `GITOPS_TOKEN` — son iguales para cualquier repo que necesite pushear a Nexus o actualizar `oscar-gitops`, no tiene sentido repetirlos por repo (y peor: si quedan duplicados, rotar el de nivel usuario no actualiza el de nivel repo, que sigue tapándolo en silencio). Cualquier repo nuevo que necesite estas credenciales las hereda solo, sin configurar nada.
+
 ## Pendiente real
 
-- **`oscar-gitops` en Forgejo**: resuelto como **mirror de solo lectura** ([ADR-012](../arquitectura/decisiones-arquitectonicas.md#adr-012--forgejo-como-mirror-de-solo-lectura-de-oscar-gitops-no-origen)), no como origen — GitHub sigue siendo lo que sincroniza Argo CD. Migrar a origen real queda como decisión futura si hace falta independencia real de GitHub.
-- **CI Runner (Forgejo Actions)** — la VM ya tiene RAM/CPU de sobra reservada para esto (ver "Sizing real" arriba), pero el runner en sí todavía no está desplegado.
-- **Diagnosticar la caída de velocidad de AdGuard** (ver nota arriba) — hasta resolverlo, `git.oscar.home` sigue dependiendo de configurar DNS a mano por dispositivo.
+- **CI Runner (Forgejo Actions)** — desplegado, validado con un pipeline completo (lint, test, build, push a Nexus, actualización de GitOps, deploy real en Argo CD). Ver [CI Runner](./ci-runner.md).
+- **`oscar-gitops` en Forgejo**: ya **no es mirror** — es el origen real que lee Argo CD (`root-app` y `oscar-led-controller`), migración hecha y validada (`Synced`/`Healthy` contra la revisión de Forgejo). GitHub queda como copia secundaria, actualizada a mano en cada push. Ver [ADR-012](../arquitectura/decisiones-arquitectonicas.md#adr-012--forgejo-como-mirror-de-solo-lectura-de-oscar-gitops-no-origen) (el título del ADR quedó desactualizado por el mismo motivo que esta línea — la decisión documentada ahí era "mirror primero", y se avanzó a origen real después, en la misma sesión).
+- **Diagnosticar la caída de velocidad de AdGuard** (ver nota arriba) — hasta resolverlo, `git.oscar.home` sigue dependiendo de configurar DNS a mano por dispositivo (o, para contenedores Docker en `devops01`/`core01`, del DNS del daemon Docker — ver [CI Runner](./ci-runner.md#gotchas-reales-encontrados-con-el-pipeline-completo-no-obvios-de-antemano), gotcha 9).
 - **Acceso remoto** — hoy Forgejo es LAN-only (`git.oscar.home` solo resuelve dentro de la red), correcto para esta etapa. Si en algún momento hace falta clonar/pushear desde afuera, la vía elegida es VPN (Tailscale, ver [backlog](../roadmap/backlog.md#decisiones-pendientes)) para SSH/administración, no exponer Forgejo directo por Cloudflare Tunnel — y si igual se decide exponer HTTP público, el SSH del puerto 2222 quedaría LAN/VPN-only de todas formas (tunelear TCP crudo es bastante más trabajo que el ingress HTTP simple que ya usan los otros 7 servicios).
 
 ## Ejemplo concreto
