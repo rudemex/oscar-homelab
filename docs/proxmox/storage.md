@@ -24,6 +24,24 @@ SATA SSD 1 TB
 
 El backup definitivo no debe vivir únicamente en otro directorio del mismo host.
 
+**Estado real (2026-09-15):** esta distribución ya está implementada, verificado con `lsblk`:
+
+```text
+nvme0n1 (M.2, 931.5G, Kingston SNV3S1000G)
+├── partición EFI + boot
+└── LVM-thin "pve-data" → storage local-lvm (VM disks de core01/k3s01/devops01)
+
+sda (SATA SSD, 953.9G, FTM1TN325H)
+└── partición única, montada en /mnt/pve/Backups → storage "Backups"
+    (destino del job de vzdump programado, ver backups.md)
+```
+
+Storage `Backups` real, agregado así (no `sata-data`/`/mnt/sata-ssd` como decía el ejemplo antes — esos nombres no existen, quedaron como referencia genérica sin actualizar contra lo que se armó):
+
+```bash
+pvesm add dir Backups --path /mnt/pve/Backups --content backup
+```
+
 ## `local` vs `local-lvm`
 
 La instalación estándar de Proxmox crea dos storages sobre el mismo disco de sistema, y es importante no confundirlos:

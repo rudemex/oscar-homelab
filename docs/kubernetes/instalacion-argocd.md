@@ -7,7 +7,8 @@ sidebar_position: 7
 
 :::caution Corregido tras la experiencia real
 - El `kubectl apply -f .../install.yaml` de abajo falló en la instalación real (`v3.5.2`) con `metadata.annotations: Too long: may not be more than 262144 bytes` al crear el CRD de `ApplicationSet` — es un límite del annotation `last-applied-configuration` que genera el apply client-side por defecto contra un CRD grande. Se resolvió con `kubectl apply --server-side -f ...` (y `--force-conflicts` si el primer intento parcial ya dejó algunos recursos aplicados client-side).
-- Si el repo GitOps es **privado** (recomendado, ver [ADR-004](../arquitectura/decisiones-arquitectonicas.md)), Argo CD necesita credenciales registradas antes de poder sincronizar — no alcanza con `argocd app create --repo ...`. Se usó una **deploy key SSH de solo lectura** específica del repo (`gh api repos/<owner>/<repo>/keys` con `read_only=true`), registrada como Secret con label `argocd.argoproj.io/secret-type: repository` — nunca el token personal de una cuenta (demasiado amplio para vivir dentro del cluster).
+- Si el repo GitOps es **privado** (recomendado, ver [ADR-004](../arquitectura/decisiones-arquitectonicas.md)), Argo CD necesita credenciales registradas antes de poder sincronizar — no alcanza con `argocd app create --repo ...`. Mientras `oscar-gitops` vivió en GitHub se usó una **deploy key SSH de solo lectura** específica del repo (`gh api repos/<owner>/<repo>/keys` con `read_only=true`).
+- **Estado real hoy** (tras [ADR-012](../arquitectura/decisiones-arquitectonicas.md#adr-012--forgejo-como-mirror-de-solo-lectura-de-oscar-gitops-no-origen), `oscar-gitops` migrado a Forgejo como origen): la credencial es HTTP, no SSH — un Secret `oscar-gitops-forgejo` en el namespace `argocd` con label `argocd.argoproj.io/secret-type: repository`, `url` apuntando a `http://git.oscar.home/mdelgado/oscar-gitops.git` y un usuario de Forgejo de solo lectura sobre ese repo (mismo criterio que la deploy key: nunca la cuenta admin ni un token con más alcance del necesario). El Secret viejo de GitHub (`oscar-gitops-repo-creds`, SSH) sigue en el cluster sin usarse — candidato a limpiar si se confirma que no hace falta mantener el mirror en GitHub actualizado por Argo CD (hoy se actualiza a mano).
 :::
 
 ## 1. Precondiciones
@@ -66,11 +67,11 @@ Después definir el método de autenticación/acceso definitivo (SSO, Cloudflare
 
 ## 5. Repo demo
 
-Con el [CLI de Argo CD](https://argo-cd.readthedocs.io/en/stable/cli_installation/) instalado y logueado (`argocd login localhost:8080`), crear una Application apuntando al ejemplo `whoami` del repo GitOps:
+Con el [CLI de Argo CD](https://argo-cd.readthedocs.io/en/stable/cli_installation/) instalado y logueado (`argocd login localhost:8080`), crear una Application de prueba apuntando a una carpeta real del repo GitOps — `apps/whoami` es solo un nombre de ejemplo genérico, **no existe** en `oscar-gitops` hoy (las carpetas reales son `apps/oscar-led-controller` y `apps/ci-demo`, ver [pipeline de ejemplo](../devops/pipeline-ejemplo.md) para cómo se armó `ci-demo` de punta a punta):
 
 ```bash
 argocd app create whoami \
-  --repo https://github.com/<tu-usuario>/oscar-gitops.git \
+  --repo http://git.oscar.home/<tu-usuario>/oscar-gitops.git \
   --path apps/whoami \
   --dest-server https://kubernetes.default.svc \
   --dest-namespace oscar-lab

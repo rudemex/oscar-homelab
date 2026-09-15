@@ -11,10 +11,11 @@ La tabla resume el rol previsto. **Objetivo** no significa “instalar ya”: ca
 |---|---|---|---|
 | [Docker y Docker Compose](./docker-compose.md) | **Actual** · Core | VM `core01` | ejecutar n8n, Uptime Kuma, dashboards y utilidades |
 | [EasyPanel](./easypanel.md) | Laboratorio · Plataforma de apps | VM Docker dedicada o `core01` durante la etapa inicial | comparar un PaaS casero contra el flujo GitOps; redundante con Compose+k3s si no aporta algo distinto |
-| [Sonatype Nexus Repository](./nexus.md) | Objetivo · DevOps | VM `devops01` | proxy/cache de npm |
-| [Forgejo / Git local](./forgejo.md) | **Actual** · DevOps | VM `devops01` | mirror de repositorios importantes |
-| [CI Runner](./ci-runner.md) | Objetivo · Decidido (ADR-010, Forgejo Actions) | VM `devops01` o runners efímeros | compilar proyectos Node |
-| [Argo CD](./argocd.md) | Objetivo · GitOps | cluster k3s | sincronizar Helm/manifests |
+| [Sonatype Nexus Repository](./nexus.md) | **Actual** · DevOps | VM `devops01` | proxy/cache de npm y registry Docker privado, usado por el CI real |
+| [Forgejo / Git local](./forgejo.md) | **Actual** · DevOps | VM `devops01` | origen real de `oscar-gitops` (ya no mirror), repos privados del homelab, GitOps completamente local |
+| [CI Runner](./ci-runner.md) | **Actual** · DevOps (Forgejo Actions) | VM `devops01` | pipeline real validado: lint → test → build → push a Nexus → actualiza GitOps → Argo CD despliega |
+| k3s + Traefik | **Actual** · Kubernetes | VM `k3s01` | cluster de un solo nodo, ingress controller para las apps con `*.oscar.home` |
+| [Argo CD](./argocd.md) | **Actual** · GitOps | cluster k3s (`k3s01`) | sincroniza `oscar-gitops` (Forgejo) — `root-app`, `oscar-led-controller`, `ci-demo` |
 | [Prometheus](./prometheus.md) | Objetivo · Observabilidad | VM observabilidad o k3s, según fase | métricas de hosts |
 | [Grafana](./grafana.md) | Objetivo · Observabilidad | VM observabilidad o Docker Core | dashboard de rack |
 | [Loki](./loki.md) | Objetivo · Logs | VM observabilidad o k3s | logs de contenedores |
@@ -27,8 +28,9 @@ La tabla resume el rol previsto. **Objetivo** no significa “instalar ya”: ca
 | [ProxMenux Monitor](./proxmenux-monitor.md) | **Actual** · Observabilidad | systemd en `oscar-core` | dashboard de CPU/RAM/disco/red del hipervisor, instalado fuera de Docker |
 | [Glances](./glances.md) | **Actual** · Observabilidad | Docker Core | fuente de datos real de CPU/RAM/disco de `core01` para el header de Homepage, con tarjeta y UI propia (procesos, red, contenedores) |
 | [MySpeed](./myspeed.md) | **Actual** · Observabilidad | Docker Core | historial de velocidad de internet, tests automáticos |
-| [Nginx Proxy Manager](./nginx-proxy-manager.md) | **Actual** · Infraestructura | Docker Core | reverse proxy interno para tráfico dentro de la LAN, no reemplaza al Tunnel |
-| [Cloudflare Tunnel + Access](./cloudflare-tunnel.md) | **Actual** · Acceso remoto | Docker Core | publica Vaultwarden/n8n/Kuma/Homepage/Beszel/ProxMenux Monitor sin abrir puertos, cada uno con Access delante |
+| [Nginx Proxy Manager](./nginx-proxy-manager.md) | **Actual** · Infraestructura | Docker Core | reverse proxy interno para las apps de Docker Compose (Forgejo); las apps de k3s van directo a Traefik, no por acá |
+| [Relay SMTP (Brevo)](./smtp-relay.md) | **Actual** · Infraestructura | Docker Core | `boky/postfix` relay-only, para que otros servicios (ej. Vaultwarden) puedan mandar mail sin exponer credenciales SMTP reales a cada uno |
+| [Cloudflare Tunnel + Access](./cloudflare-tunnel.md) | **Actual** · Acceso remoto | Docker Core | publica Vaultwarden/n8n/Kuma/Homepage/Beszel/ProxMenux Monitor/Home Assistant sin abrir puertos, cada uno con Access delante (7 hostnames reales) |
 | [Eclipse Mosquitto MQTT](./mosquitto.md) | Laboratorio / Hogar | Raspberry Pi o VM Core | sensores Pi Zero |
 | [Ollama](./ollama.md) | Laboratorio · IA local | Dell/VM solo para modelos compatibles con recursos; hardware futuro para cargas mayores | probar LLM local |
 | [Open WebUI](./open-webui.md) | Laboratorio · IA | Docker Core conectado a proveedor/modelo permitido | UI para Ollama |

@@ -28,10 +28,10 @@ No confundir con las features que sí son Pro-only: SAML/LDAP avanzado, blob sto
 ## Naming de imagen
 
 ```text
-nexus.oscar.home/<proyecto>/<imagen>:<semver-o-sha>
+<ip-del-host>:<puerto-dedicado-del-registry>/<proyecto>/<imagen>:<semver-o-sha>
 ```
 
-Evitar depender de `latest` para deployments reproducibles.
+En la instancia real de OSCAR esto es `192.168.0.151:8082/<imagen>:<sha>` (ver [Sonatype Nexus Repository](../servicios/nexus.md)) — el registry Docker usa un puerto HTTP dedicado por IP directa, **no** el hostname de la UI (`nexus.oscar.home`, que sirve el puerto de la UI/API vía reverse proxy, no el registry). Evitar depender de `latest` para deployments reproducibles.
 
 ## Prueba
 

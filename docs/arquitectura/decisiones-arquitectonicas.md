@@ -172,19 +172,22 @@ Antes de sumar muchos servicios se instala una base de métricas y disponibilida
 
 ## ADR-012 · Forgejo como mirror de solo lectura de oscar-gitops (no origen)
 
-**Status:** Aceptado — desplegado. Mirror pull cada 10 minutos, `mdelgado/oscar-gitops` en Forgejo.
+**Status:** Aceptado, y luego superado por los hechos en la misma sesión de trabajo — **hoy Forgejo es el origen real**, no un mirror. El título de esta ADR quedó desactualizado a propósito (se conserva como registro histórico de la primera decisión); el estado real vive en el bloque de abajo, no en el título.
 
-**Context:** [ADR-010](#adr-010--forgejo-con-forgejo-actions-como-plataforma-git-local) dejó abierto si `oscar-gitops` (hoy en GitHub, origen real que sincroniza Argo CD) migraba a Forgejo como origen o como mirror.
+**Context:** [ADR-010](#adr-010--forgejo-con-forgejo-actions-como-plataforma-git-local) dejó abierto si `oscar-gitops` (hasta ese momento en GitHub, origen real que sincroniza Argo CD) migraba a Forgejo como origen o como mirror.
 
-**Decision:** mirror de solo lectura primero, no migración completa. Forgejo hace pull automático desde GitHub cada 10 minutos; GitHub sigue siendo el origen real, Argo CD no se toca.
+**Decision original:** mirror de solo lectura primero, no migración completa. Forgejo hacía pull automático desde GitHub cada 10 minutos; GitHub seguía siendo el origen real, Argo CD sin tocar.
 
-**Alternatives considered:**
-- Forgejo como origen real (reconfigurar `repoURL` de las Applications de Argo CD) — descartado por ahora: es un cambio con superficie de error sobre un GitOps que ya está sincronizando en producción, sin beneficio inmediato que justifique el riesgo hoy. Revisitar si en algún momento se quiere independencia real de GitHub.
+**Decision final (evolucionada, mismo hilo de trabajo):** se migró a Forgejo como **origen real** — `repoURL` de las tres Applications de Argo CD (`root-app`, `oscar-led-controller`, `ci-demo`) reconfigurado a `http://git.oscar.home/mdelgado/oscar-gitops.git`, confirmado en el cluster (`kubectl get application -n argocd -o jsonpath='{.spec.source.repoURL}'`). Lo que en la decisión original se descartó "por ahora" (ver alternativa de abajo) se terminó haciendo poco después, una vez que el flujo de mirror ya había probado que Forgejo respondía bien y que hacía falta que Forgejo fuera *el* repo real para que la CI (Forgejo Actions) pudiera pushear los cambios de tag directamente sin depender de GitHub como intermediario. GitHub queda como copia secundaria, actualizada a mano en cada push a Forgejo — no al revés.
+
+**Alternatives considered (en la decisión original):**
+- Forgejo como origen real (reconfigurar `repoURL` de las Applications de Argo CD) — descartado en su momento por ser un cambio con superficie de error sobre un GitOps que ya estaba sincronizando en producción, sin beneficio inmediato que justificara el riesgo en ese momento. Terminó siendo exactamente lo que se hizo después, una vez que el riesgo se consideró aceptable.
 
 **Consequences:**
-- (+) copia local de `oscar-gitops` sin ningún riesgo para Argo CD — cero cambios en el flujo real de sync;
-- (+) probó el flujo de migración/mirror de Forgejo (`POST /api/v1/repos/migrate` con `mirror: true`) para cuando se decida ir por la opción más grande;
-- (-) sigue habiendo dependencia de GitHub como origen real — este ADR no resuelve esa dependencia, solo agrega una copia de respaldo.
+- (+) cero dependencia de GitHub para que Argo CD sincronice — `oscar-gitops` vive completamente en la infraestructura propia;
+- (+) la CI de `ci-demo` (Forgejo Actions) pushea el tag actualizado directo al mismo repo que lee Argo CD, sin cruzar a un proveedor externo en el medio;
+- (-) Forgejo (VM `devops01`, SQLite) pasa a ser crítico para el GitOps real, no solo para repos privados — el backup de `forgejo dump` (ver [Forgejo / Git local](../servicios/forgejo.md#backup-y-restore)) es ahora una dependencia dura de Argo CD, no un nice-to-have;
+- (-) GitHub como copia secundaria se actualiza a mano — si se olvida, deja de ser un espejo confiable de disaster recovery.
 
 ## Próximas ADR
 

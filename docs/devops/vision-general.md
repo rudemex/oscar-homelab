@@ -7,6 +7,8 @@ sidebar_position: 1
 
 La plataforma DevOps permite practicar un ciclo completo sin depender de infraestructura corporativa.
 
+Esta página describe el flujo objetivo/conceptual. La instancia real ya cubre todo el diagrama de abajo salvo el último tramo (Observabilidad) — ver [Pipeline de referencia](./pipeline-ejemplo.md) para el workflow real y validado, y [CI Runner](../servicios/ci-runner.md)/[Sonatype Nexus](../servicios/nexus.md)/[Forgejo](../servicios/forgejo.md) para cada pieza desplegada.
+
 ```mermaid
 flowchart LR
   DEV[Commit] --> GIT[Git]

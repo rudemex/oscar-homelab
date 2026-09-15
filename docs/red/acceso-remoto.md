@@ -23,6 +23,8 @@ Dos pasos de aprobación separados, ambos manuales por diseño de Tailscale (no 
 
 Instalar el cliente en cada dispositivo desde el que se quiera acceder (laptop, celular) con la misma cuenta — paso manual, no se automatiza desde acá.
 
+**Limitación real conocida:** conectado por Tailscale, se llega por IP a cualquier host de la LAN (`192.168.0.150`, etc.) pero **no** por hostname `*.oscar.home` — ese wildcard solo resuelve contra AdGuard (`192.168.0.93`), y Tailscale no manda las consultas DNS del dispositivo ahí a menos que se configure *Split DNS* en el admin de Tailscale (`login.tailscale.com/admin/dns`, nameserver `192.168.0.93` restringido al dominio `oscar.home`). Se evaluó y se descartó a propósito (2026-09-15): el objetivo de `*.oscar.home` es DNS por nombre dentro de la LAN, no resolver el acceso remoto — ver [DNS con AdGuard Home](./dns-adguard.md#cómo-resuelven-hoy-los-dispositivos). Si en algún momento se quiere que `argocd.oscar.home` (por ejemplo) ande también desde el celular vía Tailscale, ese Split DNS es el camino, simplemente no está activado hoy.
+
 ### Cloudflare Tunnel + Access
 
 Útil para exponer aplicaciones HTTP seleccionadas sin inbound port-forward. El túnel debe complementarse con políticas de identidad cuando la aplicación sea administrativa.

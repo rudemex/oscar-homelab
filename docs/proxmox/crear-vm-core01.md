@@ -24,31 +24,51 @@ Esta página decía 4 GB y una nota de que "no cambia por tener más RAM disponi
 
 No asignar toda la RAM física entre VMs; Proxmox y filesystem necesitan margen.
 
+:::caution IP y VMID corregidos tras la experiencia real (2026-09-15)
+Esta página usaba `qm clone 9000 101 ...` y `192.168.20.11/24` (el rango `SERVERS` del [plan de direccionamiento](../red/plan-direccionamiento.md) con VLANs) — ninguno de los dos es lo que terminó pasando. **VLANs y segmentación son objetivo, no están implementadas hoy** (ver [migración a red segmentada](../red/migracion-a-red-segmentada.md), "Estado A: red actual" — sigue siendo un único `192.168.0.0/24` plano, sin VLANs, sobre el router de fábrica). Y el VMID `101` terminó ocupado por `haos-18.2` (Home Assistant), no por `core01`. Los valores de abajo son los reales, verificados con `qm config` contra `oscar-core` — no un ejemplo.
+:::
+
+## VMs reales (tabla de referencia)
+
+Las tres VMs de aplicación se crearon con el mismo procedimiento, solo cambia VMID/nombre/IP/sizing. Esta página desarrolla el paso a paso completo con `core01` como ejemplo; para `k3s01`/`devops01` alcanza con repetir los mismos pasos sustituyendo estos valores:
+
+| VM | VMID | IP | vCPU | RAM | Rol |
+|---|---|---|---|---|---|
+| `core01` | 102 | `192.168.0.156/24` | 2 | 8 GB | Docker — servicios base (Homepage, AdGuard front, NPM, Uptime Kuma, Vaultwarden, Beszel hub, Cloudflare Tunnel, n8n, MySpeed, Glances) |
+| `k3s01` | 103 | `192.168.0.150/24` | 4 | 8 GB | k3s — Argo CD, apps desplegadas por GitOps |
+| `devops01` | 104 | `192.168.0.151/24` | 6 | 12 GB | Docker — Forgejo, Nexus, CI Runner |
+
+Gateway real para las tres: `192.168.0.1`. Ver el detalle de instalación específico de cada una en su propia página de servicio: [Forgejo](../servicios/forgejo.md) documenta la creación de `devops01`, no se repite acá.
+
 ## Desde template
 
 Estos comandos corren **en Proxmox** (por SSH o desde su consola web, Shell del nodo). Asumen el template `9000` creado en [templates y Cloud-Init](./templates-cloud-init.md) — si usaste otro VMID de template, reemplazalo. Si nunca generaste una clave SSH, hacelo antes con [herramientas básicas](../primeros-pasos/herramientas-basicas.md#ssh-conectarte-a-otra-máquina): `ssh-keygen -t ed25519`.
 
 ```bash
 # 1. Clonar el template como VM nueva (clon completo, no linked)
-qm clone 9000 101 --name core01 --full
+qm clone 9000 102 --name core01 --full
 
-# 2. Asignar la IP fija del plan de direccionamiento (ver plan-direccionamiento.md)
-qm set 101 --ipconfig0 ip=192.168.20.11/24,gw=192.168.20.1
+# 2. Asignar la IP fija real (red plana hoy, sin VLANs — ver nota arriba)
+qm set 102 --ipconfig0 ip=192.168.0.156/24,gw=192.168.0.1
 
 # 3. Inyectar tu clave pública (contenido de ~/.ssh/id_ed25519.pub en TU computadora, no en Proxmox)
-qm set 101 --sshkey ~/.ssh/id_ed25519.pub
+qm set 102 --sshkey ~/.ssh/id_ed25519.pub
 
 # 4. Ajustar sizing al de esta página (ver "Sizing inicial" arriba)
-qm set 101 --cores 2 --memory 8192
+qm set 102 --cores 2 --memory 8192
 
-# 5. Iniciar
-qm start 101
+# 5. Habilitar autostart — si no, la VM no arranca sola cuando reinicia oscar-core
+#    (ver "Autostart de VMs" en operacion.md — encontrado como bug real, no estaba seteado)
+qm set 102 --onboot 1
+
+# 6. Iniciar
+qm start 102
 ```
 
 Esperar unos segundos y validar que arrancó y que el guest agent responde:
 
 ```bash
-qm agent 101 ping
+qm agent 102 ping
 ```
 
 Si no responde nada (sin error) en un par de intentos, el guest agent todavía está iniciando dentro de la VM — esperar y reintentar antes de asumir que algo falló.
@@ -58,7 +78,7 @@ Si no responde nada (sin error) en un par de intentos, el guest agent todavía e
 Desde tu computadora, no desde Proxmox:
 
 ```bash
-ssh oscar@192.168.20.11
+ssh oscar@192.168.0.156
 ```
 
 Dentro de la VM:

@@ -16,13 +16,12 @@ Los ejemplos de esta sección tienen dos objetivos: enseñar una tecnología y c
 
 Los manifiestos reutilizables viven también bajo `examples/` en la raíz del repositorio.
 
-## Pipeline completo ("Hello O.S.C.A.R.")
+## Pipeline completo ("Hello O.S.C.A.R.") — ya existe, no es un ejercicio aislado
 
-El recorrido completo pedido en el roadmap — `git push → CI → build image → Nexus → actualizar manifiesto → Argo CD → k3s` — no es un ejemplo aislado: es la combinación de dos páginas que ya cubren cada mitad del circuito:
+El recorrido completo `git push → CI → build image → Nexus → actualizar manifiesto → Argo CD → k3s` **ya está armado y validado de punta a punta**, no es solo un plan — es la app real `ci-demo` (repo en Forgejo, `http://git.oscar.home/mdelgado/ci-demo`, chart en `oscar-gitops/apps/ci-demo`). El ADR que esta página dejaba pendiente ([ADR-010](../arquitectura/decisiones-arquitectonicas.md#adr-010--forgejo-con-forgejo-actions-como-plataforma-git-local): Forgejo + Forgejo Actions) ya se cerró y desplegó:
 
-1. [Pipeline de referencia](../devops/pipeline-ejemplo.md): las etapas de CI (lint, test, build, push a Nexus) sobre una app Node simple.
-2. [Demo GitOps](./gitops-demo.md): qué pasa desde que el manifiesto cambia en Git hasta que Argo CD lo reconcilia en k3s.
-
-Cuando el ADR de plataforma Git/CI ([decisión pendiente](../servicios/ci-runner.md)) se cierre, esta página puede sumar un ejemplo único de punta a punta con el motor de CI real elegido; hasta entonces, mantener las dos mitades separadas evita documentar un pipeline concreto que dependa de un producto todavía no decidido.
+1. [CI Runner](../servicios/ci-runner.md): el motor de CI real (Forgejo Actions), desplegado en `devops01`, con el detalle de cada gotcha encontrado al validarlo.
+2. [Pipeline de referencia](../devops/pipeline-ejemplo.md): el workflow YAML real (no pseudocódigo) — lint, test, build, push a Nexus, actualización del manifiesto en `oscar-gitops`.
+3. [Demo GitOps](./gitops-demo.md): qué pasa desde que el manifiesto cambia en Git hasta que Argo CD lo reconcilia en k3s — mismo mecanismo que usa `ci-demo`, con `whoami` como ejercicio didáctico más simple para practicarlo antes de leer el pipeline real completo.
 
 Ideas de ejemplo para sumar más adelante (no existen todavía, no hay que buscarlos en `examples/`): frontend + API separados en dos Deployments con Ingress compartido, y un worker con cola (Redis) sin puerto HTTP. Se agregan cuando haya una necesidad real de aprender ese patrón, no antes.

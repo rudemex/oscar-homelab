@@ -21,25 +21,42 @@ Snapshot y backup no son sinónimos.
 
 Los valores se ajustan cuando conozcamos volumen y NAS.
 
-## Comandos de referencia (vzdump)
+## Job real ya configurado
 
-Backup manual de una VM/LXC puntual, en modo `snapshot` (no detiene el guest) hacia un storage de backup ya definido en Proxmox:
+**Estado:** Actual — hay un job de backup automático corriendo hoy, verificado en `/etc/pve/jobs.cfg` de `oscar-core`:
 
-```bash
-# backup de una sola VM/LXC
-vzdump 101 --storage backup-local --mode snapshot --compress zstd
-
-# backup de todas las VMs/LXC marcadas para backup, con notificación
-vzdump --all --storage backup-local --mode snapshot --mailto oscar@example.com
+```text
+vzdump: backup-94c323b5-388e
+    schedule mon..fri 00:00
+    all 1
+    compress zstd
+    enabled 1
+    mode snapshot
+    prune-backups keep-last=5,keep-monthly=1,keep-yearly=6
+    storage Backups
 ```
 
-En producción esto se programa como job desde **Datacenter → Backup** en la UI (o `/etc/pve/jobs.cfg`), no ejecutando `vzdump` a mano cada vez — la UI genera el mismo comando por debajo.
+Corre de lunes a viernes a medianoche, backupea **todas** las VMs/LXC (`all 1`, no una lista puntual) en modo `snapshot`, comprimido `zstd`, hacia el storage `Backups` (`dir`, montado en `/mnt/pve/Backups`, **no** `backup-local` como decía esta página antes — ese nombre nunca existió, era un placeholder que quedó como si fuera real). Retención: últimos 5 + 1 mensual + 6 anuales — más agresiva que la "política inicial" de la tabla de arriba, que quedó como referencia conceptual sin actualizar contra lo que realmente se configuró.
+
+## Comandos de referencia (vzdump)
+
+Backup manual de una VM/LXC puntual, fuera del job programado, en modo `snapshot` (no detiene el guest):
+
+```bash
+# backup de una sola VM/LXC (reemplazar <VMID> por el real, ej. 102 = core01)
+vzdump <VMID> --storage Backups --mode snapshot --compress zstd
+
+# backup de todas las VMs/LXC, igual que el job programado pero a demanda
+vzdump --all --storage Backups --mode snapshot --mailto oscar@example.com
+```
+
+El job real de arriba ya cubre el caso de "todas, programado" — estos comandos sirven para un backup puntual fuera de horario (ej. antes de un cambio riesgoso).
 
 Restore desde `vzdump`, primero listando qué hay disponible en el storage:
 
 ```bash
-pvesm list backup-local
-qmrestore /mnt/pve/backup-local/dump/vzdump-qemu-101-*.vma.zst 199 --storage local-lvm
+pvesm list Backups
+qmrestore /mnt/pve/Backups/dump/vzdump-qemu-<VMID>-*.vma.zst 199 --storage local-lvm
 ```
 
 Usar un VMID distinto (`199` en el ejemplo) para restaurar en aislamiento y validar antes de reemplazar el original — ver [restore drill](#restore-drill).

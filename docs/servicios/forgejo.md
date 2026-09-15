@@ -7,7 +7,7 @@ sidebar_position: 5
 
 **Estado:** Actual — Forgejo 16.0.4 corriendo en `devops01`, sano (`/api/healthz` en pass), admin creado
 **Dónde corre:** VM `devops01` (vmid 104), `/srv/oscar/apps/forgejo/`
-**Sizing real de la VM:** 4 vCPU / 8 GB RAM / 60 GB disco — más grande que el 1-2 GB de ADR-010 a propósito, para dejar margen al runner de Forgejo Actions que va a compartir la misma VM
+**Sizing real de la VM:** 6 vCPU / 12 GB RAM / 60 GB disco — ampliada desde 4 vCPU/8 GB (valores iniciales, ver "Instalación" abajo) cuando se sumaron el CI Runner y Nexus a la misma VM; más grande que el 1-2 GB de ADR-010 a propósito, para dejar margen a los tres servicios que hoy comparten `devops01` (Forgejo, Forgejo Runner, Nexus)
 **Red/puertos:** `http://git.oscar.home` (sin puerto — nginx en `:80` hace de reverse proxy hacia `:3000` interno, ver "Reverse proxy" abajo), `git.oscar.home:2222` SSH (Git) — el 22 del host lo ocupa el sshd de la VM, así que Forgejo escucha SSH en 2222 hacia afuera aunque el contenedor lo sirva en el 22 interno
 **Persistencia:** SQLite + repos + attachments + config, todo en `/srv/oscar/data/forgejo` (bind mount, container corre `/data`)
 **Dependencia real:** todo lo anterior asume que el dispositivo que accede tiene su DNS apuntado a AdGuard (`192.168.0.93`) — ver "Nota sobre AdGuard" más abajo, no es DNS de toda la red hoy.
@@ -29,18 +29,20 @@ qm resize 104 scsi0 60G
 qm set 104 --cores 4 --memory 8192
 qm set 104 --ipconfig0 ip=192.168.0.151/24,gw=192.168.0.1
 qm start 104
+# ampliada más tarde a 6 vCPU / 12 GB al sumar el CI Runner y Nexus (ver "Sizing real" arriba):
+qm set 104 --cores 6 --memory 12288
 ```
 
 Setup base (paquetes, Docker) igual que [core01](../proxmox/crear-vm-core01.md), sin repetirlo acá.
 
-`.env`:
+`.env` (valores reales actuales — ya migrados a NPM como frente, ver "Reverse proxy" más abajo; si se instala de cero, arrancar con `FORGEJO_DOMAIN`/`FORGEJO_ROOT_URL` apuntando a la IP y migrar después, en ese orden, es más fácil de depurar):
 
 ```dotenv
 FORGEJO_VERSION=16.0.4
 FORGEJO_HTTP_PORT=3000
 FORGEJO_SSH_PORT=2222
-FORGEJO_DOMAIN=192.168.0.151
-FORGEJO_ROOT_URL=http://192.168.0.151:3000/
+FORGEJO_DOMAIN=git.oscar.home
+FORGEJO_ROOT_URL=http://git.oscar.home/
 ```
 
 `compose.yaml`:
@@ -123,7 +125,7 @@ Ejemplo: repo `oscar-gitops` con manifests k3s; Argo CD observa el repo y sincro
 - [x] `.env.example` sin secretos en Git — no aplica todavía: nada de esto vive en un repo Git, solo en la VM;
 - [x] credenciales reales fuera de Git (admin creado, credencial en Vaultwarden, rotada tras pasar por chat);
 - [ ] backup definido antes de cargar datos importantes (`forgejo dump`, ver abajo — no automatizado todavía);
-- [x] healthcheck o monitor de disponibilidad (`/api/healthz` responde `pass`; falta sumarlo a Uptime Kuma);
+- [x] healthcheck o monitor de disponibilidad (`/api/healthz` responde `pass`, sumado a Uptime Kuma como "Forgejo (devops01)");
 - [ ] métricas/logs incorporados cuando sea razonable;
 - [ ] procedimiento de actualización y rollback documentado.
 

@@ -730,6 +730,8 @@ services:
       - "3005:3000"
 ```
 
+`.env`: `HOMEPAGE_VERSION=v2.3.0`.
+
 ```bash
 docker compose up -d
 ```

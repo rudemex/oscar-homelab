@@ -48,6 +48,8 @@ services:
 
 `/:/hostroot:ro` es el mismo truco que se usó primero directo en Homepage (antes de existir Glances acá): sin este mount, el disco reportado es el filesystem interno del contenedor, no el disco real de `core01` — con el mount, Glances expone `/hostroot` como punto de montaje real y ahí sí coincide con `df -h /` del host.
 
+`.env`: `GLANCES_VERSION=4.5.6-full` — el tag `-full` no es opcional acá, es la variante de imagen que trae los plugins extra (sensores, Docker) que el resto de este setup necesita; el tag corto `4.5.6` sin sufijo es una imagen más chica sin esos plugins.
+
 ```bash
 docker compose up -d
 ```

@@ -57,30 +57,31 @@ El login de fábrica (`admin@example.com`/`changeme`) ya fue cambiado por una cu
 | Dominio | Forward a | Nota |
 |---|---|---|
 | `git.oscar.home` | `http://192.168.0.151:3000` ([Forgejo](./forgejo.md), `devops01`) | primer Proxy Host real, creado vía API (`POST /api/nginx/proxy-hosts`) |
+| `nexus.oscar.home` | `http://192.168.0.151:8081` ([Nexus](./nexus.md), `devops01`, UI/API) | segundo Proxy Host — verificado con `curl` devolviendo `200`. El registry Docker (`:8082`) no pasa por acá, se usa directo por IP (ver [Nexus](./nexus.md)) |
 
-Antes de esto, `git.oscar.home` (rewrite en AdGuard) apuntaba directo a `192.168.0.151` con un nginx standalone corriendo en la propia `devops01` haciendo de reverse proxy por hostname — se migró acá para no mantener dos reverse proxies en paralelo (ver la nota de duplicación que existió en el [backlog](../roadmap/backlog.md)). El rewrite de AdGuard para `git.oscar.home` ahora apunta a `192.168.0.156` (`core01`, donde corre NPM), no a `192.168.0.151` directo — NPM es quien resuelve a qué backend real mandar cada request.
+Antes de esto, `git.oscar.home` (rewrite en AdGuard) apuntaba directo a `192.168.0.151` con un nginx standalone corriendo en la propia `devops01` haciendo de reverse proxy por hostname — se migró acá para no mantener dos reverse proxies en paralelo (ver la nota de duplicación que existió en el [backlog](../roadmap/backlog.md)). El rewrite de AdGuard para `git.oscar.home` y `nexus.oscar.home` apunta a `192.168.0.156` (`core01`, donde corre NPM), no a `192.168.0.151` directo — NPM es quien resuelve a qué backend real mandar cada request.
+
+Las apps que corren en k3s (`led`, `argocd`, `ci-demo`, ...) **no** pasan por acá — tienen su propio reverse proxy (Traefik, nativo de k3s) y resuelven por un wildcard DNS directo a `k3s01`, a propósito, para no atar su disponibilidad a que `core01`/NPM esté arriba. Ver [DNS con AdGuard Home](../red/dns-adguard.md#wildcard-oscarhome-para-apps-de-k3s-2026-09-15).
 
 ## Configuración en Homepage
+
+Hecho — el widget nativo ya está sumado (quedó documentado acá como "pendiente del login" bastante después de que el login ya se había cambiado, mismo patrón de doc-desactualizada-no-infra-real que pasó más de una vez en este proyecto):
 
 ```yaml
 - Nginx Proxy Manager:
     href: http://192.168.0.156:81
-    description: Reverse proxy interno — pendiente completar el primer login para sumarle el widget
+    description: Reverse proxy interno — enruta git.oscar.home y nexus.oscar.home hacia devops01
     icon: nginx-proxy-manager.png
     siteMonitor: http://192.168.0.156:81
-```
-
-Una vez creada la cuenta real, sumar:
-
-```yaml
     widget:
       type: npm
       url: http://192.168.0.156:81
-      username: "usuario@real.com"
-      password: "contraseña real"
+      username: "<TU_EMAIL_ADMIN_NPM>"      # el mismo que usás para loguearte en :81
+      password: "<TU_PASSWORD_ADMIN_NPM>"   # cambiar por el real, nunca commitear el valor real
+      fields: ["enabled", "disabled", "total"]
 ```
 
-(comillas recomendadas, sobre todo en el usuario si tiene `@`).
+Comillas recomendadas en `username`/`password`, sobre todo si el email tiene `@`.
 
 ## Seguridad
 

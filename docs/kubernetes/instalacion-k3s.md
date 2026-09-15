@@ -52,13 +52,33 @@ sudo cat /etc/rancher/k3s/k3s.yaml
 ```
 
 ```bash
-# en tu equipo de administración
+# en tu equipo de administración — IP real de k3s01 en la red plana actual (192.168.0.x, no la VLAN de ejemplo)
 mkdir -p ~/.kube
-scp oscar@192.168.20.12:/etc/rancher/k3s/k3s.yaml ~/.kube/config
-sed -i '' 's/127.0.0.1/192.168.20.12/' ~/.kube/config   # macOS; en Linux: sed -i 's/127.0.0.1/.../'
+scp oscar@192.168.0.150:/etc/rancher/k3s/k3s.yaml ~/.kube/config
+sed -i '' 's/127.0.0.1/192.168.0.150/' ~/.kube/config   # macOS; en Linux: sed -i 's/127.0.0.1/.../'
 chmod 600 ~/.kube/config
 kubectl get nodes
 ```
+
+En la práctica, en `k3s01` se usa `sudo kubectl` directo en la VM en vez de llevarse el kubeconfig afuera — más simple para un solo nodo administrado por SSH, a costa de depender de SSH para cada `kubectl`. Llevarse el kubeconfig vale la pena si se administra seguido desde el equipo local.
+
+## Registry insecure (Nexus) — necesario si vas a pullear imágenes propias
+
+Si algún Deployment va a usar una imagen pusheada al [Docker registry de Nexus](../servicios/nexus.md) (HTTP, sin TLS), k3s necesita su propio archivo de configuración de registries — **es un sistema separado del `daemon.json` de Docker**, no lo hereda ni lo comparte:
+
+```yaml
+# /etc/rancher/k3s/registries.yaml — crear/editar y reiniciar k3s (systemctl restart k3s) para aplicar
+mirrors:
+  "<ip-devops01>:8082":
+    endpoint:
+      - "http://<ip-devops01>:8082"
+configs:
+  "<ip-devops01>:8082":
+    tls:
+      insecure_skip_verify: true
+```
+
+Sin esto, un pod con imagen de Nexus falla con `ImagePullBackOff` aunque el `docker push` desde la CI haya funcionado bien — es una capa de configuración completamente distinta a la de Docker.
 
 El kubeconfig de k3s por defecto tiene permisos de cluster-admin — tratarlo como un secreto (nunca en Git, ver [gestión de secretos](../seguridad/secretos.md)).
 

@@ -103,7 +103,7 @@ Cada uno costó un ciclo completo de push→esperar→fallar→diagnosticar. Que
 
 ## Ejemplo concreto
 
-Pipeline real y funcionando en [`ci-demo`](http://git.oscar.home/mdelgado/ci-demo): lint → test → build image → push Nexus. Ver [pipeline de referencia](../devops/pipeline-ejemplo.md) para el workflow completo y la etapa que todavía falta (actualizar tag en GitOps → Argo CD despliega — no encadenada todavía).
+Pipeline real y funcionando en [`ci-demo`](http://git.oscar.home/mdelgado/ci-demo), loop completo de punta a punta: lint → test → build image → push a Nexus → actualizar tag en `oscar-gitops` → Argo CD sincroniza y despliega solo. Ver [pipeline de referencia](../devops/pipeline-ejemplo.md) para el workflow completo.
 
 ## Checklist de despliegue
 
@@ -115,7 +115,7 @@ Pipeline real y funcionando en [`ci-demo`](http://git.oscar.home/mdelgado/ci-dem
 - [x] `.env.example` sin secretos en Git — no aplica, nada de esto vive en un repo Git, solo en la VM;
 - [ ] credenciales reales fuera de Git — el `RUNNER_TOKEN` vive en `.env` de la VM, no en Git, pero falta confirmarlo en Vaultwarden;
 - [ ] backup definido antes de cargar datos importantes;
-- [ ] healthcheck o monitor de disponibilidad — falta sumarlo a Uptime Kuma/Beszel;
+- [x]/[ ] healthcheck o monitor de disponibilidad — parcial: `beszel-agent` ya corre en `devops01` y cubre CPU/RAM/disco del host (tarjeta "Beszel devops01" en Homepage), pero no hay un chequeo específico del proceso del runner ni de la tasa de éxito de los jobs — falta sumarlo a Uptime Kuma si se quiere ese nivel de detalle;
 - [ ] métricas/logs incorporados cuando sea razonable;
 - [ ] procedimiento de actualización y rollback documentado.
 

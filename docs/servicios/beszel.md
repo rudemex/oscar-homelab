@@ -61,6 +61,8 @@ services:
       KEY: ${BESZEL_AGENT_KEY}
 ```
 
+`.env`: `BESZEL_VERSION=0.19.0` (misma versión en hub y agentes — el protocolo entre ambos no está garantizado estable entre versiones distintas, mantenerlas iguales en los tres hosts). `BESZEL_AGENT_KEY` es la clave pública del hub, generada por el propio hub en su primer arranque (visible en su UI, "Add System") — no se genera a mano, y es la misma para todos los agentes que se sumen (ver "Agentes registrados" abajo).
+
 ```bash
 docker compose up -d beszel   # el hub primero, solo
 ```

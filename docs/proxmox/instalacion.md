@@ -7,7 +7,7 @@ sidebar_position: 1
 
 Esta guía asume que el Dell OptiPlex 7060 se dedicará a Proxmox. Antes de comenzar, respaldar cualquier dato existente en sus SSD.
 
-Usar siempre la **versión estable actual de Proxmox VE** (descargada desde proxmox.com al momento de instalar) — no fijar acá un número de versión exacto, que quedaría desactualizado; validar contra las release notes oficiales de la versión que efectivamente se descargue. `oscar-core` corre hoy **Proxmox VE 9.2** (kernel 7.0.14-16-pve).
+Usar siempre la **versión estable actual de Proxmox VE** (descargada desde proxmox.com al momento de instalar) — no fijar acá un número de versión exacto, que quedaría desactualizado; validar contra las release notes oficiales de la versión que efectivamente se descargue. `oscar-core` corre hoy **Proxmox VE 9.2.20** (kernel 7.0.14-17-pve, verificado con `pveversion`).
 
 ## Pre-flight
 
