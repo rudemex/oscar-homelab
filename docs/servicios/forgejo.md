@@ -95,7 +95,7 @@ Cambio de arquitectura real: `git.oscar.home` (rewrite en AdGuard) ahora apunta 
 
 ## Nota sobre AdGuard (dependencia real de `git.oscar.home`)
 
-AdGuard (`192.168.0.93`) sigue arriba y respondiendo bien, pero **no es el DNS de toda la LAN** — no hay DHCP apuntándolo (se evitó a propósito: hacerlo DNS de red completa coincidió con una caída real de throughput, 600→20 Mbps, causa todavía sin diagnosticar). El método real usado en las máquinas de administración es una entrada en `/etc/hosts` (`192.168.0.156 git.oscar.home`), no el DNS del sistema — ver [Cómo resuelven hoy las máquinas de administración](../red/dns-adguard.md#cómo-resuelven-hoy-las-máquinas-de-administración). No es automático para cualquiera que se conecte a la LAN.
+AdGuard (`192.168.0.93`) sigue arriba y respondiendo bien, pero **no es el DNS de toda la LAN** — no hay DHCP apuntándolo (se evitó a propósito: hacerlo DNS de red completa coincidió con una caída real de throughput, 600→20 Mbps, causa todavía sin diagnosticar). El método real usado en las máquinas de administración es una entrada en `/etc/hosts` (`192.168.0.156 git.oscar.home`), no el DNS del sistema — ver [Cómo resuelven hoy los dispositivos](../red/dns-adguard.md#cómo-resuelven-hoy-los-dispositivos). No es automático para cualquiera que se conecte a la LAN.
 
 ## Secrets y variables de Actions: nivel usuario, no solo por repo
 

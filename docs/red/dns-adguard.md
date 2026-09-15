@@ -68,15 +68,36 @@ Hipótesis sin confirmar, en orden de sospecha:
 
 Mientras no se diagnostique, cada dispositivo que necesite `*.oscar.home` tiene dos formas de resolverlo sin tocar el DNS de toda la red — carga mínima comparada con ser el DNS de la LAN completa, no debería reproducir el problema:
 
-## Cómo resuelven hoy las máquinas de administración
+## Wildcard `*.oscar.home` para apps de k3s (2026-09-15)
 
-**Preferido: `/etc/hosts` por hostname puntual** (`sudo` para editar, en macOS/Linux):
+Los rewrites de AdGuard pasaron de una entrada por hostname a esto:
+
+```yaml
+rewrites:
+  - domain: git.oscar.home
+    answer: 192.168.0.156      # NPM (core01) — apps en Docker Compose
+    enabled: true
+  - domain: nexus.oscar.home
+    answer: 192.168.0.156
+    enabled: true
+  - domain: '*.oscar.home'
+    answer: 192.168.0.150      # Traefik (k3s01) — todo lo que corre en k3s
+    enabled: true
+```
+
+Motivo: cada app nueva desplegada vía Argo CD (`led`, `argocd`, `ci-demo`, y las que vengan) ya trae su propio `Ingress` en Traefik — el único paso manual que faltaba era agregar el rewrite en AdGuard cada vez. Con el wildcard, cualquier `Ingress` nuevo con host `<lo-que-sea>.oscar.home` resuelve solo, sin tocar AdGuard de nuevo. Los dominios explícitos (`git`, `nexus`, que van a `192.168.0.156`, no a k3s01) siguen ganando por especificidad — confirmado con `dig`, no es una suposición sobre cómo prioriza AdGuard.
+
+Deliberadamente **no** se unificó bajo NPM (ej. `*.oscar.home` → NPM → Traefik): Traefik ya es un reverse proxy completo con routing por host nativo de k3s, meter NPM en el medio sería un proxy delante de otro resolviendo lo mismo, y ataría la disponibilidad de las apps de k3s a que `core01`/NPM esté arriba — hoy son capas independientes (Docker y k3s), a propósito.
+
+## Cómo resuelven hoy los dispositivos
+
+**Wildcard + DNS del dispositivo apuntado a `192.168.0.93`** (+ fallback `1.1.1.1`) es ahora la opción más práctica para cualquier app de k3s — con el wildcard de arriba, resuelve *cualquier* `*.oscar.home` sin mantener una lista a mano y sin tocar nada de nuevo cuando se agrega una app. Sigue dependiendo de que AdGuard esté arriba y manda todo el tráfico DNS del dispositivo por él.
+
+**`/etc/hosts` por hostname puntual** sigue siendo válido para `git.oscar.home`/`nexus.oscar.home` (no cubiertos por el wildcard) o si no se quiere depender de AdGuard en absoluto:
 
 ```text
 192.168.0.151 git.oscar.home
 192.168.0.151 nexus.oscar.home
 ```
 
-Es lo que ya se usaba en la práctica para `argocd.oscar.home` y `led.oscar.home` (apuntando a `192.168.0.150`, `k3s01`) antes incluso de que existiera esta nota — se documenta acá recién ahora. Ventaja sobre cambiar el DNS del sistema: no depende de que AdGuard esté arriba en absoluto para esos hostnames puntuales, y no manda el resto del tráfico DNS de la máquina por AdGuard de paso.
-
-**Alternativa: DNS del sistema apuntado a `192.168.0.93`** (+ un fallback como `1.1.1.1`) — resuelve *cualquier* hostname de `*.oscar.home` sin mantener una lista a mano, pero depende de que AdGuard esté arriba y manda todo el tráfico DNS del dispositivo por él. Usar cuando hace falta resolver muchos hostnames nuevos seguido (ej. mientras se prueban servicios), no como default permanente.
+**Tailscale Split DNS** (pendiente de activar por el usuario en `login.tailscale.com/admin/dns` — nameserver custom `192.168.0.93`, restringido al dominio `oscar.home`): resuelve el mismo problema que las dos opciones de arriba pero para *todos* los dispositivos del tailnet a la vez, sin configurar el DNS a mano en cada uno — incluye el caso ya reportado de `argocd.oscar.home` no resolviendo en el celular vía Tailscale. Una sola configuración, no por dispositivo.
