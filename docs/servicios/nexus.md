@@ -22,7 +22,7 @@ sidebar_position: 4
 
 Todos creados vía la API REST (`POST /service/rest/v1/repositories/<formato>/<tipo>`), no a mano por la UI. Acceso anónimo deshabilitado durante el wizard de primer login — confirmado que **todos** los repos (incluido el proxy de npm, que en teoría solo cachea algo público) devuelven `401` sin credenciales.
 
-**Pendiente real (solo por UI, sin API disponible):** cleanup policy para `docker-hosted` — el endpoint REST de cleanup policies devuelve `404` en esta versión (probado `v1` y `beta`, y no aparece en el propio swagger). Se arma a mano: **Administration → Repository → Cleanup Policies**, formato `docker`, criterio de antigüedad/último `pull`, y asignarla a `docker-hosted` en su configuración — sin esto, el blob store puede crecer sin límite (ver "Troubleshooting" abajo).
+**Hecho (por UI, sin API disponible):** cleanup policy para `docker-hosted` creada y asignada a mano — el endpoint REST de cleanup policies devuelve `404` en esta versión (probado `v1` y `beta`, no aparece en el swagger), así que no se pudo automatizar.
 
 ## Rol dentro de O.S.C.A.R.
 
@@ -48,7 +48,7 @@ Laboratorio: configurar npm proxy, apuntar un proyecto Node al registry interno,
 - [ ] healthcheck o monitor de disponibilidad — falta sumarlo a Uptime Kuma/Beszel;
 - [ ] métricas/logs incorporados cuando sea razonable;
 - [ ] procedimiento de actualización y rollback documentado;
-- [ ] **cleanup policy del repo Docker** — bloqueada por API (ver arriba), pendiente por UI.
+- [x] **cleanup policy del repo Docker** — creada y asignada por UI (bloqueada por API, ver arriba).
 
 ## Seguridad
 

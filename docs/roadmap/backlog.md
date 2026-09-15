@@ -17,7 +17,8 @@ sidebar_position: 2
 - **plataforma Git local + CI Runner + registry**: Forgejo 16.0.4 desplegado en `devops01` ([ADR-010](../arquitectura/decisiones-arquitectonicas.md#adr-010--forgejo-con-forgejo-actions-como-plataforma-git-local)), admin creado, `http://git.oscar.home` sin puerto vía [Nginx Proxy Manager](../servicios/nginx-proxy-manager.md#proxy-hosts-reales), CI Runner (`forgejo-runner` 13.1.0) **validado end-to-end** con un workflow real, y [Nexus 3.96.1](../servicios/nexus.md) con npm+Docker registry configurados — el pipeline `lint → test → build → push Nexus → GitOps → Argo CD` ya tiene todas sus piezas desplegadas y probadas individualmente, falta encadenarlas en un workflow real de un proyecto propio.
 - **Dos reverse proxies en paralelo**: se había armado un nginx standalone en `devops01` porque Nginx Proxy Manager (`core01`) parecía seguir con el login de fábrica — resultó que ya estaba cambiado, la doc estaba desactualizada. Consolidado en NPM, el nginx de `devops01` se bajó.
 - **acceso remoto tipo VPN**: [Tailscale](../red/acceso-remoto.md) desplegado — `core01` como subnet router de `192.168.0.0/24`, dispositivo y ruta aprobados. Ver [ADR-011](../arquitectura/decisiones-arquitectonicas.md#adr-011--tailscale-como-vpn-de-acceso-remoto).
-- **mirror de oscar-gitops en Forgejo**: mirror de solo lectura activo (pull cada 10 min desde GitHub), Argo CD sigue leyendo del origen real en GitHub sin cambios. Ver [ADR-012](../arquitectura/decisiones-arquitectonicas.md#adr-012--forgejo-como-mirror-de-solo-lectura-de-oscar-gitops-no-origen).
+- **oscar-gitops migrado a Forgejo como origen real**: se pasó del mirror de solo lectura a origen real — Argo CD (`root-app` y `oscar-led-controller`) lee `repoURL: http://git.oscar.home/mdelgado/oscar-gitops.git`, GitHub queda como copia secundaria sincronizada a mano. Requirió una entrada custom en CoreDNS (`git.oscar.home` no resolvía dentro del cluster) y un Secret de credenciales dedicado (token de solo lectura, no la cuenta admin). Ver [ADR-012](../arquitectura/decisiones-arquitectonicas.md#adr-012--forgejo-como-mirror-de-solo-lectura-de-oscar-gitops-no-origen).
+- **relay SMTP**: Brevo + `boky/postfix` en `core01`, validado con envío real. La autenticación fallaba por un bug del contenedor (volúmenes anónimos acumulando credenciales viejas entre reinicios, no un problema de la cuenta de Brevo) — ver [Relay SMTP](../servicios/smtp-relay.md).
 
 ## Decisiones pendientes
 
@@ -26,7 +27,6 @@ sidebar_position: 2
 - gestor de secretos;
 - ubicación final de Home Assistant;
 - proveedor/backends de IA;
-- **relay SMTP**: proveedor elegido (Brevo) y relay desplegado (`boky/postfix` en `core01`) — bloqueado en la autenticación real contra Brevo (`535` persistente incluso con la clave SMTP correcta y la IP autorizada); pendiente de resolver del lado de la cuenta de Brevo;
 - **AdGuard como DNS de toda la LAN**: pausado — coincidió con una caída real de throughput (600→20 Mbps) sin diagnosticar todavía, ver [DNS con AdGuard Home](../red/dns-adguard.md#incidente-sin-resolver-caída-de-throughput-al-usarlo-como-dns-de-red). Mientras tanto, `*.oscar.home` requiere `/etc/hosts` o DNS configurado a mano por dispositivo (las máquinas de administración ya usaban `/etc/hosts` para `argocd`/`led` desde antes, sin documentar).
 
 ## Mejoras futuras
