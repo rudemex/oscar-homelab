@@ -57,6 +57,22 @@ Proxmox ya está instalado, con **cuatro VMs/LXC** arriba (`core01`, `devops01`,
 | ci-demo | k3s en `k3s01` (namespace `oscar-lab`) | Actual | app mínima (Node.js) que existe para validar el pipeline completo, no para servir tráfico real — cada push a `main` corre lint → test → build → push a Nexus → actualiza el tag en `oscar-gitops` → Argo CD la redespliega sola. Publicada en `ci-demo.oscar.home` (Traefik). Ver [Pipeline de ejemplo](../devops/pipeline-ejemplo.md). |
 | oscar-led-controller | k3s en `k3s01` (namespace `oscar-lab`) | Actual, pod `0/1` hoy | refleja el estado de salud de O.S.C.A.R. en una tira LED física conectada a un ESP32 — el pod real puede aparecer `Unhealthy`/`0/1` cuando el ESP32 está físicamente apagado, no es una falla de la infraestructura de k3s. Publicado en `led.oscar.home` (Traefik). |
 
+## Capacidad real (medida, no nominal) — 2026-09-15
+
+`OSCAR_TARGET_ARCHITECTURE.md` (raíz del repo) marcaba un posible overcommit de RAM: 32.5 GB asignados nominalmente entre las 4 VMs/LXC contra 32 GB físicos del Dell. Medido de verdad vía `pvesh get .../status/current` (no supuesto por lo asignado), con CPU muestreada 3 veces espaciadas para no confundir un pico momentáneo con la realidad:
+
+| VM/LXC | RAM real | RAM asignada | CPU real | Disco real |
+|---|---:|---:|---:|---:|
+| `core01` | 3.51 GB | 8 GB (44%) | ~0% (idle) | 24 GB / 58 GB (41%) |
+| `k3s01` | 3.29 GB | 8 GB (41%) | ~0% (idle) | 25 GB / 58 GB (43%) |
+| `devops01` | 3.43 GB | 12 GB (29%) | ~0% (idle) | 6.2 GB / 58 GB (11%) |
+| `haos-18.2` | 1.42 GB | 4 GB (35%) | ~0% (idle) | — |
+| AdGuard (LXC) | 74 MB | 512 MB (15%) | ~0% (idle) | 0.82 GB / 1.9 GB |
+
+**Total real: ~11.7 GB usados sobre 32 GB físicos** — el overcommit es solo nominal, hay ~63% de RAM libre en uso real. Storage de Proxmox con el mismo margen: `local-lvm` (NVMe) al 9%, `Backups` (SATA) al 8.85%.
+
+**Hallazgo real, no esperado:** `core01`/`devops01`/`k3s01` tienen IP fija de verdad vía Cloud-Init (`ipconfig0`), pero **AdGuard (LXC 100) usa `ip=dhcp`** — su IP (`192.168.0.93`, hardcodeada en rewrites DNS, Tailscale y varios widgets de Homepage) depende de que el router siga devolviendo la misma IP por DHCP. No se confirmó todavía si existe una reserva DHCP para su MAC (`bc:24:11:1b:6b:54`) en el router — pendiente de decidir entre confirmar la reserva o pasar el LXC a IP estática, mismo criterio que las otras 3 VMs. Ver `OSCAR_TARGET_ARCHITECTURE.md` (raíz del repo, fuera del árbol de Docusaurus — no es una página del sitio).
+
 ## Dominio — en uso
 
 `oscarlab.ar` y `oscarlab.com.ar` están registrados (NIC Argentina, pagos — $25.500 y $8.500 ARS respectivamente) y delegados a Cloudflare. `oscarlab.com.ar` es el dominio primario: los 7 servicios reales ya tienen subdominio público protegido por Cloudflare Access — ver [Cloudflare Tunnel](../servicios/cloudflare-tunnel.md).
