@@ -5,7 +5,7 @@ sidebar_position: 6
 
 # CI Runner
 
-**Estado:** Actual — `forgejo-runner` v13.1.0 corriendo en `devops01`, registrado contra la instancia local de Forgejo (`Register`/`Declare` confirmados `200 OK` en los logs del servidor), sin validar todavía con un workflow real
+**Estado:** Actual — `forgejo-runner` v13.1.0 corriendo en `devops01`, **validado con un workflow real de punta a punta** (repo de prueba → push → job tomado por el runner → corrido en contenedor Docker efímero → `status: success`, repo de prueba borrado después)
 **Dónde corre:** VM `devops01`, `/srv/oscar/apps/forgejo-runner/`
 **Sizing real:** comparte la VM con Forgejo (6 vCPU / 12 GB totales tras la ampliación — ver [Forgejo / Git local](./forgejo.md))
 **Red/puertos:** `network_mode: host`, sale por HTTP a `127.0.0.1:3000` (Forgejo en la misma VM); no requiere panel público
@@ -62,7 +62,7 @@ services:
 
 El `command` registra solo la primera vez (`if [ ! -f /data/.runner ]`) — reinicios posteriores del contenedor saltan directo a `daemon` sin volver a registrarse. Label `docker:docker://node:20-bookworm` significa que los jobs corren en contenedores Docker efímeros (imagen `node:20-bookworm` como base), no directo sobre el host — mismo motivo por el que el socket Docker está montado.
 
-**Pendiente de validar:** correr un workflow real de punta a punta contra un repo de prueba — hoy solo está confirmado el registro (`Register`/`Declare` en los logs de Forgejo), no una ejecución real.
+**Validado:** repo `ci-smoke-test` creado vía API, workflow con un solo step (`echo`) en `.forgejo/workflows/test.yml`, push disparó el run automáticamente, pasó por `running` → `success` en ~20 segundos. Repo de prueba borrado después — mismo patrón que "Ideas de laboratorio" abajo.
 
 ## Rol dentro de O.S.C.A.R.
 

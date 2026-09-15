@@ -21,7 +21,7 @@ sidebar_position: 11
 
 ## Monitores reales configurados
 
-10 monitores HTTP, chequeo cada 60s, apuntando a la IP LAN real de cada servicio (no al hostname público) para medir el backend directo y no depender de Cloudflare Access en el camino — cubre todo lo que el inventario marca como "Actual" excepto Kuma mismo (ver "nadie vigila al vigilante" más abajo). **Pendiente detectado:** los monitores de `oscar-led-controller` (id 11) y Argo CD (id 12) existen en Kuma pero no están en esta tabla ni en el grupo "Servicios" de la status page — quedaron fuera de este barrido, sumarlos es la misma receta que Forgejo abajo.
+11 monitores HTTP, chequeo cada 60s, apuntando a la IP LAN real de cada servicio (no al hostname público) para medir el backend directo y no depender de Cloudflare Access en el camino — cubre todo lo que el inventario marca como "Actual" excepto Kuma mismo (ver "nadie vigila al vigilante" más abajo). **Pendiente detectado:** los monitores de `oscar-led-controller` (id 11) y Argo CD (id 12) existen en Kuma pero no están en esta tabla ni en el grupo "Servicios" de la status page — quedaron fuera de este barrido, sumarlos es la misma receta que Forgejo/Nexus abajo.
 
 | Monitor | URL | Nota |
 |---|---|---|
@@ -35,12 +35,13 @@ sidebar_position: 11
 | Home Assistant | `http://192.168.0.195:80` | VM 101 — **no** el 8123 típico de otras instalaciones; esta usa el puerto 80, se descubrió por error al asumir el default |
 | Cloudflare Tunnel | `http://192.168.0.156:20241/ready` | endpoint de salud propio de `cloudflared`, expuesto porque corre en `network_mode: host` |
 | Forgejo | `http://192.168.0.151:3000/api/healthz` | en `devops01`, no en `core01`; medido por IP+puerto igual que el resto, no por `git.oscar.home` |
+| Nexus | `http://192.168.0.151:8081/service/rest/v1/status` | en `devops01`; sin monitor para el CI Runner (`forgejo-runner`) — no expone ningún endpoint HTTP propio sin sumarle config de métricas aparte |
 
 Se armaron vía la API de socket.io (paquete `uptime-kuma-api`, no la REST API — Kuma no tiene una para crear monitores, el API Key propio de Kuma solo sirve para el endpoint de métricas de Prometheus, no para esto).
 
 ## Status page
 
-Existe una status page en `/status/oscar` con los 10 monitores agrupados en "Servicios" — no es solo para verla directamente, es lo que consume el [widget de Uptime Kuma en Homepage](./homepage.md#widgets-nativos-datos-en-vivo-en-la-tarjeta): ese widget lee de una status page (por `slug`), no de la lista de monitores directo.
+Existe una status page en `/status/oscar` con los 11 monitores agrupados en "Servicios" — no es solo para verla directamente, es lo que consume el [widget de Uptime Kuma en Homepage](./homepage.md#widgets-nativos-datos-en-vivo-en-la-tarjeta): ese widget lee de una status page (por `slug`), no de la lista de monitores directo.
 
 Notas técnicas si se vuelve a tocar por API (`uptime-kuma-api` v1.x contra este Kuma 2.5.4, hay más de un bug de compatibilidad de versión):
 
