@@ -60,7 +60,7 @@ Proxmox ya está instalado, con **cuatro VMs/LXC** arriba (`core01`, `devops01`,
 
 ## Capacidad real (medida, no nominal) — 2026-09-15
 
-`OSCAR_FINAL_INFRASTRUCTURE.md` (raíz del repo, fuente de verdad de arquitectura — el `OSCAR_TARGET_ARCHITECTURE.md` original quedó deprecado el 2026-09-17) marcaba un posible overcommit de RAM: 32.5 GB asignados nominalmente entre las 4 VMs/LXC contra 32 GB físicos del Dell. Medido de verdad vía `pvesh get .../status/current` (no supuesto por lo asignado), con CPU muestreada 3 veces espaciadas para no confundir un pico momentáneo con la realidad:
+`OSCAR_FINAL_INFRASTRUCTURE.md` (raíz del repo, fuente de verdad de arquitectura — reemplazó a un `OSCAR_TARGET_ARCHITECTURE.md` anterior, deprecado y luego eliminado el 2026-09-17) marcaba un posible overcommit de RAM: 32.5 GB asignados nominalmente entre las 4 VMs/LXC contra 32 GB físicos del Dell. Medido de verdad vía `pvesh get .../status/current` (no supuesto por lo asignado), con CPU muestreada 3 veces espaciadas para no confundir un pico momentáneo con la realidad:
 
 | VM/LXC | RAM real | RAM asignada | CPU real | Disco real |
 |---|---:|---:|---:|---:|
