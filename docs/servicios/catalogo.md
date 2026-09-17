@@ -116,6 +116,8 @@ Ya contemplado en otro lado, **no repetido acá** para no duplicar: `MinIO` (S3,
 
 **Descartadas (2026-09-17):** `Immich`, `Jellyfin`, `Trilium Notes`, `Vikunja` y `Linkding` se evaluaron y el usuario decidió no sumarlas — queda anotado acá para no volver a proponerlas de nuevo más adelante como si fueran hallazgos nuevos.
 
+**Orden de prioridad confirmado (2026-09-17), para cuando se retome cada una** (no son parte del build activo — ver Fase 10 del plan de reorganización, `~/.claude/plans/quizzical-discovering-lerdorf.md`, o el equivalente que esté vigente): 1) `Karakeep` primero; 2) Docuseal, Nextcloud, Paperless-ngx, Firefly III sin orden fijo entre sí; 3) `Garage` o `MinIO` para storage — decisión pendiente, no desplegar los dos; 4) observabilidad avanzada mucho más adelante (Loki, Alertmanager, VictoriaMetrics o Prometheus para retención larga, Thanos — este último "muchísimo más adelante"); 5) `Ollama` recién con hardware adecuado, no en el Dell actual.
+
 | App | Qué hace | Necesidad real / qué reemplazaría | Esfuerzo | Dónde |
 |---|---|---|---|---|
 | [Docuseal](https://www.docuseal.com/) | Firma electrónica de documentos (PDF/Word), campos drag-and-drop, plantillas, auditoría | Alternativa a DocuSign/HelloSign — firmar sin depender de un tercero | Medio — 3 servicios (app + Postgres + Redis) | k3s, `oscar-tools` |
