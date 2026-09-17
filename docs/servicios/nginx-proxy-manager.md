@@ -58,6 +58,7 @@ El login de fábrica (`admin@example.com`/`changeme`) ya fue cambiado por una cu
 |---|---|---|
 | `git.oscar.home` | `http://192.168.0.151:3000` ([Forgejo](./forgejo.md), `devops01`) | primer Proxy Host real, creado vía API (`POST /api/nginx/proxy-hosts`) |
 | `nexus.oscar.home` | `http://192.168.0.151:8081` ([Nexus](./nexus.md), `devops01`, UI/API) | segundo Proxy Host — verificado con `curl` devolviendo `200`. El registry Docker (`:8082`) no pasa por acá, se usa directo por IP (ver [Nexus](./nexus.md)) |
+| `portainer.oscar.home` | `https://192.168.0.156:9443` ([Portainer](./portainer.md), `core01`, mismo host que NPM) | tercer Proxy Host, `ssl_forced: false` a propósito — el lado público sigue siendo HTTP puro (`http://portainer.oscar.home`, nunca `https://`), NPM habla HTTPS con Portainer del otro lado. Pedir `https://` desde el cliente rompe con `SSL routines: tlsv1 unrecognized name` porque el puerto 443 de NPM no tiene certificado configurado para ese hostname |
 
 Antes de esto, `git.oscar.home` (rewrite en AdGuard) apuntaba directo a `192.168.0.151` con un nginx standalone corriendo en la propia `devops01` haciendo de reverse proxy por hostname — se migró acá para no mantener dos reverse proxies en paralelo (ver la nota de duplicación que existió en el [backlog](../roadmap/backlog.md)). El rewrite de AdGuard para `git.oscar.home` y `nexus.oscar.home` apunta a `192.168.0.156` (`core01`, donde corre NPM), no a `192.168.0.151` directo — NPM es quien resuelve a qué backend real mandar cada request.
 

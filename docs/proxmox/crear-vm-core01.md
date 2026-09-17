@@ -51,19 +51,28 @@ qm clone 9000 102 --name core01 --full
 # 2. Asignar la IP fija real (red plana hoy, sin VLANs — ver nota arriba)
 qm set 102 --ipconfig0 ip=192.168.0.156/24,gw=192.168.0.1
 
-# 3. Inyectar tu clave pública (contenido de ~/.ssh/id_ed25519.pub en TU computadora, no en Proxmox)
+# 3. DNS — apuntar a AdGuard con fallback, no dejar el default de la imagen
+#    (bug real encontrado el 2026-09-16: core01 se creó con 8.8.8.8 fijo y
+#    nunca se corrigió hasta que Homepage necesitó resolver *.oscar.home por
+#    primera vez, meses después — ningún contenedor del host podía resolver
+#    git.oscar.home/nexus.oscar.home hasta entonces)
+qm set 102 --nameserver "192.168.0.93 1.1.1.1"
+
+# 4. Inyectar tu clave pública (contenido de ~/.ssh/id_ed25519.pub en TU computadora, no en Proxmox)
 qm set 102 --sshkey ~/.ssh/id_ed25519.pub
 
-# 4. Ajustar sizing al de esta página (ver "Sizing inicial" arriba)
+# 5. Ajustar sizing al de esta página (ver "Sizing inicial" arriba)
 qm set 102 --cores 2 --memory 8192
 
-# 5. Habilitar autostart — si no, la VM no arranca sola cuando reinicia oscar-core
+# 6. Habilitar autostart — si no, la VM no arranca sola cuando reinicia oscar-core
 #    (ver "Autostart de VMs" en operacion.md — encontrado como bug real, no estaba seteado)
 qm set 102 --onboot 1
 
-# 6. Iniciar
+# 7. Iniciar
 qm start 102
 ```
+
+**Si la VM ya existe** (como pasó con `core01`, creada antes de que este paso existiera en la guía): el `--nameserver` de Cloud-Init solo aplica en el primer boot. Corregir a mano en `/etc/netplan/50-cloud-init.yaml` (`nameservers.addresses`) y `netplan apply` — no alcanza con `qm set` después de que la VM ya arrancó una vez.
 
 Esperar unos segundos y validar que arrancó y que el guest agent responde:
 

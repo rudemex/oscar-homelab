@@ -80,6 +80,9 @@ rewrites:
   - domain: nexus.oscar.home
     answer: 192.168.0.156
     enabled: true
+  - domain: portainer.oscar.home
+    answer: 192.168.0.156
+    enabled: true
   - domain: '*.oscar.home'
     answer: 192.168.0.150      # Traefik (k3s01) — todo lo que corre en k3s
     enabled: true
@@ -93,11 +96,12 @@ Deliberadamente **no** se unificó bajo NPM (ej. `*.oscar.home` → NPM → Trae
 
 **Wildcard + DNS del dispositivo apuntado a `192.168.0.93`** (+ fallback `1.1.1.1`) es ahora la opción más práctica para cualquier app de k3s — con el wildcard de arriba, resuelve *cualquier* `*.oscar.home` sin mantener una lista a mano y sin tocar nada de nuevo cuando se agrega una app. Sigue dependiendo de que AdGuard esté arriba y manda todo el tráfico DNS del dispositivo por él.
 
-**`/etc/hosts` por hostname puntual** sigue siendo válido para `git.oscar.home`/`nexus.oscar.home` (no cubiertos por el wildcard) o si no se quiere depender de AdGuard en absoluto:
+**`/etc/hosts` por hostname puntual** sigue siendo válido para `git.oscar.home`/`nexus.oscar.home`/`portainer.oscar.home` (no cubiertos por el wildcard) o si no se quiere depender de AdGuard en absoluto — apuntan a `192.168.0.156` (NPM en `core01`), no a `devops01` directo, desde que se migraron detrás de NPM:
 
 ```text
-192.168.0.151 git.oscar.home
-192.168.0.151 nexus.oscar.home
+192.168.0.156 git.oscar.home
+192.168.0.156 nexus.oscar.home
+192.168.0.156 portainer.oscar.home
 ```
 
 **Descartado a propósito: Tailscale Split DNS.** Resolvería lo mismo para cualquier dispositivo del tailnet sin configurar DNS a mano en cada uno, incluido el acceso remoto desde el celular — pero el objetivo acá es explícitamente **DNS por nombre dentro de la LAN, no acceso desde afuera**, así que no aporta nada sobre el wildcard de arriba para este caso de uso y suma una dependencia (Tailscale) que no hace falta. Queda anotado por si en algún momento sí se busca resolver el acceso remoto (que sigue roto para `*.oscar.home` vía Tailscale, caso reportado con el celular).
