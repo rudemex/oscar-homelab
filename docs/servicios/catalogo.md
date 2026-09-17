@@ -112,17 +112,31 @@ El objetivo no es maximizar la cantidad de logos del dashboard; es maximizar lo 
 
 Investigación de qué más tendría sentido traer al homelab (disparada por un repaso de [railway.app/templates](https://railway.com/templates) — la mayoría de lo que ahí aparece es tooling de desarrollo específico de Railway, no aplicable acá; esta lista es más amplia que solo lo que aparece ahí). Es una lista de **candidatos para evaluar**, no un compromiso de implementación — pasan por el mismo [criterio de adopción](#criterio-de-adopción) de arriba antes de instalarse.
 
-Ya contemplado en otro lado, **no repetido acá** para no duplicar: `MinIO` (S3, ya en la tabla de arriba como Laboratorio), `Paperless-ngx` y `Karakeep` (gestión documental / bookmarking, ya en `OSCAR_TARGET_ARCHITECTURE.md` sección 24, "apps en evaluación").
-
 **Descartadas (2026-09-17):** `Immich`, `Jellyfin`, `Trilium Notes`, `Vikunja` y `Linkding` se evaluaron y el usuario decidió no sumarlas — queda anotado acá para no volver a proponerlas de nuevo más adelante como si fueran hallazgos nuevos.
 
-**Orden de prioridad confirmado (2026-09-17), para cuando se retome cada una** (no son parte del build activo — ver Fase 10 del plan de reorganización, `~/.claude/plans/quizzical-discovering-lerdorf.md`, o el equivalente que esté vigente): 1) `Karakeep` primero; 2) Docuseal, Nextcloud, Paperless-ngx, Firefly III sin orden fijo entre sí; 3) `Garage` o `MinIO` para storage — decisión pendiente, no desplegar los dos; 4) observabilidad avanzada mucho más adelante (Loki, Alertmanager, VictoriaMetrics o Prometheus para retención larga, Thanos — este último "muchísimo más adelante"); 5) `Ollama` recién con hardware adecuado, no en el Dell actual.
+### Stirling PDF, Paperless-ngx y Nextcloud no son redundantes entre sí
+
+Los tres tocan "documentos", pero cada uno responde una pregunta distinta — no compiten entre sí, así que no hace falta elegir uno solo, y aprobar uno no implica los otros:
+
+| App | Pregunta que responde | Ejemplo |
+|---|---|---|
+| **Stirling PDF** (ya aprobada, Fase 8) | "Quiero *hacer algo* con este PDF" | convertir, OCR puntual, merge, comprimir, vía API |
+| **Paperless-ngx** (evaluación) | "Quiero *guardar y encontrar* mis documentos" | archivo, clasificación, OCR, búsqueda full-text |
+| **Nextcloud** (evaluación) | "Quiero mi propia *nube*" | archivos, sync, compartir, Office online |
+
+Por eso Stirling PDF ya está aprobada sola, sin que eso implique instalar Paperless-ngx o Nextcloud: resuelve una tarea puntual y sin estado (herramienta), no acumula archivos/documentos propios como los otros dos.
+
+### Karakeep — candidata ascendida, con una dirección de arquitectura real (2026-09-17)
+
+De las candidatas en evaluación, `Karakeep` (bookmarking con full-text + búsqueda semántica, OCR, etiquetado/resumen con LLM) pasa a ser la primera en consideración, por delante de Docuseal/Nextcloud/Paperless-ngx/Firefly III — no por sí sola, sino por cómo encaja con la dirección que está tomando la [capa de IA de O.S.C.A.R.](../ia/vision-general.md#oscar-ai--searxng--karakeep--n8n--open-webui-candidato-de-arquitectura): junto con SearXNG (ya aprobada) y n8n (ya desplegado) formaría la capa de "conocimiento" que alimenta a Open WebUI (también ya aprobada) como front-end único. Ver el diagrama en esa página — sigue siendo candidato de arquitectura, no una decisión tomada, pero es la razón real detrás de subir a Karakeep en la cola.
+
+### Tabla de candidatos (sin Karakeep y sin Paperless-ngx, ya tratados arriba)
 
 | App | Qué hace | Necesidad real / qué reemplazaría | Esfuerzo | Dónde |
 |---|---|---|---|---|
 | [Docuseal](https://www.docuseal.com/) | Firma electrónica de documentos (PDF/Word), campos drag-and-drop, plantillas, auditoría | Alternativa a DocuSign/HelloSign — firmar sin depender de un tercero | Medio — 3 servicios (app + Postgres + Redis) | k3s, `oscar-tools` |
 | [Nextcloud](https://nextcloud.com/) | Sync/share de archivos, calendario, contactos, edición colaborativa | Reemplaza Google Drive/Dropbox — el único candidato de esta lista con volumen de datos real y creciente | Alto — PHP+DB+caché, más pesado que el resto de esta lista junta | Docker Compose, `core01` (o VM propia si crece) |
-| [Garage](https://garagehq.deuxfleurs.fr/) | Storage S3-compatible, pensado para clusters chicos/homelab (Rust, footprint bajo) | Responde lo mismo que MinIO pero sin el peso de MinIO — vale compararlos antes de elegir cuál de los dos, no los dos | Bajo | Docker Compose, `core01` |
+| [Garage](https://garagehq.deuxfleurs.fr/) | Storage S3-compatible, pensado para clusters chicos/homelab (Rust, footprint bajo) | Responde lo mismo que MinIO pero sin el peso de MinIO — vale compararlos antes de elegir cuál de los dos, no los dos (ver "Decisiones futuras de plataforma" abajo) | Bajo | Docker Compose, `core01` |
 | [Firefly III](https://www.firefly-iii.org/) | Finanzas personales — presupuesto, categorización de gastos, reportes | Ninguna herramienta hoy cubre esto | Bajo-medio — app + DB | Docker Compose |
 
 **Criterio de adopción aplicado a las dos más fuertes** (las que el usuario recordaba específicamente):
@@ -130,6 +144,17 @@ Ya contemplado en otro lado, **no repetido acá** para no duplicar: `MinIO` (S3,
 - **Docuseal** — (1) firmar documentos sin depender de un SaaS de terceros; (2) nada hoy resuelve esto; (3) PDFs/Word originales + metadata de firmas en Postgres — dato real, no recreable si se pierde; (4) sí, backup de Postgres + del volumen de documentos, mismo criterio que cualquier servicio con estado real (ver [estrategia 3-2-1](../backup-dr/estrategia-321.md)); (5) healthcheck HTTP simple; (6) Postgres + Redis nuevos si no se reusan los que ya corren en `core01`/`k3s`; (7) sí, stateless en config — el estado real (documentos firmados) necesita su propio backup, no alcanza con reconstruir desde Git.
 - **Nextcloud** — (1) sync/share de archivos sin depender de Google/Dropbox; (2) nada hoy resuelve esto — es el hueco más real de la lista; (3) archivos de usuario reales, potencialmente mucho volumen, crece sin techo claro; (4) sí, y es el más importante de toda la lista — perder esto es perder archivos personales reales, no una config reconstruible; (5) healthcheck HTTP + espacio en disco disponible; (6) PHP+DB+caché, la pieza más pesada de mantener actualizada de toda la lista; (7) no del todo — la config sí, los archivos de usuario no, por diseño (son el objetivo del servicio, no un efecto secundario).
 
-Docuseal y Nextcloud son también las únicas dos de esta lista depurada con datos de usuario genuinos e irreemplazables — a diferencia de casi todo lo demás en este catálogo, que es reconstruible desde Git. Antes de instalar cualquiera de las dos, la estrategia de backup off-site (todavía pendiente, ver [estado actual](../arquitectura/estado-actual.md#backups--parcialmente-resuelto)) deja de ser "sería bueno tenerla" y pasa a ser un requisito real.
+Docuseal y Nextcloud son también las únicas dos de esta tabla con datos de usuario genuinos e irreemplazables — a diferencia de casi todo lo demás en este catálogo, que es reconstruible desde Git. Antes de instalar cualquiera de las dos, la estrategia de backup off-site (todavía pendiente, ver [estado actual](../arquitectura/estado-actual.md#backups--parcialmente-resuelto)) deja de ser "sería bueno tenerla" y pasa a ser un requisito real.
+
+## Decisiones futuras de plataforma (no son apps para instalar)
+
+A diferencia de la sección de arriba, esto **no es una lista de candidatos a desplegar** — son elecciones de motor/tecnología que en algún momento van a hacer falta, cada una resuelve lo mismo que otra alternativa de la misma lista, nunca se suman las dos. Separado a propósito (2026-09-17) para que no se lea como "eventualmente hay que instalar todo esto":
+
+- **Storage S3:** `Garage` o `MinIO` — no ambos.
+- **Motor de métricas de largo plazo:** `VictoriaMetrics` o `Thanos`, solo si la retención corta de Prometheus (la que se instala en la Fase 5 del plan de reorganización) deja de alcanzar — revisita esa elección, no la reemplaza de entrada. `Thanos` en particular, "mucho más adelante" — no es una prioridad cercana ni siquiera dentro de este bloque.
+- **Logs:** `Loki`, si en algún momento hace falta agregación de logs más allá de `docker logs`/`kubectl logs` directo.
+- **Alertas:** `Alertmanager`, recién cuando Prometheus/Grafana ya estén dando señal real y haga falta enrutar alertas en vez de solo mirar dashboards.
+
+`Ollama` queda aparte de este bloque (es una app, no una decisión de motor) — sigue en la tabla principal como Laboratorio, gateado a que exista hardware adecuado, no el Dell actual.
 
 Minecraft y Counter-Strike 2 no están en esta tabla a propósito: no son servicios de infraestructura, viven en su propia sección — ver [servidores de juegos](../juegos/vision-general.md).
