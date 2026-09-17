@@ -13,7 +13,7 @@ sidebar_position: 28
 
 ## Por qué existe, y su límite de uso deliberado
 
-No estaba en `OSCAR_TARGET_ARCHITECTURE.md` — se sumó aparte porque no había ninguna forma de ver contenedores/logs de `core01` y `devops01` en un solo lugar sin saltar de SSH en SSH. Ni Beszel ni Uptime Kuma ni el futuro Grafana cubren eso: son observabilidad de métricas/disponibilidad, no una consola de contenedores.
+No está en `OSCAR_FINAL_INFRASTRUCTURE.md` (raíz del repo, fuente de verdad de arquitectura) — se sumó aparte porque no había ninguna forma de ver contenedores/logs de `core01` y `devops01` en un solo lugar sin saltar de SSH en SSH. Ni Beszel ni Uptime Kuma ni el futuro Grafana cubren eso: son observabilidad de métricas/disponibilidad, no una consola de contenedores.
 
 **Regla de uso, a propósito:** Portainer acá es **solo para mirar** — estado de contenedores, logs, reinicios puntuales de algo que se colgó. Toda la config real (qué imagen, qué puerto, qué volumen) sigue viviendo en los `compose.yaml` versionados en Git, igual que siempre. No se despliegan ni editan stacks desde la UI de Portainer — si algo se cambia ahí en vez de en Git, la próxima vez que alguien mire el repo pensando que es la fuente de verdad, no va a coincidir con la realidad. Es una decisión de disciplina operativa, no una restricción técnica (es la misma cuenta admin la que podría hacerlo) — vale la misma lógica que ya se aplicó con Portainer en el resto del proyecto: todo reproducible desde Git.
 

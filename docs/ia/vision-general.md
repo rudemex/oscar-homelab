@@ -20,24 +20,40 @@ flowchart TB
   AUTO --> GIT[Git]
 ```
 
-## OSCAR AI — SearXNG + Karakeep + n8n → Open WebUI (candidato de arquitectura)
+## OSCAR AI — capacidades, no el recorrido técnico de una request (candidato de arquitectura)
 
-Idea de arquitectura (2026-09-17, todavía candidato — no una decisión tomada) que surge de combinar tres piezas ya aprobadas o candidatas por separado, no pensadas originalmente como un conjunto: [SearXNG](../servicios/catalogo.md) (Fase 8, búsqueda privada), `Karakeep` (candidata ascendida, ver [catálogo de servicios](../servicios/catalogo.md#karakeep--candidata-ascendida-con-una-dirección-de-arquitectura-real-2026-09-17) — bookmarking con full-text + búsqueda semántica, OCR, etiquetado/resumen con LLM) y [n8n](../servicios/n8n.md) (ya desplegado). Las tres alimentando a [Open WebUI](../servicios/catalogo.md) (Fase 8) como front-end único:
+Arquitectura candidata (2026-09-17, refinada — todavía candidata, no una decisión tomada) para lo que puede llegar a ser "OSCAR AI": describe **qué puede hacer**, no el camino que sigue una request puntual. Combina piezas ya aprobadas ([SearXNG](../servicios/catalogo.md) y [Open WebUI](../servicios/catalogo.md), Fase 8), una ya desplegada ([n8n](../servicios/n8n.md)) y una candidata ascendida (`Karakeep`, ver [catálogo de servicios](../servicios/catalogo.md#karakeep--candidata-ascendida-con-una-dirección-de-arquitectura-real-2026-09-17)):
 
 ```mermaid
 flowchart TB
-  AI[OSCAR AI] --> SEARX[SearXNG]
-  AI --> KARA[Karakeep]
-  AI --> N8N[n8n]
+  LLM[LLM providers<br/>OpenAI / Anthropic / otros] --> WEBUI[Open WebUI]
+  SEARX[SearXNG] --> WEBUI
+  KARA[Karakeep] --> WEBUI
+  N8N[n8n] --> WEBUI
   SEARX --> INET[Internet]
   KARA --> KNOW[Knowledge]
-  N8N --> AUTO[Automation]
-  INET --> WEBUI[Open WebUI]
-  KNOW --> WEBUI
-  AUTO --> WEBUI
+  N8N --> ACT[Actions]
+  ACT --> HAOS[HAOS]
+  ACT --> APIS[OSCAR APIs]
+  ACT --> INFRA[Infra]
 ```
 
-Lo que hace esto interesante frente a sumar Karakeep como un bookmarking manager suelto: Karakeep ya trae OCR + resumen/etiquetado vía LLM + búsqueda semántica de fábrica — es decir, ya es "agent-friendly" sin adaptarlo, encaja directo como la pieza de "memoria/conocimiento" que hoy no existe en ningún lado de O.S.C.A.R. (SearXNG cubre "buscar en Internet", n8n cubre "ejecutar workflows", pero nada cubre "recordar/indexar lo que ya se encontró o guardó"). No cambia el estado de aprobación de Karakeep (sigue en evaluación, ver [catálogo](../servicios/catalogo.md#candidatos-evaluados-no-decididos-todavía)) — es la razón por la que subió de prioridad frente a Docuseal/Nextcloud/Paperless-ngx/Firefly III, no una implementación decidida.
+Roles:
+
+```text
+Open WebUI = interfaz
+LLM APIs   = razonamiento
+SearXNG    = búsqueda externa
+Karakeep   = conocimiento guardado
+n8n        = acciones / herramientas
+HAOS       = hogar / IoT
+```
+
+Lo que hace a Karakeep interesante frente a sumarlo como un bookmarking manager suelto: ya trae OCR + resumen/etiquetado vía LLM + búsqueda semántica de fábrica — es decir, ya es "agent-friendly" sin adaptarlo, encaja directo como la pieza de "memoria/conocimiento" que hoy no existe en ningún lado de O.S.C.A.R. (SearXNG cubre "buscar en Internet", n8n cubre "ejecutar workflows", pero nada cubre "recordar/indexar lo que ya se encontró o guardó").
+
+**Salvedad, importante:** esto es arquitectura conceptual — `Karakeep` **sigue sin estar aprobado para instalar** (ver [catálogo](../servicios/catalogo.md#candidatos-evaluados-no-decididos-todavía)), participa del diagrama sin que eso implique desplegarlo ahora. Es la razón por la que subió de prioridad frente a Docuseal/Nextcloud/Paperless-ngx/Firefly III, no una implementación decidida.
+
+Esta sección es la fuente de verdad de la arquitectura de OSCAR AI — `OSCAR_FINAL_INFRASTRUCTURE.md` (raíz del repo) la referencia, no la duplica con criterio propio.
 
 ## Niveles de autonomía
 
