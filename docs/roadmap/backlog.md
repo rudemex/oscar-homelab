@@ -33,7 +33,7 @@ sidebar_position: 2
 - gestor de secretos;
 - ubicación final de Home Assistant;
 - proveedor/backends de IA;
-- **`dns02` (Pi Zero W) como segunda instancia de AdGuard**: hoy el DNS secundario del DHCP es `1.1.1.1` (Cloudflare) como fallback — funciona, pero no da redundancia real de bloqueo/resolución local si el AdGuard del Dell se cae. El diseño completo (primario en `network01`, secundario en el Dell) tampoco se ejecutó — depende de aprovisionar las Raspberry Pi (Fase 2/3 del plan de reorganización).
+- **AdGuard primario real en `network01` (Pi 3)**: hoy el DNS primario sigue siendo el AdGuard del Dell (`192.168.0.93`) y el secundario es `1.1.1.1` (Cloudflare) — son roles provisorios. El diseño real es AdGuard en `network01` (Pi 3) como primario, y el del Dell pasando a secundario — depende de aprovisionar las Raspberry Pi (Fase 2/3/4 del plan de reorganización). La Pi Zero W no tiene rol de DNS — es `edge01` (sensores/GPIO), un error de una versión vieja del plan (`OSCAR_TARGET_ARCHITECTURE.md`, deprecado) que quedó dando vueltas y ya se corrigió.
 - **Querylog de AdGuard no se está flusheando a disco**: la resolución real funciona (confirmado de varias formas), pero `querylog.json` no reflejó tráfico real reciente tras los reinicios del servicio del 18/9 — puede afectar las estadísticas de la UI, no la resolución. Sin diagnosticar todavía.
 
 ## Mejoras futuras

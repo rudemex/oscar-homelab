@@ -84,7 +84,7 @@ dns:
 Con la causa raíz corregida, se activó — dejó de ser una decisión pendiente. Antes de tocar el router:
 
 - **Backup de la config del router** (TP-Link Archer, `System Tools → Backup & Restore → Backup`) — hecho, guardado por el usuario, para poder hacer rollback si hiciera falta. El panel del router es una SPA (Vue.js) con login encriptado por RSA del lado del cliente, sin API documentada — el cambio se hizo a mano por la UI, no por script, a propósito (no hay forma segura de automatizarlo sin herramienta de navegador).
-- **Cambio real**: `Advanced → Network → DHCP Server` — DNS primario `192.168.0.93`, DNS secundario `1.1.1.1` (fallback real si AdGuard se cae, ya que el DNS secundario propio del plan de reorganización — `dns02` en la Pi Zero W — todavía no existe).
+- **Cambio real**: `Advanced → Network → DHCP Server` — DNS primario `192.168.0.93` (Dell), DNS secundario `1.1.1.1` (fallback real si AdGuard se cae). **Roles provisorios**, no el diseño final: cuando `network01` (Pi 3) exista, pasa a primario y el del Dell a secundario de verdad — ver `OSCAR_FINAL_INFRASTRUCTURE.md` sección 12/13. La Pi Zero W no tiene ningún rol de DNS (es `edge01`, sensores).
 - Recursos del LXC subidos antes del cambio, con margen real: 2 vCPU / 1 GB (antes 1 vCPU / 512 MB).
 
 **Validado con tráfico real, no solo pruebas sintéticas** (un dispositivo real — Mac del usuario — renovando DHCP y navegando normal):
