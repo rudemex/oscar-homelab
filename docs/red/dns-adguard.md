@@ -5,7 +5,7 @@ sidebar_position: 4
 
 # DNS con AdGuard Home
 
-**Estado:** Actual — corriendo como LXC (`vmid 100`, tag `adblock;community-script`) en `oscar-core`, instalado vía el script comunitario de [community-scripts.github.io/ProxmoxVE](https://community-scripts.github.io/ProxmoxVE/). El servicio DNS en sí responde bien (confirmado con `dig @192.168.0.93`), pero **no es el DNS de toda la LAN**: `dhcp.enabled: false` en su config, y no hay ninguna configuración en el router apuntando su DHCP a AdGuard — se evitó a propósito porque hacerlo coincidió con una caída real de throughput (600→20 Mbps), causa **todavía sin diagnosticar**. Hasta resolver eso, cada dispositivo que necesite resolver `*.oscar.home` tiene que apuntar su DNS a mano a `192.168.0.93` — no es automático.
+**Estado:** Actual — corriendo como LXC (`vmid 100`, tag `adblock;community-script`) en `oscar-core`, instalado vía el script comunitario de [community-scripts.github.io/ProxmoxVE](https://community-scripts.github.io/ProxmoxVE/). Desde el 2026-09-18 **es el DNS de toda la LAN de verdad**: el router (TP-Link Archer, DHCP propio — `dhcp.enabled: false` en AdGuard, no se usa su DHCP interno) reparte `192.168.0.93` como DNS primario y `1.1.1.1` como secundario a cualquier dispositivo con DNS automático. La caída de throughput que había hecho revertir esto una vez ya está diagnosticada y corregida (ver más abajo) — no fue un problema de capacidad ni de red, fue un `ratelimit` de AdGuard configurado demasiado bajo para el volumen de toda una casa.
 
 Reemplaza a Pi-hole en el rol de DNS/adblock de O.S.C.A.R. — cubre lo mismo (bloqueo por DNS, resolución de nombres locales, visibilidad de consultas) con una UI que a algunos les resulta más cómoda y con DNS-over-HTTPS/TLS nativo si se necesita salir cifrado hacia el resolver upstream. La elección fue simplemente cuál instaló el script comunitario primero — no hay una razón técnica fuerte para preferir uno sobre otro a esta escala; si en algún momento se quiere volver a Pi-hole, el rol y el diseño de abajo aplican igual.
 
@@ -79,9 +79,23 @@ dns:
   ratelimit_subnet_len_ipv4: 24
 ```
 
-Con esto, el camino para reintentar AdGuard como DNS de toda la LAN vía DHCP queda desbloqueado — sigue siendo una decisión aparte (no se activó todavía), pero ya no es "probemos y veamos qué pasa", es un cambio con causa raíz entendida y corregida.
+## Activado de verdad: DHCP de red completa (2026-09-18)
 
-Mientras no se decida activar DHCP de red completa, cada dispositivo que necesite `*.oscar.home` tiene dos formas de resolverlo sin tocar el DNS de toda la red:
+Con la causa raíz corregida, se activó — dejó de ser una decisión pendiente. Antes de tocar el router:
+
+- **Backup de la config del router** (TP-Link Archer, `System Tools → Backup & Restore → Backup`) — hecho, guardado por el usuario, para poder hacer rollback si hiciera falta. El panel del router es una SPA (Vue.js) con login encriptado por RSA del lado del cliente, sin API documentada — el cambio se hizo a mano por la UI, no por script, a propósito (no hay forma segura de automatizarlo sin herramienta de navegador).
+- **Cambio real**: `Advanced → Network → DHCP Server` — DNS primario `192.168.0.93`, DNS secundario `1.1.1.1` (fallback real si AdGuard se cae, ya que el DNS secundario propio del plan de reorganización — `dns02` en la Pi Zero W — todavía no existe).
+- Recursos del LXC subidos antes del cambio, con margen real: 2 vCPU / 1 GB (antes 1 vCPU / 512 MB).
+
+**Validado con tráfico real, no solo pruebas sintéticas** (un dispositivo real — Mac del usuario — renovando DHCP y navegando normal):
+
+- El DHCP reparte bien lo configurado — confirmado con `ipconfig getpacket en0` mostrando `domain_name_server: {192.168.0.93, 1.1.1.1}`.
+- **Gotcha real encontrado en el camino**: el Mac de prueba tenía DNS fijado a mano (`8.8.8.8`) en **dos** servicios de red distintos (`Wi-Fi` y, más sorprendente, un adaptador `USB 10/100/1000 LAN 4` sin uso real pero con prioridad más alta en el orden de servicios de macOS) — un override manual en cualquiera de los dos gana por sobre el DNS que reparte el DHCP, sin ningún error visible. Hubo que limpiar los dos (`networksetup -setdnsservers <servicio> Empty`) para que el sistema realmente usara lo nuevo. Si un dispositivo "no toma" el DNS nuevo del router, esta es la primera causa a revisar — no asumir que el router está mal configurado.
+- Con el override limpio: `doubleclick.net` resolvió `0.0.0.0` (bloqueado por el filtro de AdGuard) — confirmación real de que el tráfico pasa por ahí, no solo que el DNS "apunta bien" en teoría.
+- Durante una sesión de navegación normal: **+397 paquetes UDP entrantes** al LXC (medido en `/proc/net/snmp`), CPU y RAM sin moverse de prácticamente cero (81 MB de 1 GB). La carga real de un dispositivo navegando es insignificante para los recursos asignados — nunca fue un problema de capacidad.
+- **Pendiente, no bloqueante**: el querylog persistente (`/opt/AdGuardHome/data/querylog.json`) no se actualizó con las consultas reales de esta prueba, solo con pruebas sintéticas anteriores — la resolución en sí funciona (confirmado por las tres formas de arriba), pero el archivo de log parece no estar flusheando a disco después de los reinicios del servicio de hoy. Revisar si persiste — puede afectar las estadísticas que se ven en la UI de AdGuard, no la resolución real.
+
+Mientras se sigue de cerca la primera semana de uso real (rollout gradual — cada dispositivo lo toma recién al renovar su lease DHCP, no todos de golpe), cada dispositivo que necesite `*.oscar.home` puntualmente sigue teniendo dos formas de resolverlo sin depender de que el DNS de red esté sano:
 
 ## Wildcard `*.oscar.home` para apps de k3s (2026-09-15)
 
