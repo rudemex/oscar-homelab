@@ -24,7 +24,9 @@ flowchart TB
 
 Arquitectura candidata (2026-09-17, refinada — todavía candidata, no una decisión tomada) para lo que puede llegar a ser "OSCAR AI": describe **qué puede hacer**, no el camino que sigue una request puntual. Combina piezas ya aprobadas ([SearXNG](../servicios/catalogo.md) y [Open WebUI](../servicios/catalogo.md), Fase 8), una ya desplegada ([n8n](../servicios/n8n.md)) y una candidata ascendida (`Karakeep`, ver [catálogo de servicios](../servicios/catalogo.md#karakeep--candidata-ascendida-con-una-dirección-de-arquitectura-real-2026-09-17)):
 
-**[Ver el diagrama interactivo (Archify) →](pathname:///diagrams/oscar-ai-architecture.html)** — pan/zoom, tema claro/oscuro, y trazado de relaciones. Generado a partir de `static/diagrams/src/oscar-ai.architecture.json`, validado (`showcase`, 9/9 checks, 0 errores).
+<iframe src="/diagrams/oscar-ai-architecture.html" style={{width: '100%', height: '680px', border: '1px solid var(--ifm-color-emphasis-300)', borderRadius: '8px'}} title="Diagrama de arquitectura OSCAR AI"></iframe>
+
+Interactivo (pan/zoom, tema claro/oscuro, trazado de relaciones) — [abrirlo en pantalla completa →](pathname:///diagrams/oscar-ai-architecture.html). Generado a partir de `static/diagrams/src/oscar-ai.architecture.json`, validado (`showcase`, 9/9 checks, 0 errores).
 
 Roles:
 
