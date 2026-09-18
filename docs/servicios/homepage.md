@@ -21,13 +21,54 @@ Dashboard de servicios: una página con links y estado de cada servicio del home
 mkdir -p /srv/oscar/apps/homepage/config
 ```
 
-`config/services.yaml` (un grupo por sección, servicios reales con su URL):
+`config/services.yaml` (un grupo por sección, servicios reales con su URL). **Reorganizado (2026-09-18)** — ver el porqué en ["Grupo Monitoreo: por qué existe"](#grupo-monitoreo-por-qué-existe) más abajo; acá va la forma actual, con un par de tarjetas representativas por grupo (la real tiene ~19):
 
 ```yaml
+- Kubernetes (k3s01 / Argo CD):
+    - Argo CD:
+        href: http://argocd.oscar.home
+        description: GitOps del cluster k3s01 — sincroniza desde Forgejo (git.oscar.home)
+        icon: argo-cd.png
+        siteMonitor: http://argocd.oscar.home
+        widget:
+          type: argocd
+          url: http://argocd.oscar.home
+          key: <secret del token, fuera de Git>
+          fields: ["healthy", "degraded", "synced", "outOfSync"]
+    - OSCAR LED Controller:
+        href: https://led.oscarlab.com.ar
+        description: Refleja el estado de salud de O.S.C.A.R. en la tira LED física
+        icon: wled.png
+        siteMonitor: http://led.oscar.home/health
 - Infraestructura:
+    - AdGuard Home:
+        href: http://<IP-del-LXC-100>
+        description: Filtra DNS y bloquea publicidad — DNS de toda la red desde el 2026-09-18
+        icon: adguard-home.png
+        siteMonitor: http://<IP-del-LXC-100>
+    - Cloudflare Tunnel:
+        href: https://one.dash.cloudflare.com/<account-id>/networks/tunnels
+        description: Publica los servicios sin abrir puertos
+        icon: cloudflare.png
+        widget:
+          type: cloudflared
+          accountid: <secret, fuera de Git>
+          tunnelid: <secret, fuera de Git>
+          key: <secret, fuera de Git>
+    - Nginx Proxy Manager:
+        href: http://<IP-de-core01>:81
+        description: Reverse proxy interno — enruta git.oscar.home y nexus.oscar.home hacia devops01
+        icon: nginx-proxy-manager.png
+        siteMonitor: http://<IP-de-core01>:81
+        widget:
+          type: npm
+          url: http://<IP-de-core01>:81
+          username: <secret, fuera de Git>
+          password: <secret, fuera de Git>
+- Monitoreo (CPU · RAM · Disco):
     - Proxmox (oscar-core):
         href: https://<IP-de-oscar-core>:8006
-        description: Hypervisor — administra todas las VMs y contenedores
+        description: El hipervisor físico completo — CPU/RAM/disco de las 4 VMs/LXC juntas
         icon: proxmox.png
         siteMonitor: https://<IP-de-oscar-core>:8006
         widget:
@@ -38,14 +79,37 @@ mkdir -p /srv/oscar/apps/homepage/config
           node: oscar-core
     - ProxMenux Monitor:
         href: https://monitor.oscarlab.com.ar
-        description: CPU, RAM y disco del hipervisor en vivo
+        description: El mismo hipervisor de la tarjeta de arriba, otra herramienta — vista alternativa, no datos distintos
         icon: proxmox.png
         siteMonitor: http://<IP-de-oscar-core>:8008
-    - AdGuard Home:
-        href: http://<IP-del-LXC-100>
-        description: Filtra DNS y bloquea publicidad en toda la red
-        icon: adguard-home.png
-        siteMonitor: http://<IP-del-LXC-100>
+    - Glances:
+        href: http://<IP-de-core01>:61208
+        description: Solo core01 en detalle (procesos, red, contenedores) — esta es la fuente del header de arriba de la página
+        icon: glances.png
+        siteMonitor: http://<IP-de-core01>:61208
+        widget:
+          type: glances
+          url: http://<IP-de-core01>:61208
+          version: 4
+          metric: info
+          chart: false
+    - Beszel core01:
+        href: https://beszel.oscarlab.com.ar
+        description: Solo core01 — mismo alcance que Glances, agente distinto
+        icon: beszel.png
+        siteMonitor: http://<IP-de-core01>:8090
+        widget:
+          type: beszel
+          url: http://<IP-de-core01>:8090
+          username: <secret, fuera de Git>
+          password: <secret, fuera de Git>
+          version: 2
+          systemId: <id de core01 en Beszel>
+          fields: ["cpu", "memory", "disk", "network"]
+    - Beszel devops01:
+        # mismo widget que arriba, systemId de devops01 — sin equivalente en Glances/Proxmox
+    - Beszel k3s01:
+        # mismo widget, systemId de k3s01 — sin equivalente en Glances/Proxmox
 - Servicios:
     - Uptime Kuma:
         href: https://kuma.oscarlab.com.ar
@@ -66,20 +130,56 @@ mkdir -p /srv/oscar/apps/homepage/config
         description: Gestor de contraseñas propio, compatible con Bitwarden
         icon: vaultwarden.png
         siteMonitor: https://vault.oscarlab.com.ar/alive
-    - Beszel:
-        href: https://beszel.oscarlab.com.ar
-        description: CPU, RAM y disco de core01 en tiempo real
-        icon: beszel.png
-        siteMonitor: http://<IP-de-core01>:8090
+    - Forgejo:
+        href: http://git.oscar.home
+        description: Git self-hosted — repos privados; origen real de oscar-gitops (Argo CD lee de acá)
+        icon: forgejo.png
+        siteMonitor: http://<IP-de-devops01>:3000/api/healthz
+    - Nexus:
+        href: http://nexus.oscar.home
+        description: Registry de artefactos — npm proxy y Docker registry privado
+        icon: nexus.png
+        siteMonitor: http://<IP-de-devops01>:8081/service/rest/v1/status
+    - Portainer:
+        href: http://portainer.oscar.home
+        description: Contenedores y logs de core01/devops01 en un panel - solo lectura/estado, no reemplaza a Git como fuente de la config
+        icon: portainer.png
+        siteMonitor: http://portainer.oscar.home
+    - MySpeed:
+        href: http://<IP-de-core01>:5216
+        description: Historial de velocidad de internet, tests automáticos cada tanto — no es CPU/RAM/disco, es ancho de banda
+        icon: myspeed.png
+        siteMonitor: http://<IP-de-core01>:5216
+        widget:
+          type: myspeed
+          url: http://<IP-de-core01>:5216
+          fields: ["ping", "download", "upload"]
 - Hogar:
     - Home Assistant:
-        href: http://<IP-de-VM-101>
+        href: https://ha.oscarlab.com.ar
         description: Automatización y control del hogar
         icon: home-assistant.png
         siteMonitor: http://<IP-de-VM-101>
+    - DVR Dahua:
+        href: https://<IP-del-DVR>
+        description: DVR de 4 canales — solo estado, sin video en el dashboard
+        icon: dahua.png
 ```
 
-El nombre del segundo grupo es **"Servicios"**, no "core01" — el hostname de la VM no le dice nada a nadie que no conozca el proyecto por dentro. Las descripciones dicen qué hace cada cosa en criollo, no una traducción literal del nombre técnico.
+El nombre de cada grupo describe el contenido en criollo, no el hostname técnico de lo que corre adentro (segundo grupo se llama "Servicios", no "core01"; el grupo nuevo se llama "Monitoreo (CPU · RAM · Disco)", no "Beszel" ni "observabilidad").
+
+### Grupo Monitoreo: por qué existe
+
+Antes de esta reorganización, las tarjetas de recursos (Proxmox, ProxMenux, Glances, Beszel) estaban repartidas entre "Infraestructura" y "Servicios" sin ningún criterio visible — nada en el dashboard explicaba qué alcance tenía cada una, así que parecían todas la misma información repetida 6 veces. No lo son: **cada una mide un recorte distinto**, y estaban simplemente mal agrupadas, no duplicadas de verdad:
+
+| Tarjeta | Qué mide | Redundante con |
+|---|---|---|
+| Proxmox (oscar-core) | El hipervisor completo — CPU/RAM/disco de las 4 VMs/LXC sumadas | ProxMenux (mismo dato, otra UI) |
+| ProxMenux Monitor | Exactamente lo mismo que Proxmox de arriba, herramienta distinta | Proxmox |
+| Glances | Solo `core01`, en detalle (también alimenta el header de arriba de la página) | Beszel core01 (mismo alcance, agente distinto) |
+| Beszel core01/devops01/k3s01 | Una tarjeta por VM, agente propio — `devops01` y `k3s01` no tienen equivalente en Glances ni en Proxmox/ProxMenux | Beszel core01 duplica a Glances; los otros dos no duplican nada |
+
+La solución no fue borrar tarjetas (ProxMenux sigue siendo redundante con Proxmox, pero sacarla es una decisión de la [Fase 9 del plan de reorganización](../roadmap/roadmap-general.md), no de esta reorganización visual) — fue agruparlas todas bajo un único nombre que dice qué son ("Monitoreo") y ponerle a cada tarjeta una `description` que aclara su alcance real (qué mide, y con qué otra tarjeta se superpone), para que la superposición sea visible en vez de confusa.
 
 Los links usan los dominios reales (vía [Cloudflare Tunnel](./cloudflare-tunnel.md)) cuando el servicio está publicado, o la IP LAN cuando no (Proxmox, AdGuard, Home Assistant — deliberadamente sin dominio, ver [exposición a Internet](../seguridad/exposicion-internet.md)). Cada tarjeta tiene:
 
@@ -309,11 +409,11 @@ Homepage carga `config/custom.css` automáticamente (se sirve en `/api/config/cu
 
 Los nombres de clase (`.service`, `.service-name`, `.service-description`, `.service-group-name`, `.widget-container`) salen del código fuente de Homepage (`src/components/services/item.jsx` y `group.jsx`), no de la documentación pública — no están listados en `docs/configs/custom-css-js.md`, hubo que revisar el repo directo.
 
-### Números de los widgets: más peso visual, un color de acento por grupo
+### Números de los widgets: más peso visual, un solo acento para todos los grupos
 
-Cada estadística de un widget nativo (los recuadros con un valor y una etiqueta abajo — "23%", "CPU", etc.) es un `.service-block` dentro de un `.service-container` (`src/components/services/widget/{block,container}.jsx` de Homepage) — sin nombre de clase propio para el valor y la etiqueta por separado, son simples `<div>` con clases utilitarias de Tailwind (`font-thin text-sm` el valor, `font-bold text-xs uppercase` la etiqueta). Por defecto se veían chicos y apagados contra la foto de fondo — para un widget cuya única razón de existir es mostrar un número real, que ese número no se lea bien es el peor resultado posible. Se le subió tamaño/peso al valor y se le dio a cada bloque un fondo sutil propio, en vez de flotar suelto contra la tarjeta.
+Cada estadística de un widget nativo (los recuadros con un valor y una etiqueta abajo — "23%", "CPU", etc.) es un `.service-block` dentro de un `.service-container` (`src/components/services/widget/{block,container}.jsx` de Homepage) — sin nombre de clase propio para el valor y la etiqueta por separado, son simples `<div>` con clases utilitarias de Tailwind (`font-thin text-sm` el valor, `font-bold text-xs uppercase` la etiqueta). Por defecto se veían chicos y apagados contra la foto de fondo — para un widget cuya única razón de existir es mostrar un número real, que ese número no se lea bien es el peor resultado posible. Se le subió tamaño/peso al valor (`.service-block > div:first-child { color: #ffffff !important; }`, más grande y en negrita) y se le dio a cada bloque un fondo sutil propio, en vez de flotar suelto contra la tarjeta.
 
-Los 3 grupos (Infraestructura, Servicios, Hogar) pasaron a tener cada uno su propio color de acento — cian, verde-agua, violeta, el mismo trío que ya usa el brillo del título, la aurora del fondo y las barras de CPU/RAM/disco del header — en vez de los 3 en el mismo celeste. Como Homepage no expone el nombre del grupo como atributo de datos, el color se asigna por posición (`#services > .services-group:nth-of-type(1|2|3) ...`) — funciona porque, sin tabs ni carrusel, los 3 grupos son hermanos apilados siempre en el mismo orden. Más abajo se explica cómo ese acento pasó a usarse también en las tarjetas y sus números, no solo en el nombre del grupo.
+**Corregido (2026-09-18):** un color de acento distinto por grupo (cian/verde-agua/violeta, asignado por posición vía `nth-of-type(1|2|3)`) se probó en su momento, pero **no quedó así** — el CSS que terminó en producción usa un único acento (blanco para el valor, cian para el nombre del grupo) para todos los grupos por igual, sin diferenciar por posición. Al pasar de 3 grupos a 5 (con la reorganización de "Monitoreo" de más abajo) un esquema de 3 colores fijos por posición hubiera dejado 2 grupos sin color propio o forzado a repetir — un acento único evita ese problema sin necesidad de mantener la lista de colores sincronizada con la cantidad de grupos.
 
 ### Rediseño de las tarjetas: "no van con el diseño de la homepage"
 
@@ -333,7 +433,7 @@ La solución: dejar `.service` (el `<li>`) completamente neutro — sin fondo, s
 .service-card {
   background: rgba(9, 13, 20, 0.45) !important;
   backdrop-filter: blur(14px);
-  border: 1px solid rgba(148, 163, 184, 0.18) !important;
+  border: none !important;
   border-radius: 0.5rem !important;
   padding: 0.9rem !important;
   transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
@@ -346,20 +446,7 @@ La solución: dejar `.service` (el `<li>`) completamente neutro — sin fondo, s
 
 (`border-radius` arrancó en `0.85rem`, bastante redondeado — se bajó a `0.5rem` después del primer feedback visual, "le sacaría un poco".)
 
-`background` semitransparente + `backdrop-filter: blur(14px)` es el mismo lenguaje "glass" que ya usa el header (al scrollear) y el buscador — antes las tarjetas eran una caja opaca sin relación con eso. Más padding (`0.9rem`, contra el `p-1` de 0.25rem que traía Homepage) resuelve el "muy chatas": las tarjetas sin widget (solo ícono+nombre+descripción, cortas desde que se sacó el `align-items: stretch`) ahora tienen aire real adentro en vez de sentirse apretadas contra el borde.
-
-El color de acento por grupo (cian/verde-agua/violeta) se extendió del nombre del grupo al **borde de cada tarjeta** y al **brillo del hover** — así una tarjeta de Infraestructura, Servicios o Hogar se siente parte de su sección, no una caja gris suelta que podría estar en cualquier lado:
-
-```css
-#services > .services-group:nth-of-type(1) .service-card { border-color: rgba(56, 189, 248, 0.3) !important; }
-#services > .services-group:nth-of-type(1) .service-card:hover {
-  border-color: rgba(56, 189, 248, 0.65) !important;
-  box-shadow: 0 6px 20px rgba(56, 189, 248, 0.18);
-}
-/* mismo patrón para nth-of-type(2) con verde-agua y nth-of-type(3) con violeta */
-```
-
-Y el mismo acento se usa para el **valor** de cada `.service-block` (`.service-block > div:first-child`), en vez de blanco genérico — el número de CPU de una tarjeta de Infraestructura sale cian, el de Servicios verde-agua, coherente con el resto del sitio (íconos de recursos del header, barras, brillo del título) en vez de un color sin relación con nada.
+`background` semitransparente + `backdrop-filter: blur(14px)` es el mismo lenguaje "glass" que ya usa el header (al scrollear) y el buscador — antes las tarjetas eran una caja opaca sin relación con eso. Más padding (`0.9rem`, contra el `p-1` de 0.25rem que traía Homepage) resuelve el "muy chatas": las tarjetas sin widget (solo ícono+nombre+descripción, cortas desde que se sacó el `align-items: stretch`) ahora tienen aire real adentro en vez de sentirse apretadas contra el borde. `transition` sigue listando `border-color` porque en algún momento hubo borde con color por grupo (ver nota de arriba) — quedó en la propiedad por si vuelve a usarse, aunque hoy `.service-card` no define ningún `border-color` propio (`border: none`).
 
 ### Masonry real, sin librerías
 

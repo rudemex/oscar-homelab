@@ -97,6 +97,16 @@ Con la causa raíz corregida, se activó — dejó de ser una decisión pendient
 
 Mientras se sigue de cerca la primera semana de uso real (rollout gradual — cada dispositivo lo toma recién al renovar su lease DHCP, no todos de golpe), cada dispositivo que necesite `*.oscar.home` puntualmente sigue teniendo dos formas de resolverlo sin depender de que el DNS de red esté sano:
 
+## Incidente menor: `systemd-resolved` de `core01` no volvía a usar AdGuard (2026-09-18)
+
+Tras los varios `systemctl restart AdGuardHome` del diagnóstico del `ratelimit` (arriba), `resolvectl status eth0` en `core01` mostraba `Current DNS Server: 1.1.1.1` aunque la config seguía teniendo `192.168.0.93` primero en la lista (`DNS Servers: 192.168.0.93 1.1.1.1`). `systemd-resolved` había marcado a AdGuard como no disponible durante uno de esos reinicios y no volvió a probarlo solo — quedó pegado en el fallback indefinidamente.
+
+**Síntoma real:** el contenedor de Homepage (que usa el DNS del host `core01` vía Docker embedded DNS, `127.0.0.11` → host) no podía resolver `portainer.oscar.home` (`Error: queryAaaa ENOTFOUND`), aunque AdGuard respondía perfecto si se lo consultaba directo (`dig +short portainer.oscar.home @192.168.0.93` → `192.168.0.156`). El problema nunca fue AdGuard ni la config — fue la selección en vivo de `systemd-resolved` en el host.
+
+**Fix:** `sudo systemctl restart systemd-resolved` en `core01` — fuerza a reevaluar los servidores configurados desde cero. Volvió a `Current DNS Server: 192.168.0.93` de inmediato, `portainer.oscar.home` resolvió tanto en el host como dentro del contenedor de Homepage sin más cambios.
+
+Si vuelve a pasar tras un reinicio de AdGuard: mismo fix, un `systemctl restart systemd-resolved` en el host afectado (no hace falta reiniciar Docker ni los contenedores).
+
 ## Wildcard `*.oscar.home` para apps de k3s (2026-09-15)
 
 Los rewrites de AdGuard pasaron de una entrada por hostname a esto:
