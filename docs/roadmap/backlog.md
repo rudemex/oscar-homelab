@@ -22,6 +22,8 @@ sidebar_position: 2
 - **autostart de VMs tras un reinicio del host**: `core01`, `k3s01` y `devops01` no tenían `onboot: 1` en Proxmox (solo Home Assistant lo tenía) — un reinicio de `oscar-core` las dejaba apagadas hasta encenderlas a mano, aunque Docker/k3s ya estuvieran bien configurados para autorecuperarse adentro. Corregido en las cuatro. Ver [Operación de Proxmox](../proxmox/operacion.md#autostart-de-vms-onboot).
 - **wildcard DNS para apps de k3s**: cada Ingress nuevo de Argo CD necesitaba un rewrite manual en AdGuard — reemplazado por un solo `*.oscar.home -> 192.168.0.150` (Traefik), cualquier app nueva resuelve sola. Ver [DNS con AdGuard Home](../red/dns-adguard.md#wildcard-oscarhome-para-apps-de-k3s-2026-09-15).
 - **500 falsos en Homepage** (Beszel devops01/k3s01, DVR Dahua): dos causas reales, ninguna era el servicio en sí — `siteMonitor` apuntando al puerto del agente de Beszel en vez del hub, y una incompatibilidad real entre el servidor HTTP del DVR y el parser estricto de Node. Ver [Homepage](../servicios/homepage.md#troubleshooting).
+- **Incidente real (2026-09-18): hang de la NIC física del Dell** (`e1000e`, "Detected Hardware Unit Hang") tumbó `core01` (interfaz virtual del host en mal estado, la VM seguía viva por dentro) y le hizo perder la IP al LXC de AdGuard — cortó `home.oscarlab.com.ar` y el resto de hostnames públicos vía `cloudflared`. Resuelto sin reiniciar la VM (reset de la interfaz `tap102i0`); AdGuard pasó a IP estática de una vez, cerrando el riesgo de abajo. Ver [estado actual](../arquitectura/estado-actual.md).
+- **Causa raíz del incidente de throughput de AdGuard, diagnosticada**: `ratelimit: 20` por subred — toda la LAN compartía 20 consultas DNS/segundo, se agotaba con varios dispositivos a la vez y las consultas de más se perdían en silencio (no era el ancho de banda real de internet). Confirmado con prueba propia (Python, UDP async, con control): subido a `ratelimit: 300`. Ver [DNS con AdGuard Home](../red/dns-adguard.md#incidente-de-throughput--diagnosticado-2026-09-18).
 
 ## Decisiones pendientes
 
@@ -30,7 +32,7 @@ sidebar_position: 2
 - gestor de secretos;
 - ubicación final de Home Assistant;
 - proveedor/backends de IA;
-- **AdGuard como DNS de toda la LAN**: pausado — coincidió con una caída real de throughput (600→20 Mbps) sin diagnosticar todavía, ver [DNS con AdGuard Home](../red/dns-adguard.md#incidente-sin-resolver-caída-de-throughput-al-usarlo-como-dns-de-red). Mientras tanto, `*.oscar.home` requiere `/etc/hosts` o DNS configurado a mano por dispositivo — un wildcard en AdGuard (`*.oscar.home -> 192.168.0.150`) ya elimina la necesidad de agregar una entrada por cada app nueva de k3s, pero el DNS del dispositivo sigue siendo manual, no de toda la red. Split DNS de Tailscale evaluado y descartado a propósito — el objetivo es DNS dentro de la LAN, no acceso remoto.
+- **AdGuard como DNS de toda la LAN vía DHCP**: la causa del incidente de throughput ya está diagnosticada y corregida (ver arriba) — el camino para reintentarlo está desbloqueado, pero activarlo de verdad sigue siendo una decisión aparte, no forzada por el diagnóstico. Mientras tanto, `*.oscar.home` requiere `/etc/hosts` o DNS configurado a mano por dispositivo — el wildcard en AdGuard (`*.oscar.home -> 192.168.0.150`) ya elimina la necesidad de agregar una entrada por cada app nueva de k3s, pero el DNS del dispositivo sigue siendo manual, no de toda la red. Split DNS de Tailscale evaluado y descartado a propósito — el objetivo es DNS dentro de la LAN, no acceso remoto.
 
 ## Mejoras futuras
 

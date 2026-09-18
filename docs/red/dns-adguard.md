@@ -57,16 +57,31 @@ nslookup example.com <IP-del-LXC-100>
 
 Registrar latencia, errores y volumen de consultas en observabilidad una vez que exista el stack de Prometheus/Grafana — ver [runbook de DNS caído](../runbooks/dns-caido.md) si el resolver deja de responder.
 
-## Incidente sin resolver: caída de throughput al usarlo como DNS de red
+## Incidente de throughput — diagnosticado (2026-09-18)
 
-Configurar el router para repartir AdGuard por DHCP a toda la LAN coincidió con una caída real de velocidad, 600→20 Mbps — se revirtió esa configuración (el router volvió a repartir su DNS de siempre) y se dejó anotado sin investigar a fondo. AdGuard como servicio sigue sano (`dig @192.168.0.93` resuelve bien, puerto 53 abierto) — el problema aparece específicamente al ponerlo como resolver de **toda la red simultáneamente**, no al consultarlo desde un dispositivo puntual.
+Configurar el router para repartir AdGuard por DHCP a toda la LAN había coincidido con una caída real de velocidad, 600→20 Mbps — se revirtió esa configuración y quedó anotado sin investigar a fondo (Fase 0 del plan de reorganización). Ya se diagnosticó la causa real.
 
-Hipótesis sin confirmar, en orden de sospecha:
-- el LXC 100 quedó con recursos (CPU/RAM) insuficientes para el volumen real de consultas de todos los dispositivos a la vez;
-- algo en el vSwitch/bridge de Proxmox se satura al concentrar tráfico DNS de toda la LAN por un solo LXC;
-- coincidencia con otra cosa (cambio de canal Wi-Fi, evento del ISP) no relacionada a AdGuard en sí.
+**Causa real: `ratelimit: 20` en la config de AdGuard, agrupado por subred (`ratelimit_subnet_len_ipv4: 24`) — toda la LAN comparte un límite de 20 consultas DNS por segundo.** Con AdGuard como DNS de un solo dispositivo, 20/s nunca se nota. Con toda la red apuntando ahí (varios dispositivos, cada carga de página disparando 10-30 consultas de golpe por los distintos dominios de CDN/trackers/fuentes), el límite se superaba todo el tiempo — las consultas por encima del límite se descartan en silencio (sin respuesta, sin log, no llegan ni al query log), lo que hace que todo *se sienta* lentísimo aunque el ancho de banda real de internet nunca haya bajado.
 
-Mientras no se diagnostique, cada dispositivo que necesite `*.oscar.home` tiene dos formas de resolverlo sin tocar el DNS de toda la red — carga mínima comparada con ser el DNS de la LAN completa, no debería reproducir el problema:
+**Cómo se confirmó** (con un script Python propio usando sockets UDP async — un primer intento con `dig` en background desde bash dio falsos positivos/negativos por contención de procesos del lado del cliente, se descartó tras fallar igual contra `1.1.1.1` como control):
+
+| Prueba | Resultado |
+|---|---|
+| 40 consultas simultáneas contra `1.1.1.1` (control) | 40/40 — el método de prueba es válido |
+| 40 consultas simultáneas contra AdGuard con `ratelimit: 300` | 40/40 |
+| 40 consultas simultáneas contra AdGuard con `ratelimit: 20` (valor original) | 19/40 — el resto se pierde sin respuesta |
+
+**Fix aplicado:** `ratelimit` subido de `20` a `300` (holgado para una LAN doméstica, sigue protegiendo contra abuso real). Config real hoy:
+
+```yaml
+dns:
+  ratelimit: 300
+  ratelimit_subnet_len_ipv4: 24
+```
+
+Con esto, el camino para reintentar AdGuard como DNS de toda la LAN vía DHCP queda desbloqueado — sigue siendo una decisión aparte (no se activó todavía), pero ya no es "probemos y veamos qué pasa", es un cambio con causa raíz entendida y corregida.
+
+Mientras no se decida activar DHCP de red completa, cada dispositivo que necesite `*.oscar.home` tiene dos formas de resolverlo sin tocar el DNS de toda la red:
 
 ## Wildcard `*.oscar.home` para apps de k3s (2026-09-15)
 
