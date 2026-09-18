@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "OSCAR AI",
+    "output": "oscar-ai-architecture.html",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    { "id": "llm", "type": "external", "label": "LLM Providers", "sublabel": "OpenAI / Anthropic / otros", "pos": [480, 40], "size": [220, 64] },
+    { "id": "webui", "type": "frontend", "label": "Open WebUI", "sublabel": "interfaz", "pos": [490, 190], "size": [200, 64] },
+    { "id": "searx", "type": "backend", "label": "SearXNG", "sublabel": "búsqueda externa", "pos": [120, 340], "size": [180, 64] },
+    { "id": "karakeep", "type": "backend", "label": "Karakeep", "sublabel": "candidato, no aprobado", "tag": "en evaluación", "pos": [490, 340], "size": [180, 64] },
+    { "id": "n8n", "type": "backend", "label": "n8n", "sublabel": "acciones / herramientas", "pos": [860, 340], "size": [180, 64] },
+    { "id": "internet", "type": "external", "label": "Internet", "pos": [120, 500], "size": [180, 60] },
+    { "id": "knowledge", "type": "database", "label": "Knowledge", "sublabel": "conocimiento guardado", "pos": [490, 500], "size": [180, 60] },
+    { "id": "haos", "type": "external", "label": "HAOS", "sublabel": "hogar / IoT", "pos": [720, 500], "size": [150, 60] },
+    { "id": "oscarapis", "type": "backend", "label": "OSCAR APIs", "pos": [890, 500], "size": [150, 60] },
+    { "id": "infra", "type": "cloud", "label": "Infra", "pos": [1060, 500], "size": [150, 60] }
+  ],
+  "connections": [
+    { "id": "llm-to-webui", "from": "llm", "to": "webui", "label": "razonamiento", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "labelDy": 24 },
+    { "id": "searx-to-webui", "from": "searx", "to": "webui", "label": "búsqueda", "fromSide": "top", "toSide": "left" },
+    { "id": "karakeep-to-webui", "from": "karakeep", "to": "webui", "label": "conocimiento", "variant": "dashed", "fromSide": "top", "toSide": "bottom" },
+    { "id": "n8n-to-webui", "from": "n8n", "to": "webui", "label": "acciones", "fromSide": "top", "toSide": "right" },
+    { "id": "searx-to-internet", "from": "searx", "to": "internet", "fromSide": "bottom", "toSide": "top" },
+    { "id": "karakeep-to-knowledge", "from": "karakeep", "to": "knowledge", "variant": "dashed", "fromSide": "bottom", "toSide": "top" },
+    { "id": "n8n-to-haos", "from": "n8n", "to": "haos", "label": "hogar / IoT", "fromSide": "bottom", "toSide": "top" },
+    { "id": "n8n-to-oscarapis", "from": "n8n", "to": "oscarapis", "fromSide": "bottom", "toSide": "top" },
+    { "id": "n8n-to-infra", "from": "n8n", "to": "infra", "fromSide": "bottom", "toSide": "top" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Interfaz y razonamiento", "items": ["Open WebUI es la única interfaz humana", "LLM Providers (OpenAI/Anthropic/otros) le dan el razonamiento detrás"] },
+    { "dot": "amber", "title": "Capacidades", "items": ["SearXNG: búsqueda externa hacia Internet", "Karakeep: conocimiento guardado — candidato, sin aprobar para instalar", "n8n: acciones/herramientas hacia HAOS, OSCAR APIs e Infra"] }
+  ]
+}

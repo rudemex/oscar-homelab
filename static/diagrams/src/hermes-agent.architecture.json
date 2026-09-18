@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Hermes Agent",
+    "subtitle": "Arquitectura conceptual — PoC, sin aprobar todavía",
+    "output": "hermes-agent-architecture.html",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    { "id": "usuario", "type": "external", "label": "Usuario", "pos": [465, 20], "size": [160, 56] },
+    { "id": "webui", "type": "frontend", "label": "Open WebUI", "pos": [320, 140], "size": [180, 60] },
+    { "id": "telegram", "type": "frontend", "label": "Telegram", "sublabel": "opcional, no en la PoC", "tag": "futuro", "pos": [580, 140], "size": [200, 60] },
+    { "id": "hermes", "type": "backend", "label": "Hermes Agent", "sublabel": "orquestador OSCAR", "pos": [400, 280], "size": [200, 70] },
+    { "id": "llm", "type": "external", "label": "LLMs", "sublabel": "razonamiento", "pos": [80, 440], "size": [150, 60] },
+    { "id": "searx", "type": "backend", "label": "SearXNG", "sublabel": "búsqueda", "pos": [280, 440], "size": [150, 60] },
+    { "id": "n8n", "type": "backend", "label": "n8n", "sublabel": "acciones", "pos": [480, 440], "size": [150, 60] },
+    { "id": "internet", "type": "external", "label": "Internet", "pos": [280, 590], "size": [150, 56] },
+    { "id": "haos", "type": "external", "label": "HAOS", "pos": [450, 590], "size": [120, 56] },
+    { "id": "gitops", "type": "backend", "label": "GitOps", "pos": [590, 590], "size": [120, 56] },
+    { "id": "oscarapis", "type": "backend", "label": "OSCAR APIs", "pos": [730, 590], "size": [150, 56] },
+    { "id": "prometheus", "type": "database", "label": "Prometheus", "pos": [1050, 260], "size": [170, 56] },
+    { "id": "kuma", "type": "database", "label": "Uptime Kuma", "pos": [1050, 330], "size": [170, 56] },
+    { "id": "grafana", "type": "database", "label": "Grafana", "sublabel": "disponibilidad", "pos": [1050, 400], "size": [170, 56] },
+    { "id": "forgejo", "type": "backend", "label": "Forgejo", "sublabel": "solo lectura", "pos": [1050, 470], "size": [170, 56] },
+    { "id": "k3s", "type": "cloud", "label": "k3s", "sublabel": "solo lectura", "pos": [1050, 540], "size": [170, 56] },
+    { "id": "karakeep", "type": "backend", "label": "Karakeep", "sublabel": "opcional, no aprobado", "tag": "futuro", "pos": [1050, 610], "size": [170, 56] }
+  ],
+  "connections": [
+    { "id": "usuario-webui", "from": "usuario", "to": "webui", "fromSide": "bottom", "toSide": "top" },
+    { "id": "usuario-telegram", "from": "usuario", "to": "telegram", "variant": "dashed", "fromSide": "bottom", "toSide": "top" },
+    { "id": "webui-hermes", "from": "webui", "to": "hermes", "variant": "emphasis", "fromSide": "bottom", "toSide": "top" },
+    { "id": "telegram-hermes", "from": "telegram", "to": "hermes", "variant": "dashed", "fromSide": "bottom", "toSide": "top" },
+    { "id": "hermes-llm", "from": "hermes", "to": "llm", "fromSide": "bottom", "toSide": "top" },
+    { "id": "hermes-searx", "from": "hermes", "to": "searx", "fromSide": "bottom", "toSide": "top" },
+    { "id": "hermes-n8n", "from": "hermes", "to": "n8n", "fromSide": "bottom", "toSide": "top" },
+    { "id": "searx-internet", "from": "searx", "to": "internet", "fromSide": "bottom", "toSide": "top" },
+    { "id": "n8n-haos", "from": "n8n", "to": "haos", "fromSide": "bottom", "toSide": "top" },
+    { "id": "n8n-gitops", "from": "n8n", "to": "gitops", "fromSide": "bottom", "toSide": "top" },
+    { "id": "n8n-oscarapis", "from": "n8n", "to": "oscarapis", "fromSide": "bottom", "toSide": "top" },
+    { "id": "hermes-prometheus", "from": "hermes", "to": "prometheus", "label": "observa", "fromSide": "right", "toSide": "left" },
+    { "id": "hermes-kuma", "from": "hermes", "to": "kuma", "fromSide": "right", "toSide": "left" },
+    { "id": "hermes-grafana", "from": "hermes", "to": "grafana", "fromSide": "right", "toSide": "left" },
+    { "id": "hermes-forgejo", "from": "hermes", "to": "forgejo", "fromSide": "right", "toSide": "left" },
+    { "id": "hermes-k3s", "from": "hermes", "to": "k3s", "fromSide": "right", "toSide": "left" },
+    { "id": "hermes-karakeep", "from": "hermes", "to": "karakeep", "variant": "dashed", "fromSide": "right", "toSide": "left" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Entrada", "items": ["Open WebUI es la interfaz de la PoC", "Telegram queda como segunda interfaz futura, no forma parte de la primera PoC"] },
+    { "dot": "amber", "title": "Razonamiento / búsqueda / acciones", "items": ["LLMs dan el razonamiento", "SearXNG busca hacia Internet", "n8n es el action broker — HAOS, GitOps y OSCAR APIs, nunca acceso directo"] },
+    { "dot": "rose", "title": "Observación (solo lectura)", "items": ["Prometheus, Uptime Kuma, Grafana, Forgejo y k3s: acceso de lectura directo", "Karakeep queda como integración futura, todavía sin aprobar"] }
+  ]
+}

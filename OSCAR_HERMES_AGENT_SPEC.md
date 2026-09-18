@@ -50,41 +50,11 @@ Open WebUI
 LLM
 ```
 
-La arquitectura objetivo es:
+La arquitectura objetivo:
 
-```text
-                         USUARIO
-                            │
-               ┌────────────┴────────────┐
-               │                         │
-          Open WebUI                 Telegram*
-               │                         │
-               └────────────┬────────────┘
-                            ▼
-                  ┌──────────────────┐
-                  │   HERMES AGENT   │
-                  │      OSCAR       │
-                  └────────┬─────────┘
-                           │
-       ┌───────────────────┼─────────────────────┐
-       │                   │                     │
-       ▼                   ▼                     ▼
-     LLMs               SearXNG                 n8n
-  Reasoning             Internet              Actions
-       │                                          │
-       │                           ┌──────────────┼──────────────┐
-       │                           ▼              ▼              ▼
-       │                         HAOS          GitOps        OSCAR APIs
-       │
-       ├──────────────► Prometheus
-       ├──────────────► Uptime Kuma
-       ├──────────────► Grafana / availability
-       ├──────────────► Forgejo
-       ├──────────────► k3s read-only
-       └──────────────► Karakeep*
-```
+**[Ver el diagrama interactivo (Archify) →](/diagrams/hermes-agent-architecture.html)** (o abrir localmente `static/diagrams/hermes-agent-architecture.html`) — pan/zoom, tema claro/oscuro, trazado de relaciones. Generado desde `static/diagrams/src/hermes-agent.architecture.json`, validado (`showcase`, 9/9 checks, 0 errores).
 
-`*` Opcional / futuro / todavía no aprobado para instalación.
+Resumen: Usuario → Open WebUI (Telegram queda como segunda interfaz opcional, no en la PoC) → Hermes Agent. Desde Hermes: razonamiento vía LLMs, búsqueda vía SearXNG (→ Internet), y acciones vía `n8n` como action broker (→ HAOS, GitOps, OSCAR APIs — nunca acceso directo). Por separado, Hermes tiene acceso de **solo lectura** directo a Prometheus, Uptime Kuma, Grafana/disponibilidad, Forgejo y k3s — categoría de relación distinta a la de razonamiento/búsqueda/acción. Karakeep queda marcado como integración futura, todavía sin aprobar.
 
 ---
 

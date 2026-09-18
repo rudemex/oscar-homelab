@@ -24,19 +24,7 @@ flowchart TB
 
 Arquitectura candidata (2026-09-17, refinada — todavía candidata, no una decisión tomada) para lo que puede llegar a ser "OSCAR AI": describe **qué puede hacer**, no el camino que sigue una request puntual. Combina piezas ya aprobadas ([SearXNG](../servicios/catalogo.md) y [Open WebUI](../servicios/catalogo.md), Fase 8), una ya desplegada ([n8n](../servicios/n8n.md)) y una candidata ascendida (`Karakeep`, ver [catálogo de servicios](../servicios/catalogo.md#karakeep--candidata-ascendida-con-una-dirección-de-arquitectura-real-2026-09-17)):
 
-```mermaid
-flowchart TB
-  LLM[LLM providers<br/>OpenAI / Anthropic / otros] --> WEBUI[Open WebUI]
-  SEARX[SearXNG] --> WEBUI
-  KARA[Karakeep] --> WEBUI
-  N8N[n8n] --> WEBUI
-  SEARX --> INET[Internet]
-  KARA --> KNOW[Knowledge]
-  N8N --> ACT[Actions]
-  ACT --> HAOS[HAOS]
-  ACT --> APIS[OSCAR APIs]
-  ACT --> INFRA[Infra]
-```
+**[Ver el diagrama interactivo (Archify) →](pathname:///diagrams/oscar-ai-architecture.html)** — pan/zoom, tema claro/oscuro, y trazado de relaciones. Generado a partir de `static/diagrams/src/oscar-ai.architecture.json`, validado (`showcase`, 9/9 checks, 0 errores).
 
 Roles:
 
