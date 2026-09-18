@@ -220,6 +220,31 @@ hermes-data
 
 No guardar secretos directamente en ConfigMaps ni en Git.
 
+## 6.1 Clasificación del estado del PVC (2026-09-17)
+
+No todo lo que vive en `/data` de Hermes es igual — antes de declararlo productivo hay que saber qué es reconstruible desde Git y qué no:
+
+```text
+OAuth/session credentials
+→ CRÍTICO / sensible — no reconstruible, no debe existir copia fuera del secret store
+
+custom skills
+→ idealmente en Git (oscar-homelab), no solo en el PVC
+
+memory
+→ backup según valor real, a evaluar en uso
+
+config declarativa
+→ Git cuando sea posible, no en el PVC
+
+cache
+→ NO backup, descartable
+```
+
+**Regla:** skills importantes que OSCAR desarrolle (ej. `oscar-get-status`, `oscar-diagnose-k3s`, `oscar-availability`) no deben existir únicamente dentro de `/data` de Hermes — se versionan en `oscar-homelab` (o el repo que corresponda) y se despliegan desde ahí. El PVC contiene solamente lo inevitable (sesiones, cache, estado runtime que no tiene sentido versionar).
+
+Para la PoC no hace falta resolver todo el disaster recovery de Hermes, pero antes de declararlo productivo sí hace falta: backup real del PVC + un procedimiento de restore probado al menos una vez — mismo criterio que ya se aplica al resto de servicios con estado real en O.S.C.A.R. (ver `docs/backup-dr/estrategia-321.md`).
+
 ---
 
 # 7. Open WebUI
@@ -750,6 +775,56 @@ NO habilitar extra usage sin decisión explícita.
 
 ---
 
+# 19.1 Riesgos de autenticación — OAuth de cuentas personales en un daemon desatendido (2026-09-17)
+
+Usar la sesión OAuth de una suscripción personal (ChatGPT Plus, Claude Max) de forma automatizada y desatendida dentro de un Pod que puede reiniciarse/reprogramarse es un riesgo real, no solo un detalle de configuración — se eleva a **gate de Fase 0**, no queda como algo a "documentar más adelante" (Fase 2/3 en la versión anterior de esta spec).
+
+## OpenAI / Codex
+
+OpenAI documenta que Codex está incluido en los planes de ChatGPT y que Codex CLI se puede autenticar iniciando sesión con la cuenta de ChatGPT — técnicamente soportado por las herramientas (`Hermes → Codex CLI → login ChatGPT`). Pero los términos de uso actuales de OpenAI restringen la extracción automática/programática de datos u outputs del servicio, y no hay una aclaración oficial específica de que usar una suscripción personal como backend permanente de un agente de terceros desatendido esté expresamente soportado.
+
+```text
+RISK: AUTH-001
+ChatGPT/Codex consumer OAuth usado por un agente de terceros persistente.
+Status: TO VALIDATE — no asumir que está prohibido ni que está garantizado.
+```
+
+## Claude
+
+Anthropic reconoce que Claude Pro/Max incluyen uso de Claude Code asociado a esas cuentas, y Hermes documenta `claude -p` como su modo preferido para tareas no interactivas al delegar a Claude Code — juega a favor del uso técnico planteado acá. Pero sigue existiendo una diferencia real entre "yo usando Claude Code CLI" y "un daemon Hermes 24/7 orquestando mi sesión personal".
+
+```text
+RISK: AUTH-002
+Claude consumer OAuth usado desde Hermes de forma desatendida.
+Status: TO VALIDATE
+```
+
+## Validación requerida antes de construir el resto de la arquitectura encima
+
+No alcanza con `codex login` / `claude login` y confirmar que anduvo una vez. Probar específicamente el comportamiento del Pod:
+
+```text
+login
+ ↓
+Hermes funcionando
+ ↓
+Pod restart          → ¿sigue autenticado?
+ ↓
+node restart          → ¿sigue autenticado?
+ ↓
+72h                    → ¿sigue funcionando?
+ ↓
+token refresh          → ¿funciona automáticamente?
+ ↓
+uso simultáneo de Codex/Claude en la Mac personal → ¿interfiere con la sesión del Pod?
+```
+
+Detalle real a verificar durante esa validación: el runtime de Codex usa `~/.codex/auth.json`, mientras que el OAuth propio de Hermes se guarda aparte en `~/.hermes/auth.json` — son sesiones distintas, no asumir que renovar una alcanza para la otra.
+
+**Si el OAuth de consumidor no resulta adecuado para un daemon permanente** (sesión se invalida por cambio de IP/dispositivo, límite de sesiones concurrentes, comportamiento inestable tras reinicio), rediseñar provider/autenticación antes de seguir construyendo Open WebUI/skills/tools/MCP/n8n alrededor de una base de auth que después resulta inestable. Este riesgo no descarta la idea de Hermes — la hace más seria: valida el supuesto más frágil primero, no al final.
+
+---
+
 # 20. Estrategia inicial de modelos
 
 Configuración deseada inicialmente:
@@ -874,23 +949,53 @@ Las acciones mutables deben tener guardrails adicionales.
 
 # 24. Home Assistant
 
-Hermes puede integrarse con Home Assistant.
+**Corregido (2026-09-17): Hermes NO recibe un token de Home Assistant, ni siquiera de solo lectura, durante la PoC.**
 
-Casos de uso:
+Motivo real: un Long-Lived Access Token de HA representa los permisos completos del usuario que lo generó — HA no tiene un mecanismo simple desde la UI para emitir un token verdaderamente read-only (la configuración granular real requiere tocar `.storage/auth` a mano, algo que la propia documentación de Home Assistant marca como riesgoso). Confiar en "el token que le demos será de solo lectura" es un supuesto, no una garantía técnica.
+
+Por eso Home Assistant pasa por el mismo Action Broker que el resto de las integraciones, incluso para lectura:
 
 ```text
-"¿Qué temperatura tiene el rack?"
-
-"¿Está abierta la puerta?"
-
-"¿Qué sensores están offline?"
-
-"Poné OSCAR en modo aurora."
+Hermes
+   │
+   │ read request
+   ▼
+n8n
+   │
+   │ credencial HA almacenada acá, no en Hermes
+   ▼
+Home Assistant
 ```
 
-Inicialmente priorizar acceso read-only.
+Tools expuestas inicialmente (todas de lectura, cada una un workflow n8n concreto y acotado — no un acceso genérico a la API de HA):
 
-Las llamadas que modifiquen dispositivos deben incorporarse después.
+```text
+ha.get-temperature
+ha.get-sensors
+ha.get-entity-state
+ha.get-offline-devices
+```
+
+Explícitamente **no** disponibles en la PoC:
+
+```text
+ha.call-service
+ha.turn-off
+ha.unlock
+ha.run-automation
+```
+
+Con este diseño, aunque se comprometa el Pod de Hermes, el secreto de Home Assistant no vive ahí — vive en n8n, y las tools que Hermes puede ver son de solo lectura por diseño de los workflows, no por confiar en el scope de un token. Evaluar integración directa HA↔Hermes más adelante, solo si aparece una solución de permisos de HA que dé una garantía real, no una convención.
+
+Casos de uso (todos vía las tools de arriba):
+
+```text
+"¿Qué temperatura tiene el rack?"        → ha.get-temperature
+"¿Está abierta la puerta?"               → ha.get-entity-state
+"¿Qué sensores están offline?"           → ha.get-offline-devices
+```
+
+"Poné OSCAR en modo aurora" queda fuera de la PoC — es control, no lectura (ver sección 25, que ya lo resuelve vía `n8n`/`oscar-led-controller`, no vía Home Assistant).
 
 ---
 
@@ -1128,15 +1233,34 @@ No desplegar sin guardrails.
 ## Lectura
 
 ```text
-Prometheus             ✅
-Uptime Kuma            ✅
-Grafana / availability ✅
-SearXNG                ✅
-Home Assistant state   ✅
-Forgejo read           ✅
-k3s status             ✅
-documentación          ✅
+Prometheus                          ✅ directo
+Uptime Kuma                         ✅ directo
+Grafana / availability              ✅ directo
+SearXNG                             ✅ directo
+Home Assistant state                ✅ SOLO vía n8n (ver sección 24) — sin token HA en Hermes
+Forgejo read                        ✅ credencial dedicada (svc-hermes-forgejo, ver sección 33.1), no reutilizar tokens de CI/ArgoCD/personal
+k3s status                          ✅ directo, ServiceAccount dedicado (ver sección 36)
+documentación                       ✅ directo
 ```
+
+## 33.1 Credenciales dedicadas — regla permanente
+
+Ninguna integración de Hermes reutiliza una identidad que ya cumple otro rol en el homelab:
+
+```text
+Hermes ≠ credenciales de Argo CD
+Hermes ≠ credenciales de CI (ci-forgejo)
+Hermes ≠ usuario personal de infraestructura
+```
+
+Cada integración tiene su propia identidad, mínimo privilegio, creada específicamente para Hermes:
+
+```text
+svc-hermes-forgejo   → solo lectura sobre oscar-homelab y oscar-gitops, nada más
+(Home Assistant no aplica — no hay token HA en Hermes, ver sección 24)
+```
+
+Mismo criterio que ya usa el resto del proyecto (usuario `ci-forgejo` acotado para Nexus, token de solo lectura separado para el repo de Argo CD) — no es una excepción para Hermes, es continuar el mismo patrón.
 
 ---
 
@@ -1420,6 +1544,8 @@ oscar-gitops    (manifiestos k3s / GitOps)
 ```
 
 Solo dos repos reales hoy. Ajustar si en el futuro se separa algo a un repo propio — no es obligatorio hacerlo desde el día uno.
+
+**Regla permanente:** nunca inferir nombres de repositorios a partir de componentes o aplicaciones (ej. asumir que existe un repo `oscar-kubernetes` porque hay un componente Kubernetes). Obtenerlos del estado real de Forgejo antes de configurar cualquier allowlist — con una consulta a la API (`GET /api/v1/user/repos` o equivalente), no por nombre supuesto.
 
 ---
 
@@ -1742,23 +1868,46 @@ Aplicar debounce/hysteresis si se implementa.
 
 # 57. Fases de implementación
 
-## Fase 0 — Relevamiento
+## Fase 0 — Relevamiento y validación de supuestos (reestructurada 2026-09-17)
 
-- [ ] Revisar estado de `oscar-ai`.
-- [ ] Revisar repositorios actuales.
-- [ ] Confirmar k3s resources disponibles.
-- [ ] Confirmar storage.
-- [ ] Confirmar Prometheus.
-- [ ] Confirmar Kuma `/metrics`.
-- [ ] Confirmar Open WebUI aún no desplegado o estado actual.
-- [ ] Confirmar SearXNG aún no desplegado o estado actual.
-- [ ] Revisar auth disponible de ChatGPT/Codex.
-- [ ] Revisar auth disponible de Claude Code.
-- [ ] Revisar n8n.
-- [ ] Revisar HAOS.
-- [ ] Revisar política actual de Secrets.
+No modificar infraestructura durante esta fase — es relevamiento y validación, no despliegue. Reordenada para que los supuestos más frágiles (auth OAuth, recursos) se validen **antes** de construir Open WebUI/Hermes/SearXNG encima, no después.
 
-No modificar infraestructura durante esta fase.
+### 0.1 — Repos reales
+
+- [ ] Confirmar contra la API de Forgejo (no por nombre supuesto) qué repos existen — allowlist real: `oscar-homelab`, `oscar-gitops` (ver sección 46).
+
+### 0.2 — Recursos de `k3s01`
+
+- [ ] Baseline real de `k3s01` **antes** de desplegar nada (CPU, RAM, swap, disk I/O, load, uso por pod) — no asumir el estado idle medido en una fase anterior del proyecto, remedir.
+- [ ] Confirmar storage class disponible para el PVC de Hermes.
+
+### 0.3 — Diseño de credenciales
+
+- [ ] Definir `svc-hermes-forgejo` (solo lectura, `oscar-homelab` + `oscar-gitops`, sin reutilizar tokens de CI/ArgoCD/personal — ver sección 33.1).
+- [ ] Confirmar que Home Assistant queda detrás de `n8n` (sin token HA en Hermes — ver sección 24) antes de construir esa integración.
+
+### 0.4 — Backup / persistencia
+
+- [ ] Clasificar qué va a vivir en el PVC de Hermes (ver sección 6.1) y qué de eso necesita backup real antes de producción.
+
+### 0.5 — Validar ChatGPT/Codex OAuth (gate — ver sección 19.1, `RISK: AUTH-001`)
+
+- [ ] Confirmar `codex login` funciona desde el entorno real (k3s01, no solo la Mac).
+- [ ] Ejecutar la secuencia de persistencia completa: Pod restart → node restart → 72h → token refresh → uso simultáneo con la Mac personal (ver sección 19.1).
+
+### 0.6 — Validar Claude Code OAuth (gate — ver sección 19.1, `RISK: AUTH-002`)
+
+- [ ] Mismo procedimiento que 0.5, aplicado a Claude Code / `claude -p`.
+
+### 0.7 — Comportamiento tras restart/reprogramación
+
+- [ ] Confirmar que ambas sesiones (`~/.codex/auth.json`, `~/.hermes/auth.json`) sobreviven un ciclo real de vida de Pod en k3s (no solo un restart manual controlado).
+
+### 0.8 — Límites y términos aplicables
+
+- [ ] Revisar explícitamente los términos de uso vigentes de OpenAI/ChatGPT y Anthropic/Claude respecto a uso automatizado/no interactivo de una cuenta de consumidor — documentar la conclusión, no asumirla.
+
+**Solo si 0.5–0.8 dan un resultado aceptable, avanzar a Fase 1.** Si el OAuth de consumidor no resulta adecuado para un daemon permanente, esta fase termina en un rediseño de provider/autenticación, no en un despliegue.
 
 ## Fase 1 — Base oscar-ai
 
@@ -1888,6 +2037,33 @@ componente oficial de OSCAR
 - [ ] Persistencia sobrevive reinicios.
 - [ ] Secrets no están en Git.
 
+## Recursos de `k3s01` (2026-09-17 — gate real, no opcional)
+
+El PoC no se considera aprobado únicamente porque funcione; también debe demostrar que `k3s01` mantiene margen operativo razonable con todo lo nuevo corriendo encima.
+
+Dos mediciones obligatorias, comparadas:
+
+```text
+BASELINE (antes)          →  CPU, RAM, swap, disk I/O, load, uso por pod
+DESPUÉS DE Hermes +        →  mismas métricas, en tres escenarios:
+Open WebUI + SearXNG
+```
+
+```text
+IDLE     → sin actividad
+NORMAL   → chat + search
+LOAD     → Hermes usando tools + SearXNG + coding-agent a la vez
+```
+
+Registrar en cada escenario: RAM del nodo, RAM por pod, CPU, `OOMKilled`, restarts, disco, latencia — puede quedar como dashboard en Grafana, no solo como número suelto.
+
+- [ ] Baseline de `k3s01` documentado antes del despliegue.
+- [ ] Medición post-despliegue en los tres escenarios (IDLE/NORMAL/LOAD).
+- [ ] Sin `OOMKilled` ni restarts por presión de memoria en ninguno de los tres.
+- [ ] `k3s01` mantiene margen operativo razonable (no "funciona pero al límite").
+
+**Si el resultado muestra algo como `7.5/8 GB RAM` de forma constante: no se ajustan los límites de recursos para que "entre" — se replantea la ubicación o el sizing del nodo.** Ajustar números para que el problema desaparezca del dashboard no es una solución.
+
 ## Observabilidad
 
 - [ ] Hermes aparece en Kuma.
@@ -1915,6 +2091,8 @@ componente oficial de OSCAR
 
 ## Agents
 
+- [ ] `RISK: AUTH-001` (Codex/ChatGPT OAuth desatendido) resuelto — secuencia de persistencia de la sección 19.1 completa, no solo un login inicial exitoso.
+- [ ] `RISK: AUTH-002` (Claude Code OAuth desatendido) resuelto — misma secuencia aplicada.
 - [ ] Codex funciona con autenticación validada.
 - [ ] Claude Code funciona con autenticación validada.
 - [ ] ninguno hace push/merge automático inicialmente.
