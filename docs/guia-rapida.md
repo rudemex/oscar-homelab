@@ -156,7 +156,8 @@ Ya tenés lo esencial: un hypervisor, una VM con Docker, y un servicio real corr
 
 | Querés... | Andá a... |
 |---|---|
-| Entender por qué la guía completa está organizada así | [Arquitectura](./arquitectura/vision-general.md) |
+| **Seguir el camino completo: Git propio, CI/CD, Kubernetes, acceso remoto, hogar** | **[Guía completa](./guia-completa.md)** — el siguiente paso natural |
+| Entender por qué el sitio está organizado así | [Arquitectura](./arquitectura/vision-general.md) |
 | Sumar más servicios (backups, dashboards, automatización) | [Catálogo de servicios](./servicios/catalogo.md) |
 | Backups de verdad, no solo "anda" | [Backup y Disaster Recovery](./backup-dr/estrategia-321.md) |
 | Separar tu red en zonas (IoT, invitados, servidores) | [VLAN y segmentación](./red/vlans.md) |

@@ -10,6 +10,7 @@ const sidebars: SidebarsConfig = {
   tutorialSidebar: [
     'intro',
     'guia-rapida',
+    'guia-completa',
     'primeros-pasos/herramientas-basicas',
     {
       type: 'category',
