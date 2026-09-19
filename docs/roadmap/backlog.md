@@ -30,6 +30,8 @@ sidebar_position: 2
 
 - **Minecraft y Counter-Strike 2 desplegados**: Minecraft (Java Vanilla) como contenedor en `core01`, jugable en `192.168.0.156:25565`. CS2 en una VM nueva dedicada (`lab01`, vmid 105, 4 vCPU/6 GB), con GSLT real cargado. Cards nuevas en Homepage (grupo "Juegos", widgets `minecraft`/`gamedig` con estado en vivo). Ver [servidores de juegos](../juegos/vision-general.md).
 - **AdGuard como DNS de toda la LAN, revertido el mismo día que se activó**: la recurrencia del hang de NIC (ver abajo) tumbó AdGuard intermitentemente mientras toda la casa dependía de él como primario — se sintió como un corte de internet real (caso: `drive.tresdoce.com.ar` inaccesible). Router vuelto al backup de antes del cambio. Ver [rollback documentado](../red/dns-adguard.md#rollback-el-dhcp-wide-se-revirtió-2026-09-18).
+- **Gestor de secretos: Infisical, decidido y desplegado**: evaluadas Vault/OpenBao (mucho poder para lo que hace falta hoy, mucha carga operativa) e Infisical (Docker-native, elegida) contra SOPS+age (descartada, se prefirió una UI real). Corriendo en `devops01`, `infisical.oscar.home`. No reemplaza a Vaultwarden — Infisical es para secrets que consumen apps/CI, Vaultwarden para contraseñas de personas. Ver [gestión de secretos](../seguridad/secretos.md#secrets-en-docker-compose-infisical-2026-09-19).
+- **`compose.yaml` empezaron a versionarse en Git**: repo nuevo `oscar-compose` en Forgejo — primer paso real de cerrar la brecha entre lo que la doc "objetivo" siempre pidió (`compose.yaml` en Git, `.env` fuera) y lo que pasaba en la práctica (todo vivía solo en el filesystem de cada VM). Deploy sigue siendo manual por SSH, no automático — eso sería GitOps de verdad, evaluado y descartado para este caso (ver la doc de arriba).
 
 ## Prioridad alta — pendiente
 
@@ -39,7 +41,6 @@ sidebar_position: 2
 
 - hardware N100/OPNsense;
 - NAS (Raspberry Pi vs equipo dedicado vs comercial);
-- gestor de secretos;
 - ubicación final de Home Assistant;
 - proveedor/backends de IA;
 - **AdGuard primario real en `network01` (Pi 3)**: hoy el DNS primario sigue siendo el AdGuard del Dell (`192.168.0.93`) y el secundario es `1.1.1.1` (Cloudflare) — son roles provisorios. El diseño real es AdGuard en `network01` (Pi 3) como primario, y el del Dell pasando a secundario — depende de aprovisionar las Raspberry Pi (Fase 2/3/4 del plan de reorganización). La Pi Zero W no tiene rol de DNS — es `edge01` (sensores/GPIO), un error de una versión vieja del plan (`OSCAR_TARGET_ARCHITECTURE.md`, deprecado) que quedó dando vueltas y ya se corrigió.

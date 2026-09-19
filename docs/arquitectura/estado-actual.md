@@ -60,6 +60,8 @@ Proxmox ya está instalado, con **cinco VMs/LXC** arriba (`core01`, `devops01`, 
 | `lab01` — Ubuntu 24.04 LTS + Docker 29 | VM (vmid 105) | Actual | 4 vCPU / 6 GB / **110 GB disco** (subido de 60→110 GB en caliente, sin reboot — CS2 preasigna ~58 GB solo para el juego, 60 GB no alcanzaba), mismo patrón de clon que `core01`/`devops01`/`k3s01`. IP estática `192.168.0.152/24`. Creada el 2026-09-18 puntualmente para CS2 (más pesado, no ameritaba compartir VM con el resto) — ver [servidores de juegos](../juegos/vision-general.md). Kernel pendiente de actualizar (`6.8.0-138` → `6.8.0-139`), no urgente. |
 | Minecraft (Java, Vanilla) | Docker en `core01` | Actual | `itzg/minecraft-server:java21`, `/srv/oscar/apps/minecraft/`, puerto `25565`. Sin whitelist todavía — cualquiera con la IP:puerto entra. Ver [Minecraft](../juegos/minecraft.md). |
 | Counter-Strike 2 | Docker en `lab01` | Actual | `joedwards32/cs2`, `/srv/oscar/apps/cs2/`, puerto `27015`. GSLT real cargado (cuenta de Steam propia). Ver [Counter-Strike 2](../juegos/counter-strike.md). |
+| Infisical v0.165.13 | Docker en `devops01` | Actual | Gestor de secrets para apps/CI (no reemplaza a Vaultwarden, que es para personas) — backend + Postgres + Redis propios, `/srv/oscar/apps/infisical/`, `infisical.oscar.home` vía NPM. Ver [gestión de secretos](../seguridad/secretos.md#secrets-en-docker-compose-infisical-2026-09-19). |
+| `oscar-compose` (repo nuevo) | Forgejo en `devops01` | Actual | Primer paso de versionar los `compose.yaml` de las apps Docker (hoy: Minecraft, CS2, Infisical) — `.env` sigue fuera de Git a propósito, deploy sigue siendo manual por SSH, no GitOps automático como `oscar-gitops`. |
 
 ## Capacidad real (medida, no nominal) — 2026-09-15
 

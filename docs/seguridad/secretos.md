@@ -33,6 +33,18 @@ Fase posterior: evaluar Vault/SOPS/age/External Secrets según necesidad real.
 
 El gestor de secretos no sirve si su master key vive al lado del repositorio que intenta proteger.
 
+## Secrets en Docker Compose: Infisical (2026-09-19)
+
+Decidido y desplegado — reemplaza al "fase inicial" de arriba (archivos `.env` sueltos con `chmod 600`, sin backup real más allá de copiarlos a mano a Vaultwarden) para las apps que corren como Docker Compose (no k3s, ver sección de abajo para ese caso distinto).
+
+**Evaluadas tres opciones** (Vault/OpenBao, Infisical, SOPS+age) — se descartó SOPS+age (sin servidor, pero el usuario prefirió una herramienta con UI real en vez de un flujo de archivos cifrados) y Vault/OpenBao (más poder — secrets dinámicos, PKI, leasing — que no se aprovecha a esta escala, contra más carga operativa: unseal, políticas, backend de storage). Se eligió **Infisical**: Docker-native, UI real, modelo de "machine identity" pensado para inyectar secrets en contenedores en automático.
+
+Desplegado en `devops01` (`/srv/oscar/apps/infisical/`, backend + Postgres + Redis propios, imagen fijada a `v0.165.13`), publicado en `infisical.oscar.home` vía NPM. `compose.yaml`/`.env.example` versionados en el repo nuevo `oscar-compose` (Forgejo) — el `.env` real con los secrets de arranque de Infisical (paradoja a propósito: la propia base del gestor de secrets también tiene secrets, y esos sí quedan fuera de Git, igual que cualquier otro `.env`) sigue viviendo solo en `devops01`.
+
+**No reemplaza a Vaultwarden** — Vaultwarden es para contraseñas que usa una persona (vos) a mano; Infisical es para secrets que consume una app o un pipeline de CI de forma automática. Dos herramientas, dos consumidores distintos, a propósito.
+
+**Pendiente, no bloqueante:** migrar los `.env` que ya existen (Minecraft, CS2, y el resto de los Compose de OSCAR) a Infisical — hoy siguen siendo archivos sueltos en cada VM, Infisical está desplegado pero todavía no es la fuente real de ningún secreto existente.
+
 ## Secrets en GitOps (k3s + Argo CD)
 
 GitOps introduce un problema específico: Argo CD sincroniza manifiestos **desde Git**, pero un `Secret` de Kubernetes en texto plano en un repo (aunque sea privado) es equivalente a subir la contraseña. No alcanza con "no lo subo a un repo público" — el historial de Git, forks internos y backups del repo heredan el secreto para siempre.
