@@ -5,7 +5,7 @@ sidebar_position: 4
 
 # DNS con AdGuard Home
 
-**Estado:** Actual — corriendo como LXC (`vmid 100`, tag `adblock;community-script`) en `oscar-core`, instalado vía el script comunitario de [community-scripts.github.io/ProxmoxVE](https://community-scripts.github.io/ProxmoxVE/). Desde el 2026-09-18 **es el DNS de toda la LAN de verdad**: el router (TP-Link Archer, DHCP propio — `dhcp.enabled: false` en AdGuard, no se usa su DHCP interno) reparte `192.168.0.93` como DNS primario y `1.1.1.1` como secundario a cualquier dispositivo con DNS automático. La caída de throughput que había hecho revertir esto una vez ya está diagnosticada y corregida (ver más abajo) — no fue un problema de capacidad ni de red, fue un `ratelimit` de AdGuard configurado demasiado bajo para el volumen de toda una casa.
+**Estado:** Actual — corriendo como LXC (`vmid 100`, tag `adblock;community-script`) en `oscar-core`, instalado vía el script comunitario de [community-scripts.github.io/ProxmoxVE](https://community-scripts.github.io/ProxmoxVE/). Sano y disponible, pero **ya NO es el DNS de toda la LAN** — se activó por DHCP el 2026-09-18 y se revirtió ese mismo día tras una recurrencia del hang de NIC del Dell (ver [rollback](#rollback-el-dhcp-wide-se-revirtió-2026-09-18) más abajo). El router (TP-Link Archer) reparte `8.8.8.8`/`8.8.4.4` (Google) por defecto hoy; AdGuard sigue usable apuntándolo a mano por dispositivo.
 
 Reemplaza a Pi-hole en el rol de DNS/adblock de O.S.C.A.R. — cubre lo mismo (bloqueo por DNS, resolución de nombres locales, visibilidad de consultas) con una UI que a algunos les resulta más cómoda y con DNS-over-HTTPS/TLS nativo si se necesita salir cifrado hacia el resolver upstream. La elección fue simplemente cuál instaló el script comunitario primero — no hay una razón técnica fuerte para preferir uno sobre otro a esta escala; si en algún momento se quiere volver a Pi-hole, el rol y el diseño de abajo aplican igual.
 
@@ -106,6 +106,18 @@ Tras los varios `systemctl restart AdGuardHome` del diagnóstico del `ratelimit`
 **Fix:** `sudo systemctl restart systemd-resolved` en `core01` — fuerza a reevaluar los servidores configurados desde cero. Volvió a `Current DNS Server: 192.168.0.93` de inmediato, `portainer.oscar.home` resolvió tanto en el host como dentro del contenedor de Homepage sin más cambios.
 
 Si vuelve a pasar tras un reinicio de AdGuard: mismo fix, un `systemctl restart systemd-resolved` en el host afectado (no hace falta reiniciar Docker ni los contenedores).
+
+## Rollback: el DHCP-wide se revirtió (2026-09-18)
+
+La activación de más arriba duró el mismo día. A las 20:32 el [hang recurrente de la NIC física del Dell](../arquitectura/estado-actual.md#incidente-real-2026-09-18-hang-de-la-nic-física-caída-de-core01-y-adguard) volvió a pasar — con toda la LAN dependiendo de `192.168.0.93` como DNS primario, la intermitencia de la NIC se sintió como "internet no anda" en cualquier dispositivo de la casa (caso real: `drive.tresdoce.com.ar` inaccesible en pleno uso). AdGuard en sí nunca estuvo mal configurado ni caído por su cuenta — la NIC del host le tapaba el camino.
+
+**Decisión:** mientras la NIC siga siendo poco confiable (es la segunda vez en la semana), no debería ser el DNS del que depende toda la casa. Rollback del que ya existía backup:
+
+- Router restaurado por UI (`System Tools → Backup & Restore → Restore`, mismo archivo guardado antes de la activación) — vuelve a repartir lo de antes (`8.8.8.8`/`8.8.4.4`, Google).
+- Dispositivos toman el DNS nuevo al renovar su lease DHCP (forzado a mano en el Mac de prueba con `sudo ipconfig set en0 DHCP` — sin eso, queda con el lease viejo apuntando a `192.168.0.93` hasta que expire solo).
+- AdGuard sigue arriba, sano, y se puede seguir usando apuntándolo a mano en un dispositivo puntual — solo dejó de ser el default de toda la LAN.
+
+**Condición para reactivar:** la NIC del Dell necesita una mitigación real (ver el incidente en `estado-actual.md`) antes de volver a intentar DHCP-wide — si vuelve a colgarse con la LAN entera dependiendo de ella, el radio de impacto es toda la casa, no solo OSCAR.
 
 ## Wildcard `*.oscar.home` para apps de k3s (2026-09-15)
 

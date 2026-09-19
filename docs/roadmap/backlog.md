@@ -28,6 +28,13 @@ sidebar_position: 2
 - **`systemd-resolved` de `core01` pegado en `1.1.1.1`**: tras los reinicios de AdGuard del diagnóstico del `ratelimit`, el host había marcado a `192.168.0.93` como no disponible y no volvió a probarlo solo, aunque seguía primero en la config — rompía la resolución de `.oscar.home` para el propio host y para el contenedor de Homepage (`portainer.oscar.home` daba `ENOTFOUND`). Fix: `systemctl restart systemd-resolved` en el host. Ver [DNS con AdGuard Home](../red/dns-adguard.md#incidente-menor-systemd-resolved-de-core01-no-volvía-a-usar-adguard-2026-09-18).
 - **Homepage: widgets de recursos reorganizados en un grupo "Monitoreo"**: Proxmox, ProxMenux, Glances y los 3 Beszel estaban repartidos entre "Infraestructura" y "Servicios" sin ningún criterio visible, dando la impresión de que eran 6 copias del mismo dato — en realidad cada uno mide un recorte distinto (hipervisor completo vs. solo `core01` vs. por-VM). Consolidados en un grupo nuevo con una `description` por tarjeta que aclara su alcance real y con qué otra tarjeta se superpone. Ver [Homepage](../servicios/homepage.md#grupo-monitoreo-por-qué-existe).
 
+- **Minecraft y Counter-Strike 2 desplegados**: Minecraft (Java Vanilla) como contenedor en `core01`, jugable en `192.168.0.156:25565`. CS2 en una VM nueva dedicada (`lab01`, vmid 105, 4 vCPU/6 GB), con GSLT real cargado. Cards nuevas en Homepage (grupo "Juegos", widgets `minecraft`/`gamedig` con estado en vivo). Ver [servidores de juegos](../juegos/vision-general.md).
+- **AdGuard como DNS de toda la LAN, revertido el mismo día que se activó**: la recurrencia del hang de NIC (ver abajo) tumbó AdGuard intermitentemente mientras toda la casa dependía de él como primario — se sintió como un corte de internet real (caso: `drive.tresdoce.com.ar` inaccesible). Router vuelto al backup de antes del cambio. Ver [rollback documentado](../red/dns-adguard.md#rollback-el-dhcp-wide-se-revirtió-2026-09-18).
+
+## Prioridad alta — pendiente
+
+- **Mitigar el hang recurrente de la NIC física del Dell** (`e1000e`, Intel I219-LM): segunda vez en la misma semana (2026-09-18 dos veces) que tira "Detected Hardware Unit Hang" y deja intermitentemente inalcanzable a `core01`/AdGuard/la gestión del propio Proxmox. Bug conocido y documentado en la comunidad de Proxmox para esta NIC exacta — mitigación investigada y lista para aplicar (deshabilitar TSO/GSO/GRO + EEE por `ethtool`, persistido en `/etc/network/interfaces`), **decidido posponerla** por el usuario, no aplicada todavía. Bloquea reactivar AdGuard como DNS de toda la LAN con confianza — ver el ítem de arriba.
+
 ## Decisiones pendientes
 
 - hardware N100/OPNsense;

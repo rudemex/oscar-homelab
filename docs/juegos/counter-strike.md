@@ -24,6 +24,8 @@ Valve requiere un token gratuito para identificar servidores dedicados públicos
 2. generar un token para el App ID `730` (Counter-Strike 2);
 3. guardar el token — es un secreto, tratarlo como una contraseña (nunca en Git).
 
+**Cuenta "Limited" (encontrado en la práctica, 2026-09-18):** si la cuenta de Steam nunca gastó dinero real, el paso 2 falla con `Failed to create account: 24 (Limited user account)`. Steam exige sacar ese estado antes de poder generar el GSLT. En la práctica hizo falta hacer **las dos cosas a la vez**, no alcanzó con una sola: agregar un número de teléfono (Steam Guard) **y** una compra real de al menos u$s5 (un juego barato o cargar Steam Wallet). Tener CS2 instalado no cuenta — es free-to-play, no es gasto real.
+
 ## Instalación
 
 Usamos [`joedwards32/cs2`](https://github.com/joedwards32/CS2), imagen Docker mantenida por la comunidad que envuelve SteamCMD para descargar e iniciar el dedicated server.
