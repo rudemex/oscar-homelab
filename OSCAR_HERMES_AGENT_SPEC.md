@@ -1891,7 +1891,7 @@ Pod de prueba desplegado el 2026-09-20 (`hermes-poc/claude-code-poc`, `node:22-s
 - [x] `claude auth login` funciona desde el entorno real (Pod en `k3s01`). Login por URL manual (sin navegador en el contenedor) → código → sesión guardada en `~/.claude/.credentials.json` (plan `pro`, `claude -p` responde).
 - [x] **Test 1 — reinicio de Pod: aprobado** (17:36Z). La sesión sobrevive `rollout restart` (con PVC), sin re-login.
 - [ ] **Test 2 — renovación de token**: access token vence `2026-09-21T01:34:17Z` (~8 h de vida) con refresh token presente — verificar tras esa hora que `claude -p` sigue andando sin re-login.
-- [ ] **Test 3 — reinicio de nodo** (`qm reboot 103` con el Pod ya logueado; el reinicio que se hizo hoy fue *antes* del login, no cuenta).
+- [x] **Test 3 — reinicio de nodo: aprobado** (`qm reboot 103` a las 17:55 hora del nodo, con el Pod ya logueado). El Pod volvió solo, la sesión siguió activa (`loggedIn: true`, `claude -p` responde) sin re-login; `expiresAt` sin cambios (`2026-09-21T01:34:17Z`, todavía dentro de su vida útil). Argo CD y el resto de las apps se recuperaron sin intervención.
 - [ ] **Test 4 — 72 h** desde el login (`2026-09-23T17:34Z`).
 - [ ] **Test 5 — uso simultáneo** desde la Mac personal con la misma cuenta (¿invalida la sesión del Pod?).
 
