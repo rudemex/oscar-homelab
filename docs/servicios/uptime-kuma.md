@@ -21,7 +21,7 @@ sidebar_position: 11
 
 ## Monitores reales configurados
 
-11 monitores HTTP, chequeo cada 60s, apuntando a la IP LAN real de cada servicio (no al hostname público) para medir el backend directo y no depender de Cloudflare Access en el camino — cubre todo lo que el inventario marca como "Actual" excepto Kuma mismo (ver "nadie vigila al vigilante" más abajo). **Pendiente detectado:** los monitores de `oscar-led-controller` (id 11) y Argo CD (id 12) existen en Kuma pero no están en esta tabla ni en el grupo "Servicios" de la status page — quedaron fuera de este barrido, sumarlos es la misma receta que Forgejo/Nexus abajo.
+21 monitores HTTP (2026-09-20: 14 previos + 7 nuevos), chequeo cada 60s, apuntando a la IP LAN real de cada servicio (no al hostname público) para medir el backend directo y no depender de Cloudflare Access en el camino — cubre todo lo que el inventario marca como "Actual" excepto Kuma mismo (ver "nadie vigila al vigilante" más abajo). Argo CD y los servicios nuevos ya están en la tabla y en la status page (resuelto 2026-09-20); el del LED está fuera de la status page a propósito, ver la tabla.
 
 | Monitor | URL | Nota |
 |---|---|---|
@@ -36,6 +36,18 @@ sidebar_position: 11
 | Cloudflare Tunnel | `http://192.168.0.156:20241/ready` | endpoint de salud propio de `cloudflared`, expuesto porque corre en `network_mode: host` |
 | Forgejo | `http://192.168.0.151:3000/api/healthz` | en `devops01`, no en `core01`; medido por IP+puerto igual que el resto, no por `git.oscar.home` |
 | Nexus | `http://192.168.0.151:8081/service/rest/v1/status` | en `devops01`; sin monitor para el CI Runner (`forgejo-runner`) — no expone ningún endpoint HTTP propio sin sumarle config de métricas aparte |
+| Portainer | `http://portainer.oscar.home` | vía NPM, como el resto de los `*.oscar.home` |
+| oscar-led-controller | `http://led.oscar.home/health` | en k3s; **fuera de la status page a propósito**: da `503` mientras el ESP32 esté apagado y dejaría un "down" permanente en el widget de Homepage |
+| Argo CD | `http://argocd.oscar.home` | en k3s (Traefik) |
+| Infisical | `http://192.168.0.151:8085/api/status` | en `devops01`, por IP+puerto (2026-09-20) |
+| Headlamp | `http://headlamp.oscar.home` | en k3s (2026-09-20) |
+| SearXNG | `http://searxng.oscar.home/healthz` | en k3s, namespace `oscar-ai` (2026-09-20) |
+| ci-demo | `http://ci-demo.oscar.home` | en k3s (2026-09-20) |
+| Nginx Proxy Manager | `http://192.168.0.156:81` | UI de administración (2026-09-20) |
+| MySpeed | `http://192.168.0.156:5216` | (2026-09-20) |
+| Glances | `http://192.168.0.156:61208` | (2026-09-20) |
+
+Los servidores de juegos (Minecraft, CS2) no tienen monitor a propósito: están apagados por defecto y saldrían siempre en rojo. Los monitores de servicios en k3s usan el hostname `*.oscar.home` (Kuma corre en `core01`, que resuelve vía AdGuard); los de Docker siguen por IP+puerto.
 
 Se armaron vía la API de socket.io (paquete `uptime-kuma-api`, no la REST API — Kuma no tiene una para crear monitores, el API Key propio de Kuma solo sirve para el endpoint de métricas de Prometheus, no para esto).
 
