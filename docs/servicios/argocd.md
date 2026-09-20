@@ -5,10 +5,10 @@ sidebar_position: 7
 
 # Argo CD
 
-**Estado:** Actual — desplegado en `k3s01`, 6 Applications reales corriendo (`root-app`, `oscar-led-controller`, `ci-demo`, `searxng`, `infisical-operator`, `headlamp`), todas `Synced` contra Forgejo  
+**Estado:** Actual — desplegado en `k3s01`, 8 Applications reales corriendo (`root-app`, `oscar-led-controller`, `ci-demo`, `searxng`, `infisical-operator`, `headlamp`, `argocd-config`, `coredns-custom`), todas `Synced` contra Forgejo  
 **Dónde corre:** `k3s01` (192.168.0.150), namespace `argocd`  
 **Sizing inicial:** ~1–2 GB RAM para instalación pequeña, validar métricas  
-**Red/puertos:** `argocd-server` es `ClusterIP` (80/443, sin `LoadBalancer`/ServiceLB) — se expone vía `Ingress` de Traefik en `http://argocd.oscar.home` (manifiesto real en `oscar-gitops/clusters/oscar/argocd-server-ingress.yaml`), solo alcanzable desde la LAN con DNS apuntado a AdGuard — nunca a internet (ADR-005)  
+**Red/puertos:** `argocd-server` es `ClusterIP` (80/443, sin `LoadBalancer`/ServiceLB) — se expone vía `Ingress` de Traefik en `http://argocd.oscar.home` (manifiesto en `oscar-gitops/infra/argocd/manifests/ingress.yaml`, gestionado por la Application `argocd-config`), solo alcanzable desde la LAN con DNS apuntado a AdGuard — nunca a internet (ADR-005)  
 **Persistencia:** estado principalmente reconstruible; config declarativa en el repo `oscar-gitops` (origen real en Forgejo desde [ADR-012](../arquitectura/decisiones-arquitectonicas.md#adr-012--forgejo-como-mirror-de-solo-lectura-de-oscar-gitops-no-origen), no GitHub)
 
 ## Applications reales
@@ -16,13 +16,15 @@ sidebar_position: 7
 | Application | Namespace | Sync | Health | Notas |
 |---|---|---|---|---|
 | `root-app` | `argocd` | Manual (sin `automated`, a propósito — ver Troubleshooting) | Healthy | app-of-apps — descubre `apps/*/application.yaml` e `infra/*/application.yaml` en `oscar-gitops` (ver "Estructura del repo" abajo). Su propio manifiesto vive en `clusters/oscar/root-app.yaml`, pero eso es solo dónde vive el bootstrap, no lo que vigila. |
-| `oscar-led-controller` | `oscar-lab` | **Manual** (su `Application` no define `automated`; hay que disparar el sync a mano, como `root-app`) | Progressing / Degraded (`0/1`) | El pod está `Running` pero falla el readiness probe — el ESP32 físico está apagado, no es un problema de la plataforma. Tras un rollout reciente Kubernetes marca el plazo vencido (`ProgressDeadlineExceeded`) y Argo CD lo muestra `Degraded` en vez de `Progressing`: mismo estado de fondo. Ver [runbook](../runbooks/k3s-degradado.md) si en algún momento el ESP32 está prendido y sigue sin ponerse healthy. |
+| `oscar-led-controller` | `oscar-lab` | Automated (`selfHeal`, `prune`) — antes era manual por error, aunque esta doc decía lo contrario | Progressing / Degraded (`0/1`) | El pod está `Running` pero falla el readiness probe — el ESP32 físico está apagado, no es un problema de la plataforma. Tras un rollout reciente Kubernetes marca el plazo vencido (`ProgressDeadlineExceeded`) y Argo CD lo muestra `Degraded` en vez de `Progressing`: mismo estado de fondo. Ver [runbook](../runbooks/k3s-degradado.md) si en algún momento el ESP32 está prendido y sigue sin ponerse healthy. |
 | `ci-demo` | `oscar-lab` | Automated (`selfHeal`, `prune`) | Healthy | Cierra el loop CI→registry→GitOps→deploy, ver [pipeline de ejemplo](../devops/pipeline-ejemplo.md) |
 | `searxng` | `oscar-ai` | Automated | Healthy | Metabuscador, primera pieza de la capa OSCAR AI (Fase 1 del spec de Hermes). Chart propio `apps/searxng/`, secret desde Infisical. Publicado en `searxng.oscar.home` solo para probar. |
-| `infisical-operator` | `infisical-operator-system` | Automated | Healthy | Chart oficial de Infisical (fuente Helm remota, no un chart propio) — sincroniza `Secret`s de k8s desde Infisical. Ver [gestión de secretos](../seguridad/secretos.md#secrets-en-gitops-k3s--argo-cd). |
-| `headlamp` | `headlamp` | Automated | Healthy | UI de exploración del cluster (pods/logs/eventos) — complementa a Argo CD, que se enfoca en estado de sync, no en explorar recursos sueltos. Login por token de ServiceAccount (`cluster-admin`), no usuario/contraseña — token real en Vaultwarden. Publicado en `headlamp.oscar.home`. |
+| `infisical-operator` | `infisical-operator-system` | Automated | Healthy | Chart oficial de Infisical (fuente Helm remota, no un chart propio), versión fija `v0.11.9` — sincroniza `Secret`s de k8s desde Infisical. Ver [gestión de secretos](../seguridad/secretos.md#secrets-en-gitops-k3s--argo-cd). |
+| `headlamp` | `headlamp` | Automated | Healthy | UI de exploración del cluster (pods/logs/eventos) — complementa a Argo CD, que se enfoca en estado de sync, no en explorar recursos sueltos. Login por token de ServiceAccount (`cluster-admin`), no usuario/contraseña — token real en Vaultwarden. Publicado en `headlamp.oscar.home`. Chart fijo `0.45.0`; los valores viven en `infra/headlamp/values.yaml` (multi-source con `ref: values`). |
+| `argocd-config` | `argocd` | Automated | Healthy | Ingress de `argocd-server` (antes un archivo en `clusters/oscar/` que nada sincronizaba). Solo maneja ese Ingress: la instalación de Argo CD sigue siendo manual. |
+| `coredns-custom` | `kube-system` | Automated | Healthy | ConfigMap `coredns-custom` con `git.oscar.home` e `infisical.oscar.home` → `192.168.0.156` (antes existía solo en el cluster). **CoreDNS no recarga solo**: tras cambiarlo, `kubectl -n kube-system rollout restart deploy coredns`. |
 
-`root-app` sin `syncPolicy.automated` es intencional, no un olvido: el operador dispara el sync manual (`kubectl patch application root-app -n argocd --type merge -p '{"operation":{"sync":{"revision":"HEAD"}}}'` o desde la UI) para tener control explícito sobre cuándo se propaga un cambio en la estructura del repo, mientras que las Applications hoja (`ci-demo`, `searxng`, `infisical-operator`, `headlamp`) sí son automáticas (`oscar-led-controller` es la excepción: manual) porque su blast radius es una sola app.
+`root-app` sin `syncPolicy.automated` es intencional, no un olvido: el operador dispara el sync manual (`kubectl patch application root-app -n argocd --type merge -p '{"operation":{"sync":{"revision":"HEAD"}}}'` o desde la UI) para tener control explícito sobre cuándo se propaga un cambio en la estructura del repo, mientras que las Applications hoja (`ci-demo`, `searxng`, `infisical-operator`, `headlamp`) sí son automáticas porque su blast radius es una sola app. Las Applications **no llevan finalizer** de borrado en cascada a propósito: borrar una (ej. `oscar-led-controller`) no debe llevarse su PVC con datos.
 
 **Gotcha real, encontrado dos veces (2026-09-19 y 2026-09-20):** como `root-app` es manual, un cambio a `clusters/oscar/root-app.yaml` **tampoco** se propaga solo — hay que `kubectl apply -f` ese archivo puntual a mano antes de esperar que el sync manual haga algo. Pasa fácil de olvidar porque el resto del repo sí es autodiscovery: la única pieza que de verdad requiere tocar el cluster a mano es ese único archivo.
 
@@ -30,12 +32,13 @@ sidebar_position: 7
 
 ```text
 oscar-gitops/
-├── clusters/oscar/     # bootstrap (root-app.yaml, aplicado a mano) + piezas
-│                        # de un solo archivo (Ingress de argocd-server)
+├── clusters/oscar/     # solo el bootstrap: root-app.yaml, aplicado a mano
 ├── apps/                # apps propias de OSCAR (ci-demo, oscar-led-controller)
 └── infra/                # plataforma de la que las apps dependen, pero que
-                          # no es "una app de OSCAR" (infisical-operator, headlamp)
+                          # no es "una app de OSCAR" (infisical-operator, headlamp, argocd-config, coredns-custom)
 ```
+
+Hay tres formas de pieza: chart propio (`Chart.yaml`+`templates/`), chart de terceros (`application.yaml` con versión fija + `values.yaml`) y manifests planos (`manifests/`). Lo que queda fuera de Git a propósito (instalación de Argo CD y sus ajustes, secrets de arranque) está listado en el README del repo.
 
 Inspirada en un repo real de referencia revisado en sesión (no copiado 1:1 — se mantuvo el autodiscovery de `root-app` en vez de pasar a un `Application` manual por servicio, que es más control explícito pero más pasos para agregar algo nuevo).
 
