@@ -5,7 +5,7 @@ sidebar_position: 7
 
 # Argo CD
 
-**Estado:** Actual — desplegado en `k3s01`, 3 Applications reales corriendo (`root-app`, `oscar-led-controller`, `ci-demo`), todas `Synced` contra Forgejo  
+**Estado:** Actual — desplegado en `k3s01`, 5 Applications reales corriendo (`root-app`, `oscar-led-controller`, `ci-demo`, `infisical-operator`, `headlamp`), todas `Synced` contra Forgejo  
 **Dónde corre:** `k3s01` (192.168.0.150), namespace `argocd`  
 **Sizing inicial:** ~1–2 GB RAM para instalación pequeña, validar métricas  
 **Red/puertos:** `argocd-server` es `ClusterIP` (80/443, sin `LoadBalancer`/ServiceLB) — se expone vía `Ingress` de Traefik en `http://argocd.oscar.home` (manifiesto real en `oscar-gitops/clusters/oscar/argocd-server-ingress.yaml`), solo alcanzable desde la LAN con DNS apuntado a AdGuard — nunca a internet (ADR-005)  
@@ -15,11 +15,30 @@ sidebar_position: 7
 
 | Application | Namespace | Sync | Health | Notas |
 |---|---|---|---|---|
-| `root-app` | `argocd` | Manual (sin `automated`, a propósito — ver Troubleshooting) | Healthy | app-of-apps, apunta a `clusters/oscar/` en `oscar-gitops` |
+| `root-app` | `argocd` | Manual (sin `automated`, a propósito — ver Troubleshooting) | Healthy | app-of-apps — descubre `apps/*/application.yaml` e `infra/*/application.yaml` en `oscar-gitops` (ver "Estructura del repo" abajo). Su propio manifiesto vive en `clusters/oscar/root-app.yaml`, pero eso es solo dónde vive el bootstrap, no lo que vigila. |
 | `oscar-led-controller` | `oscar-lab` | Automated | Progressing (`0/1`) | El pod está `Running` pero falla el readiness probe — el ESP32 físico está apagado, no es un problema de la plataforma. Ver [runbook](../runbooks/k3s-degradado.md) si en algún momento el ESP32 está prendido y sigue sin ponerse healthy. |
 | `ci-demo` | `oscar-lab` | Automated (`selfHeal`, `prune`) | Healthy | Cierra el loop CI→registry→GitOps→deploy, ver [pipeline de ejemplo](../devops/pipeline-ejemplo.md) |
+| `infisical-operator` | `infisical-operator-system` | Automated | Healthy | Chart oficial de Infisical (fuente Helm remota, no un chart propio) — sincroniza `Secret`s de k8s desde Infisical. Ver [gestión de secretos](../seguridad/secretos.md#secrets-en-gitops-k3s--argo-cd). |
+| `headlamp` | `headlamp` | Automated | Healthy | UI de exploración del cluster (pods/logs/eventos) — complementa a Argo CD, que se enfoca en estado de sync, no en explorar recursos sueltos. Login por token de ServiceAccount (`cluster-admin`), no usuario/contraseña — token real en Vaultwarden. Publicado en `headlamp.oscar.home`. |
 
-`root-app` sin `syncPolicy.automated` es intencional, no un olvido: el operador dispara el sync manual (`kubectl patch application root-app -n argocd --type merge -p '{"operation":{"sync":{"revision":"HEAD"}}}'` o desde la UI) para tener control explícito sobre cuándo se propaga un cambio en la estructura de `clusters/oscar/`, mientras que las Applications hoja (`oscar-led-controller`, `ci-demo`) sí son automáticas porque su blast radius es una sola app.
+`root-app` sin `syncPolicy.automated` es intencional, no un olvido: el operador dispara el sync manual (`kubectl patch application root-app -n argocd --type merge -p '{"operation":{"sync":{"revision":"HEAD"}}}'` o desde la UI) para tener control explícito sobre cuándo se propaga un cambio en la estructura del repo, mientras que las Applications hoja (`oscar-led-controller`, `ci-demo`, `infisical-operator`, `headlamp`) sí son automáticas porque su blast radius es una sola app.
+
+**Gotcha real, encontrado dos veces (2026-09-19 y 2026-09-20):** como `root-app` es manual, un cambio a `clusters/oscar/root-app.yaml` **tampoco** se propaga solo — hay que `kubectl apply -f` ese archivo puntual a mano antes de esperar que el sync manual haga algo. Pasa fácil de olvidar porque el resto del repo sí es autodiscovery: la única pieza que de verdad requiere tocar el cluster a mano es ese único archivo.
+
+### Estructura del repo (2026-09-20)
+
+```text
+oscar-gitops/
+├── clusters/oscar/     # bootstrap (root-app.yaml, aplicado a mano) + piezas
+│                        # de un solo archivo (Ingress de argocd-server)
+├── apps/                # apps propias de OSCAR (ci-demo, oscar-led-controller)
+└── infra/                # plataforma de la que las apps dependen, pero que
+                          # no es "una app de OSCAR" (infisical-operator, headlamp)
+```
+
+Inspirada en un repo real de referencia revisado en sesión (no copiado 1:1 — se mantuvo el autodiscovery de `root-app` en vez de pasar a un `Application` manual por servicio, que es más control explícito pero más pasos para agregar algo nuevo).
+
+Dentro de cada app con secrets, el patrón es `templates/secrets.yaml` (el `InfisicalSecret`, sin nada hardcodeado) + un bloque `infisicalSecret:` en `values.yaml` (proyecto/ambiente/path/lo que haga falta) — cambiar de dónde sale un secret es editar `values.yaml`, nunca el template. Ver `apps/ci-demo/` como referencia real.
 
 ## Rol dentro de O.S.C.A.R.
 
