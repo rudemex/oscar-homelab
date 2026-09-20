@@ -1886,12 +1886,24 @@ No modificar infraestructura durante esta fase — es relevamiento y validación
 
 ### 0.6 — Validar Claude Code OAuth (gate — ver sección 19.1, `RISK: AUTH-002`)
 
-- [ ] Confirmar `claude login` funciona desde el entorno real (k3s01, no solo la Mac).
-- [ ] Ejecutar la secuencia de persistencia completa: Pod restart → node restart → 72h → token refresh → uso simultáneo con la Mac personal (ver sección 19.1). **Pendiente — requiere desplegar un Pod de prueba y sostenerlo varios días, no se resuelve en una sesión.**
+Pod de prueba desplegado el 2026-09-20 (`hermes-poc/claude-code-poc`, `node:22-slim` + `@anthropic-ai/claude-code` 2.1.278, PVC `claude-auth-data` de 2 Gi montado en `/home/claude`, aplicado a mano con `kubectl`, no vía Argo CD — es un recurso de prueba descartable).
+
+- [x] `claude auth login` funciona desde el entorno real (Pod en `k3s01`). Login por URL manual (sin navegador en el contenedor) → código → sesión guardada en `~/.claude/.credentials.json` (plan `pro`, `claude -p` responde).
+- [x] **Test 1 — reinicio de Pod: aprobado** (17:36Z). La sesión sobrevive `rollout restart` (con PVC), sin re-login.
+- [ ] **Test 2 — renovación de token**: access token vence `2026-09-21T01:34:17Z` (~8 h de vida) con refresh token presente — verificar tras esa hora que `claude -p` sigue andando sin re-login.
+- [ ] **Test 3 — reinicio de nodo** (`qm reboot 103` con el Pod ya logueado; el reinicio que se hizo hoy fue *antes* del login, no cuenta).
+- [ ] **Test 4 — 72 h** desde el login (`2026-09-23T17:34Z`).
+- [ ] **Test 5 — uso simultáneo** desde la Mac personal con la misma cuenta (¿invalida la sesión del Pod?).
+
+**Hallazgos reales del armado (no estaban en el spec):**
+
+- **`k3s01` corría con CPU virtual `kvm64` ("Common KVM processor", sin SSE4.2/AVX/AVX2).** El binario nativo de Claude Code arrancaba en `R` (CPU al 100%) sin imprimir nada, ni siquiera `--help`. Fix: `qm set 103 --cpu host` + reinicio de `k3s01` (mismo problema que CS2 en `lab01`). Cualquier workload que use binarios modernos (Bun/Node nativo) en `k3s01` lo necesita — Hermes incluido.
+- Login desatendido: `claude auth login` imprime una URL y espera el código por stdin; en un contenedor se resuelve con un FIFO como stdin. El código está atado a la sesión que generó la URL (un código de otra sesión da 400). Existe además `claude setup-token` ("token de larga duración", pensado para uso desatendido/CI) — candidato más sólido que el OAuth interactivo para el daemon; **evaluarlo como alternativa antes de decidir**.
+- **La cuenta usada en la prueba es `mdelgado@tresdoce.com.ar` (plan Pro, org personal del mail corporativo).** Para un daemon permanente del homelab conviene una cuenta que no dependa del empleador (o `setup-token`/API key) — decisión pendiente, no técnica.
 
 ### 0.7 — Comportamiento tras restart/reprogramación
 
-- [ ] Confirmar que la sesión de Claude Code (`~/.claude/...` o donde corresponda) sobrevive un ciclo real de vida de Pod en k3s (no solo un restart manual controlado). Mismo pendiente que 0.6 — se prueban juntos.
+- [ ] Cubierto por los tests 1 (hecho), 3 y 4 de arriba — la sesión de Claude Code (`~/.claude/.credentials.json`) debe sobrevivir un ciclo real de vida de Pod y de nodo en k3s.
 
 ### 0.8 — Límites y términos aplicables
 
