@@ -39,6 +39,7 @@ sidebar_position: 2
 
 - **Tokens de acceso huérfanos en Forgejo**: varios tokens generados durante la sesión del 2026-09-19 (creación de `oscar-compose`, pushes puntuales) no se pudieron borrar por API/CLI/SQL (todos bloqueados por permisos, correctamente) — hay que sacarlos a mano en Settings → Applications → Access Tokens. No representan riesgo real (scopes mínimos, algunos ni siquiera funcionales).
 - **Diff cosmético en Argo CD para `infisical-secrets`**: queda `OutOfSync` aunque el recurso esté `Healthy` y sincronizando bien — el operador normaliza campos después de aplicado. No investigado a fondo, no afecta funcionalidad real.
+- **`nexus-pull` (ci-demo) migrado a Infisical**: era el único secret real entre `ci-demo`/`oscar-led-controller` (el segundo no tiene ninguno, confirmado, no se le inventó uno). Ver [gestión de secretos](../seguridad/secretos.md#secrets-en-gitops-k3s--argo-cd).
 
 ## Prioridad alta — pendiente
 

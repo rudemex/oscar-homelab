@@ -57,4 +57,8 @@ Validado de punta a punta (`apps/infisical-secrets/manifests/example-minecraft-s
 
 **Deuda pendiente, no bloqueante:** un diff cosmético en Argo CD (`OutOfSync` aunque el recurso esté `Healthy` y funcionando bien) — el operador normaliza algunos campos del `InfisicalSecret` después de aplicado, distinto de lo que queda commiteado. No afecta la sincronización real, solo ensucia la UI de Argo CD; sin investigar a fondo todavía.
 
+**Primer caso real migrado (2026-09-19):** el `imagePullSecret` `nexus-pull` de `ci-demo` — antes un `Secret` `kubernetes.io/dockerconfigjson` creado a mano, ahora un `InfisicalSecret` (`apps/ci-demo/templates/secrets.yaml`) que arma el `.dockerconfigjson` con un template de Go (`dict`/`b64enc`, sintaxis Sprig) a partir de `NEXUS_USER`/`NEXUS_PASSWORD` guardados en Infisical (`/ci-demo`). Validado: el contenido del Secret resultante es byte-a-byte igual al que existía a mano, y los pods de `ci-demo` siguen sanos sin ningún cambio en `deployment.yaml` (sigue referenciando `nexus-pull` por nombre, nada más cambió).
+
+**`oscar-led-controller` queda afuera a propósito** — no tiene ningún secret real (imagen local sin registry, `pullPolicy: Never`; WLED no tiene auth) — confirmado leyendo el chart, no se inventó uno para tener "paridad" entre las dos apps.
+
 La misma lógica aplica al propio Argo CD: su kubeconfig/tokens administrativos nunca van a Git, con o sin secret manager (ver [ADR-004 · Argo CD como motor de GitOps](../arquitectura/decisiones-arquitectonicas.md#adr-004--argo-cd-como-motor-de-gitops)).
