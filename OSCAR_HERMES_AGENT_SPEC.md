@@ -797,7 +797,9 @@ Según la documentación oficial de autenticación de Claude Code (no probado en
 
 **Lectura para Hermes:** `setup-token` resuelve mejor el caso de un daemon desatendido que el OAuth de sesión — elimina la dependencia del PVC para auth y de la renovación en caliente, y calza directo con Infisical. Sigue sin resolver la decisión de cuenta (mail corporativo vs. cuenta propia): el token hereda la cuenta y el plan de quien lo genera.
 
-**Pendiente (requiere una terminal con navegador, no automatizable desde acá):** generar un token con `claude setup-token` en la Mac, cargarlo como secret (Infisical → `CLAUDE_CODE_OAUTH_TOKEN`) y probar `claude -p` en el Pod con esa variable y **sin** `~/.claude/.credentials.json` (usar un `CLAUDE_CONFIG_DIR` vacío) para confirmar que autentica solo con el token. Decidir recién después entre las dos vías.
+**Probado end-to-end (2026-09-20):** token generado con `claude setup-token` en la Mac y probado en el Pod con `CLAUDE_CONFIG_DIR` vacío + `CLAUDE_CODE_OAUTH_TOKEN`. Resultado: `claude auth status` → `loggedIn: true`, `authMethod: oauth_token`; `claude -p` respondió normal; **no se escribió `.credentials.json`** (solo estado/config local: `.claude.json`, `sessions`, etc.). Confirma que autentica únicamente con el token, sin sesión guardada y sin depender del PVC para auth. `auth status` no muestra email ni plan: el token es de alcance solo-inferencia, como documenta Anthropic.
+
+**Seguridad de esta prueba:** el token se pasó por el chat, así que debe darse por expuesto. Antes de usarlo de verdad: guardarlo en Infisical (`/hermes`, `CLAUDE_CODE_OAUTH_TOKEN`) y **generar uno nuevo** para reemplazar el de la prueba. Decisión de cuenta sigue abierta (el token hereda la del mail corporativo).
 
 ## Validación requerida antes de construir el resto de la arquitectura encima
 
