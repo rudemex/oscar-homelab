@@ -638,6 +638,8 @@ Son mecanismos distintos.
 
 # 17. Codex CLI
 
+**Autenticación corregida (2026-09-20, resultado de la Fase 0.8 — ver sección 19.1, `RISK: AUTH-001`):** Codex CLI acá **no se autentica con `codex login` contra una suscripción de ChatGPT** — los términos de uso de OpenAI prohíben explícitamente un daemon desatendido corriendo sobre una suscripción personal. Se autentica con una **API key de OpenAI**, facturada por uso (pago por token), igual que cualquier otra integración de API de este proyecto. Esto es un cambio real de costos, no solo de configuración: deja de ser "ya lo pagás con la suscripción que tenés" y pasa a ser un gasto variable que hay que presupuestar y tener a la vista (ver sección 39, gestión de secretos, para dónde vive esa key).
+
 Además del provider principal, Hermes puede delegar tareas a Codex CLI.
 
 Flujo:
@@ -751,27 +753,38 @@ Usar la sesión OAuth de una suscripción personal (ChatGPT Plus, Claude Max) de
 
 ## OpenAI / Codex
 
-OpenAI documenta que Codex está incluido en los planes de ChatGPT y que Codex CLI se puede autenticar iniciando sesión con la cuenta de ChatGPT — técnicamente soportado por las herramientas (`Hermes → Codex CLI → login ChatGPT`). Pero los términos de uso actuales de OpenAI restringen la extracción automática/programática de datos u outputs del servicio, y no hay una aclaración oficial específica de que usar una suscripción personal como backend permanente de un agente de terceros desatendido esté expresamente soportado.
+**Resuelto (2026-09-20, Fase 0.8 — investigación real de términos de uso, no supuesta):** los términos de OpenAI son explícitos — una suscripción personal de ChatGPT es de un único usuario humano, y un sistema desatendido que llama al servicio sin que ese humano esté "en el loop" deja de ser uso personal. La postura documentada es directa: *"No unattended production system should run on a ChatGPT subscription"*. Esto **descarta** usar el login OAuth de la suscripción de ChatGPT/Codex como backend permanente de Hermes tal como estaba planteado en la sección 17.
 
 ```text
 RISK: AUTH-001
 ChatGPT/Codex consumer OAuth usado por un agente de terceros persistente.
-Status: TO VALIDATE — no asumir que está prohibido ni que está garantizado.
+Status: CONFIRMADO PROHIBIDO por los términos de uso — no es un riesgo a mitigar, es un rediseño.
+Acción: Codex dentro de Hermes tiene que facturarse vía API key (pago por token),
+no vía sesión OAuth de una suscripción de ChatGPT. Ajustar sección 17 y el
+presupuesto/costos del proyecto antes de avanzar — deja de ser "gratis con la
+suscripción que ya pagás" y pasa a ser un costo variable real por uso.
 ```
 
 ## Claude
 
-Anthropic reconoce que Claude Pro/Max incluyen uso de Claude Code asociado a esas cuentas, y Hermes documenta `claude -p` como su modo preferido para tareas no interactivas al delegar a Claude Code — juega a favor del uso técnico planteado acá. Pero sigue existiendo una diferencia real entre "yo usando Claude Code CLI" y "un daemon Hermes 24/7 orquestando mi sesión personal".
+**Resuelto (2026-09-20, Fase 0.8):** los términos de consumidor de Anthropic prohíben en general el acceso automatizado/no-humano a los servicios, **con una excepción explícita para Claude Code CLI** — es "el producto oficial de Anthropic construido para uso scripteado y automatizado", exento de esa prohibición. La condición real, confirmada por casos concretos de 2026 (suspensiones de cuentas usando OpenCode/Roo Code/Cline/Kilo con Claude Pro/Max sobre la misma suscripción): tiene que ser el **binario oficial de Claude Code**, no un wrapper/harness de terceros que hable el mismo protocolo.
 
 ```text
 RISK: AUTH-002
 Claude consumer OAuth usado desde Hermes de forma desatendida.
-Status: TO VALIDATE
+Status: PERMITIDO por los términos de uso, condicionado — solo si Hermes invoca
+al binario oficial `claude`/Claude Code CLI directo (`claude -p`, como ya estaba
+planteado en la sección 18), nunca un wrapper de terceros. La sección 18 ya
+elegía este camino — queda validado por los términos, no hay que rediseñar acá.
+Sigue pendiente la validación TÉCNICA de persistencia (0.6/0.7 abajo): que los
+términos lo permitan no confirma que el token sobreviva un ciclo real de Pod.
 ```
 
 ## Validación requerida antes de construir el resto de la arquitectura encima
 
-No alcanza con `codex login` / `claude login` y confirmar que anduvo una vez. Probar específicamente el comportamiento del Pod:
+Con AUTH-001 resuelto (rediseño a API key, no daemon sobre suscripción), la validación de persistencia de sesión de Codex (0.5) queda sin objeto — no tiene sentido probar que sobrevive reinicios una sesión OAuth que los términos de uso ya descartan para este caso. Lo que sigue aplica a **Claude Code únicamente** (0.6/0.7):
+
+No alcanza con `claude login` y confirmar que anduvo una vez. Probar específicamente el comportamiento del Pod:
 
 ```text
 login
@@ -1359,7 +1372,8 @@ Nunca almacenar en Git:
 
 ```text
 OAuth tokens
-API keys
+API keys (incluida la de OpenAI/Codex, ver sección 17 — ahora es un secret real,
+          no algo cubierto por una suscripción)
 Home Assistant tokens
 n8n credentials
 MCP secrets
@@ -1367,9 +1381,7 @@ Open WebUI secret
 Hermes API key
 ```
 
-Utilizar Kubernetes Secrets o mecanismo equivalente.
-
-Evaluar secret management mejor más adelante.
+**Actualizado (2026-09-20) — ya no es "evaluar más adelante".** Desde esta misma sesión existe [Infisical](../seguridad/secretos.md) desplegado como gestor de secrets real para OSCAR (proyecto "OSCAR Apps" en Infisical, operador de Kubernetes ya instalado en `k3s01` vía Argo CD). Todos los secrets de la lista de arriba van ahí, no como `Secret` de k8s creado a mano — mismo patrón ya validado en producción con `ci-demo` (`imagePullSecret` sincronizado por un `InfisicalSecret`, ver `oscar-gitops/apps/ci-demo/templates/secrets.yaml`). Hermes seguiría ese mismo patrón: un folder propio en Infisical (ej. `/hermes`), una identidad de máquina dedicada (no reutilizar `oscar-deploy` ni ninguna otra — ver sección 33.1, misma regla de "credencial propia por integración"), y un `InfisicalSecret` por cada `Secret` de k8s que Hermes necesite.
 
 ---
 
@@ -1506,14 +1518,22 @@ Hermes no debe acceder a todos los repositorios por defecto.
 
 Crear allowlist.
 
-Repositorios reales (corregido 2026-09-17 — la spec original mencionaba `oscar-kubernetes`, que no existe, y trataba `oscar-led-controller` como repo aparte cuando en realidad es una subcarpeta dentro de `oscar-homelab`):
+Repositorios reales (corregido 2026-09-20 vía la Fase 0.1, contra la API real de Forgejo — no por nombre supuesto):
 
 ```text
-oscar-homelab   (docs + apps/oscar-led-controller/)
-oscar-gitops    (manifiestos k3s / GitOps)
+# En Forgejo (git.oscar.home) — acá es donde Hermes tendría acceso real:
+ci-demo          (proyecto mínimo de validación del pipeline CI)
+oscar-compose    (compose.yaml de apps Docker — Minecraft, CS2, Infisical; nuevo 2026-09-19)
+oscar-gitops     (manifiestos k3s / GitOps)
+
+# Fuera de Forgejo, solo en GitHub — Hermes NO tendría acceso con las
+# credenciales de Forgejo, sería una integración aparte si hiciera falta:
+oscar-homelab    (docs + apps/oscar-led-controller/)
 ```
 
-Solo dos repos reales hoy. Ajustar si en el futuro se separa algo a un repo propio — no es obligatorio hacerlo desde el día uno.
+**Corrección real sobre la versión anterior de esta spec:** asumía que `oscar-homelab` era uno de los dos repos accesibles vía Forgejo — no lo es, nunca se migró ahí (a diferencia de `oscar-gitops`, que sí migró de GitHub-mirror a Forgejo-origen real). Si Hermes necesita leer la documentación o el código de `oscar-led-controller`, hoy eso implicaría una credencial de GitHub aparte, no extender el mismo token de Forgejo — o migrar `oscar-homelab` a Forgejo primero (fuera del alcance de esta spec, es una decisión de infraestructura aparte).
+
+Cuatro repos reales hoy (tres en Forgejo, uno en GitHub). Ajustar si en el futuro se separa algo a un repo propio — no es obligatorio hacerlo desde el día uno.
 
 **Regla permanente:** nunca inferir nombres de repositorios a partir de componentes o aplicaciones (ej. asumir que existe un repo `oscar-kubernetes` porque hay un componente Kubernetes). Obtenerlos del estado real de Forgejo antes de configurar cualquier allowlist — con una consulta a la API (`GET /api/v1/user/repos` o equivalente), no por nombre supuesto.
 
@@ -1844,40 +1864,40 @@ No modificar infraestructura durante esta fase — es relevamiento y validación
 
 ### 0.1 — Repos reales
 
-- [ ] Confirmar contra la API de Forgejo (no por nombre supuesto) qué repos existen — allowlist real: `oscar-homelab`, `oscar-gitops` (ver sección 46).
+- [x] **Hecho (2026-09-20).** Confirmado contra la API real de Forgejo — el allowlist de la sección 46 estaba mal: `oscar-homelab` **no existe en Forgejo** (solo vive en GitHub). Los repos reales en Forgejo hoy son `ci-demo`, `oscar-compose`, `oscar-gitops`. Corregido en la sección 46.
 
 ### 0.2 — Recursos de `k3s01`
 
-- [ ] Baseline real de `k3s01` **antes** de desplegar nada (CPU, RAM, swap, disk I/O, load, uso por pod) — no asumir el estado idle medido en una fase anterior del proyecto, remedir.
-- [ ] Confirmar storage class disponible para el PVC de Hermes.
+- [x] **Hecho (2026-09-20).** Baseline real remedido: 8 GB RAM total, ~2 GB usado, 5.7 GB disponible; load promedio 0.03–0.09 (prácticamente idle); disco 33 GB libres de 58 GB. El sizing sugerido en la sección 5 (250m CPU / 512Mi RAM, límite 1 CPU / 2Gi) es holgado contra esto — no hace falta ajustarlo.
+- [x] **Hecho.** Storage class disponible: **una sola**, `local-path` (default, `rancher.io/local-path`) — `ALLOWVOLUMEEXPANSION: false`. Implica dimensionar el PVC de Hermes con margen real desde el arranque: si queda chico, agrandarlo después requiere recrear el PVC, no un simple resize.
 
 ### 0.3 — Diseño de credenciales
 
-- [ ] Definir `svc-hermes-forgejo` (solo lectura, `oscar-homelab` + `oscar-gitops`, sin reutilizar tokens de CI/ArgoCD/personal — ver sección 33.1).
-- [ ] Confirmar que Home Assistant queda detrás de `n8n` (sin token HA en Hermes — ver sección 24) antes de construir esa integración.
+- [x] **Diseño confirmado (sección 33.1)** — `svc-hermes-forgejo`, solo lectura, sin reutilizar tokens de CI/ArgoCD/personal. Ajustar el repo destino tras 0.1: es `oscar-gitops` (y `ci-demo`/`oscar-compose` si hace falta), **no** `oscar-homelab` (no vive en Forgejo). Actualizado además para usar Infisical como backend real de secrets (sección 39), no un `Secret` de k8s creado a mano.
+- [x] **Confirmado.** Home Assistant queda detrás de `n8n`, sin token HA directo en Hermes (sección 24) — sigue siendo la decisión, no cambió.
 
 ### 0.4 — Backup / persistencia
 
-- [ ] Clasificar qué va a vivir en el PVC de Hermes (ver sección 6.1) y qué de eso necesita backup real antes de producción.
+- [x] **Ya clasificado (sección 6.1)** — OAuth/sesión (crítico, sin backup fuera del secret store), skills (versionadas en Git, no solo el PVC), memoria (a evaluar en uso), config declarativa (Git), cache (descartable). No hace falta rehacer esta clasificación, ya distingue lo reconstruible de lo que no.
 
 ### 0.5 — Validar ChatGPT/Codex OAuth (gate — ver sección 19.1, `RISK: AUTH-001`)
 
-- [ ] Confirmar `codex login` funciona desde el entorno real (k3s01, no solo la Mac).
-- [ ] Ejecutar la secuencia de persistencia completa: Pod restart → node restart → 72h → token refresh → uso simultáneo con la Mac personal (ver sección 19.1).
+- [x] **Resuelto por 0.8, sin objeto (2026-09-20).** Los términos de uso de OpenAI prohíben un daemon desatendido sobre una suscripción personal — no tiene sentido probar persistencia de una sesión OAuth que ya está descartada para este uso. Codex en Hermes pasa a facturarse por API key, no por login de suscripción (ver sección 19.1). Pendiente real: probar el flujo de API key en sí (autenticación, límites, costo), no el OAuth.
 
 ### 0.6 — Validar Claude Code OAuth (gate — ver sección 19.1, `RISK: AUTH-002`)
 
-- [ ] Mismo procedimiento que 0.5, aplicado a Claude Code / `claude -p`.
+- [ ] Confirmar `claude login` funciona desde el entorno real (k3s01, no solo la Mac).
+- [ ] Ejecutar la secuencia de persistencia completa: Pod restart → node restart → 72h → token refresh → uso simultáneo con la Mac personal (ver sección 19.1). **Pendiente — requiere desplegar un Pod de prueba y sostenerlo varios días, no se resuelve en una sesión.**
 
 ### 0.7 — Comportamiento tras restart/reprogramación
 
-- [ ] Confirmar que ambas sesiones (`~/.codex/auth.json`, `~/.hermes/auth.json`) sobreviven un ciclo real de vida de Pod en k3s (no solo un restart manual controlado).
+- [ ] Confirmar que la sesión de Claude Code (`~/.claude/...` o donde corresponda) sobrevive un ciclo real de vida de Pod en k3s (no solo un restart manual controlado). Mismo pendiente que 0.6 — se prueban juntos.
 
 ### 0.8 — Límites y términos aplicables
 
-- [ ] Revisar explícitamente los términos de uso vigentes de OpenAI/ChatGPT y Anthropic/Claude respecto a uso automatizado/no interactivo de una cuenta de consumidor — documentar la conclusión, no asumirla.
+- [x] **Hecho (2026-09-20).** Revisados los términos vigentes de OpenAI y Anthropic — conclusión real, no supuesta: OpenAI prohíbe explícitamente daemons desatendidos sobre suscripción personal (rediseño a API key); Anthropic permite específicamente Claude Code CLI para uso automatizado (exención explícita), pero suspendió cuentas usando *wrappers* de terceros sobre la misma suscripción durante 2026 — tiene que ser el binario oficial. Detalle completo en la sección 19.1.
 
-**Solo si 0.5–0.8 dan un resultado aceptable, avanzar a Fase 1.** Si el OAuth de consumidor no resulta adecuado para un daemon permanente, esta fase termina en un rediseño de provider/autenticación, no en un despliegue.
+**Solo si 0.6–0.7 dan un resultado aceptable (ahora acotado a Claude Code, no a Codex), avanzar a Fase 1.** El rediseño de Codex (API key en vez de suscripción) ya está decidido por 0.8 — no es un "si", es un cambio confirmado a aplicar en la sección 17.
 
 ## Fase 1 — Base oscar-ai
 
