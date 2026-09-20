@@ -77,6 +77,32 @@ El primer arranque genera el mundo y tarda más que los siguientes — esperar a
 
 Cambiar `TYPE` a `PAPER` o `FABRIC` (y agregar `MODS`/`PLUGINS` según corresponda) — la imagen soporta ambos sin cambiar de compose. No mezclar mods incompatibles con la versión fijada en `MC_VERSION`.
 
+### Cross-play con consolas/celular: Geyser + Floodgate (2026-09-20)
+
+El servidor es Java Edition — consolas (PS5, Switch, Xbox) y celular corren **Bedrock Edition**, un juego técnicamente distinto que no se conecta a un server Java sin un puente. Se sumó ese puente vía [Geyser](https://geysermc.org/) (traduce el protocolo de red en tiempo real, mismo mundo, no una copia) + [Floodgate](https://wiki.geysermc.org/floodgate/) (deja entrar a jugadores Bedrock con su cuenta propia, sin necesitar una cuenta Java vinculada).
+
+Requirió pasar `TYPE` de `VANILLA` a `PAPER` (Geyser/Floodgate son plugins, no corren sobre Vanilla puro) — el mundo existente no se pierde, Paper es compatible con el formato de mundo de Vanilla en la misma versión:
+
+```yaml
+environment:
+  TYPE: PAPER
+  PLUGINS: |
+    https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest/downloads/spigot
+    https://download.geysermc.org/v2/projects/floodgate/versions/latest/builds/latest/downloads/spigot
+ports:
+  - "25565:25565"        # Java, como siempre
+  - "19132:19132/udp"    # Bedrock — puerto nuevo, UDP no TCP
+```
+
+**Warning real visto en el arranque, no ignorarlo si algún cliente Bedrock no logra conectar:**
+
+```text
+Your server software does not support the Java version that Geyser requires
+(26.2, 26.1.1, 26.1.2). Please install ViaVersion or update your server software!
+```
+
+Geyser traduce hacia el protocolo Java más nuevo que conoce, pero `MC_VERSION` sigue fijo a propósito (ver arriba) — si la versión de Bedrock del cliente queda por delante de lo que mapea a la versión Java fijada, no conecta. La solución en ese caso es sumar el plugin [ViaVersion](https://viaversion.com/) (permite que un server Java viejo acepte clientes de versiones más nuevas), no destrabar `MC_VERSION`.
+
 ## Seguridad
 
 - **RCON nunca publicado a `0.0.0.0`** — el compose de arriba ya lo ata a `127.0.0.1`; es la consola de administración remota del server, equivalente a una shell con privilegios sobre el mundo.
