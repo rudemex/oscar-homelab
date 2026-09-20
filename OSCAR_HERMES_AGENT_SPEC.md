@@ -780,6 +780,25 @@ Sigue pendiente la validación TÉCNICA de persistencia (0.6/0.7 abajo): que los
 términos lo permitan no confirma que el token sobreviva un ciclo real de Pod.
 ```
 
+### Evaluación de `claude setup-token` como alternativa al OAuth de sesión (2026-09-20)
+
+Según la documentación oficial de autenticación de Claude Code (no probado end-to-end en el Pod — ver "Pendiente" abajo):
+
+| | OAuth de sesión (`auth login`, lo probado hasta acá) | `setup-token` + `CLAUDE_CODE_OAUTH_TOKEN` |
+|---|---|---|
+| Vida útil | access token ~8 h + refresh token (renovación automática; Test 2) | **token de 1 año**, sin refresh — vence de golpe |
+| Dónde vive | `~/.claude/.credentials.json` en el PVC (archivo escrito y renovado por el propio CLI) | variable de entorno → encaja con un `Secret` de k8s sincronizado por Infisical (sección 39) |
+| Estado en el Pod | mutable: el CLI reescribe credenciales; hay que persistir un PVC solo para esto | **stateless**: si el Pod muere, vuelve a arrancar con la misma variable, sin PVC para auth |
+| Alcance | completo (Remote Control, conectores claude.ai) | **solo inferencia** (no Remote Control, no conectores claude.ai; los MCP locales sí andan) — suficiente para Hermes |
+| Procedencia | login interactivo desde el Pod (código por stdin, frágil en contenedores) | se genera en una máquina con navegador (`claude setup-token` en la Mac) y se copia el token |
+| Precedencia | la más baja (7) | por encima del login guardado (5) — si están ambos, gana el token |
+| Plan requerido | Pro/Max/Team/Enterprise | igual — sigue consumiendo el cupo de la **suscripción**, no factura por token |
+| Riesgos | renovación/rotación entre sesiones hermanas (Test 2/5); invalidación silenciosa | vence a los 12 meses sin aviso (calendarizar rotación); un token filtrado da acceso a inferencia de la cuenta durante un año; `--bare` no lo lee |
+
+**Lectura para Hermes:** `setup-token` resuelve mejor el caso de un daemon desatendido que el OAuth de sesión — elimina la dependencia del PVC para auth y de la renovación en caliente, y calza directo con Infisical. Sigue sin resolver la decisión de cuenta (mail corporativo vs. cuenta propia): el token hereda la cuenta y el plan de quien lo genera.
+
+**Pendiente (requiere una terminal con navegador, no automatizable desde acá):** generar un token con `claude setup-token` en la Mac, cargarlo como secret (Infisical → `CLAUDE_CODE_OAUTH_TOKEN`) y probar `claude -p` en el Pod con esa variable y **sin** `~/.claude/.credentials.json` (usar un `CLAUDE_CONFIG_DIR` vacío) para confirmar que autentica solo con el token. Decidir recién después entre las dos vías.
+
 ## Validación requerida antes de construir el resto de la arquitectura encima
 
 Con AUTH-001 resuelto (rediseño a API key, no daemon sobre suscripción), la validación de persistencia de sesión de Codex (0.5) queda sin objeto — no tiene sentido probar que sobrevive reinicios una sesión OAuth que los términos de uso ya descartan para este caso. Lo que sigue aplica a **Claude Code únicamente** (0.6/0.7):
