@@ -5,7 +5,7 @@ sidebar_position: 7
 
 # Argo CD
 
-**Estado:** Actual — desplegado en `k3s01`, 5 Applications reales corriendo (`root-app`, `oscar-led-controller`, `ci-demo`, `infisical-operator`, `headlamp`), todas `Synced` contra Forgejo  
+**Estado:** Actual — desplegado en `k3s01`, 6 Applications reales corriendo (`root-app`, `oscar-led-controller`, `ci-demo`, `searxng`, `infisical-operator`, `headlamp`), todas `Synced` contra Forgejo  
 **Dónde corre:** `k3s01` (192.168.0.150), namespace `argocd`  
 **Sizing inicial:** ~1–2 GB RAM para instalación pequeña, validar métricas  
 **Red/puertos:** `argocd-server` es `ClusterIP` (80/443, sin `LoadBalancer`/ServiceLB) — se expone vía `Ingress` de Traefik en `http://argocd.oscar.home` (manifiesto real en `oscar-gitops/clusters/oscar/argocd-server-ingress.yaml`), solo alcanzable desde la LAN con DNS apuntado a AdGuard — nunca a internet (ADR-005)  
@@ -18,10 +18,11 @@ sidebar_position: 7
 | `root-app` | `argocd` | Manual (sin `automated`, a propósito — ver Troubleshooting) | Healthy | app-of-apps — descubre `apps/*/application.yaml` e `infra/*/application.yaml` en `oscar-gitops` (ver "Estructura del repo" abajo). Su propio manifiesto vive en `clusters/oscar/root-app.yaml`, pero eso es solo dónde vive el bootstrap, no lo que vigila. |
 | `oscar-led-controller` | `oscar-lab` | Automated | Progressing (`0/1`) | El pod está `Running` pero falla el readiness probe — el ESP32 físico está apagado, no es un problema de la plataforma. Ver [runbook](../runbooks/k3s-degradado.md) si en algún momento el ESP32 está prendido y sigue sin ponerse healthy. |
 | `ci-demo` | `oscar-lab` | Automated (`selfHeal`, `prune`) | Healthy | Cierra el loop CI→registry→GitOps→deploy, ver [pipeline de ejemplo](../devops/pipeline-ejemplo.md) |
+| `searxng` | `oscar-ai` | Automated | Healthy | Metabuscador, primera pieza de la capa OSCAR AI (Fase 1 del spec de Hermes). Chart propio `apps/searxng/`, secret desde Infisical. Publicado en `searxng.oscar.home` solo para probar. |
 | `infisical-operator` | `infisical-operator-system` | Automated | Healthy | Chart oficial de Infisical (fuente Helm remota, no un chart propio) — sincroniza `Secret`s de k8s desde Infisical. Ver [gestión de secretos](../seguridad/secretos.md#secrets-en-gitops-k3s--argo-cd). |
 | `headlamp` | `headlamp` | Automated | Healthy | UI de exploración del cluster (pods/logs/eventos) — complementa a Argo CD, que se enfoca en estado de sync, no en explorar recursos sueltos. Login por token de ServiceAccount (`cluster-admin`), no usuario/contraseña — token real en Vaultwarden. Publicado en `headlamp.oscar.home`. |
 
-`root-app` sin `syncPolicy.automated` es intencional, no un olvido: el operador dispara el sync manual (`kubectl patch application root-app -n argocd --type merge -p '{"operation":{"sync":{"revision":"HEAD"}}}'` o desde la UI) para tener control explícito sobre cuándo se propaga un cambio en la estructura del repo, mientras que las Applications hoja (`oscar-led-controller`, `ci-demo`, `infisical-operator`, `headlamp`) sí son automáticas porque su blast radius es una sola app.
+`root-app` sin `syncPolicy.automated` es intencional, no un olvido: el operador dispara el sync manual (`kubectl patch application root-app -n argocd --type merge -p '{"operation":{"sync":{"revision":"HEAD"}}}'` o desde la UI) para tener control explícito sobre cuándo se propaga un cambio en la estructura del repo, mientras que las Applications hoja (`oscar-led-controller`, `ci-demo`, `searxng`, `infisical-operator`, `headlamp`) sí son automáticas porque su blast radius es una sola app.
 
 **Gotcha real, encontrado dos veces (2026-09-19 y 2026-09-20):** como `root-app` es manual, un cambio a `clusters/oscar/root-app.yaml` **tampoco** se propaga solo — hay que `kubectl apply -f` ese archivo puntual a mano antes de esperar que el sync manual haga algo. Pasa fácil de olvidar porque el resto del repo sí es autodiscovery: la única pieza que de verdad requiere tocar el cluster a mano es ese único archivo.
 
@@ -79,7 +80,7 @@ Cambiar `replicas: 2` en Git; Argo CD detecta el commit y reconcilia el Deployme
 - [ ] `.env.example` sin secretos en Git — no aplica del mismo modo que un Docker Compose; la credencial del repo (`oscar-gitops-forgejo`) es un Secret de k8s, no un `.env`;
 - [x] credenciales reales fuera de Git (Secret `oscar-gitops-forgejo` en el namespace `argocd`, nunca en el repo);
 - [ ] backup definido antes de cargar datos importantes — el mecanismo (`argocd admin export`) está documentado pero no se corrió nunca en la práctica, no hay un backup real guardado todavía;
-- [ ] healthcheck o monitor de disponibilidad — Homepage sí tiene el `siteMonitor`/estado de sync como widget, pero **no está sumado a Uptime Kuma** (confirmado: no aparece en `http://192.168.0.156:3001/api/status-page/oscar`, a diferencia de Forgejo y Nexus que sí);
+- [x] healthcheck o monitor de disponibilidad — monitor `Argo CD (k3s01)` en Uptime Kuma y en la status page (2026-09-20), además del `siteMonitor` de Homepage;
 - [ ] métricas/logs incorporados cuando sea razonable — sin Prometheus/Grafana desplegado todavía, pendiente del stack de observabilidad;
 - [ ] procedimiento de actualización y rollback documentado — el de password perdida y OutOfSync sí existen (ver Troubleshooting), el de actualizar la versión de Argo CD en sí no.
 

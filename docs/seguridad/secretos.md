@@ -51,7 +51,7 @@ GitOps introduce un problema específico: Argo CD sincroniza manifiestos **desde
 
 **Decidido y resuelto (2026-09-19):** ni SOPS+age ni Sealed Secrets — se extendió la misma decisión que para Docker Compose (arriba): **Infisical Secrets Operator**, instalado en k3s01 vía Argo CD (`apps/infisical-operator/`, chart oficial). Sincroniza `Secret`s nativos de Kubernetes desde Infisical usando el CRD `InfisicalSecret` — el manifest del CRD **sí va a Git** (no tiene el secreto en sí, solo la referencia: proyecto, ambiente, path), pero el `clientId`/`clientSecret` de la identidad que autentica al operador vive en un `Secret` de Kubernetes creado a mano (`kubectl create secret`), **nunca en Git** — mismo criterio que ya se usaba para `nexus-pull` (el `imagePullSecret` de `ci-demo`).
 
-Validado de punta a punta (`apps/infisical-secrets/manifests/example-minecraft-sync.yaml`, namespace `oscar-lab`): un `InfisicalSecret` apuntando al folder `/minecraft` del proyecto "OSCAR Apps" generó un `Secret` nativo real con los 3 valores esperados.
+Validado de punta a punta con un ejemplo de prueba (un `InfisicalSecret` apuntando al folder `/minecraft` del proyecto "OSCAR Apps" generó un `Secret` nativo real con los 3 valores esperados; ya retirado, el caso real es `ci-demo`, abajo).
 
 **Gotcha real encontrado en el camino:** `infisical.oscar.home` no resolvía desde *dentro* del cluster (CoreDNS interno de k3s no lo conocía) — mismo problema que ya había pasado con `git.oscar.home` en su momento. Se resolvió agregando una entrada más al `ConfigMap` `coredns-custom` (namespace `kube-system`, ya existente) con el mismo patrón `template IN A` que la entrada de `git.oscar.home`.
 
