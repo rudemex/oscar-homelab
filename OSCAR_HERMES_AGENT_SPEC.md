@@ -1934,8 +1934,8 @@ Pod de prueba desplegado el 2026-09-20 (`hermes-poc/claude-code-poc`, `node:22-s
 
 ## Fase 1 — Base oscar-ai
 
-- [ ] Crear/validar namespace `oscar-ai`.
-- [ ] Desplegar SearXNG.
+- [x] Crear/validar namespace `oscar-ai` (2026-09-20, lo crea Argo CD con `CreateNamespace=true`).
+- [x] Desplegar SearXNG (2026-09-20). Chart propio en `oscar-gitops/apps/searxng/` (imagen `searxng/searxng:2026.9.19-e831fc2a1` fijada, `settings.yml` mínimo por ConfigMap con `json` habilitado, `SEARXNG_SECRET` sincronizado desde Infisical `/searxng` con el patrón de `ci-demo`, Ingress `searxng.oscar.home` solo para probar a mano). **Validado:** búsqueda JSON por el Service interno (`searxng.oscar-ai.svc:8080`, el camino que usará Hermes) devolvió 35 resultados reales (engines `brave`, `google cse`); `/healthz` 200; consumo ~95 MiB / 1m CPU.
 - [ ] Desplegar Hermes.
 - [ ] Desplegar Open WebUI.
 - [ ] Configurar PVCs.
