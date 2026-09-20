@@ -38,7 +38,26 @@ oscar-gitops/
 
 Inspirada en un repo real de referencia revisado en sesión (no copiado 1:1 — se mantuvo el autodiscovery de `root-app` en vez de pasar a un `Application` manual por servicio, que es más control explícito pero más pasos para agregar algo nuevo).
 
-Dentro de cada app con secrets, el patrón es `templates/secrets.yaml` (el `InfisicalSecret`, sin nada hardcodeado) + un bloque `infisicalSecret:` en `values.yaml` (proyecto/ambiente/path/lo que haga falta) — cambiar de dónde sale un secret es editar `values.yaml`, nunca el template. Ver `apps/ci-demo/` como referencia real.
+Todas las apps con variables o secrets siguen el mismo patrón en `values.yaml`, con tres bloques simples y **sin nada hardcodeado en los templates**:
+
+```yaml
+env:                              # variables NO secretas   NOMBRE: valor  → ConfigMap → envFrom
+  PORT: 3000
+
+infisical:                        # DÓNDE leer en Infisical
+  hostAPI: http://infisical.oscar.home/api
+  projectId: "…"
+  envSlug: prod
+  path: /mi-app
+  credentialsRef: {secretName: infisical-universal-auth, secretNamespace: oscar-lab}
+
+secrets:                          # QUÉ secrets   CLAVE_EN_EL_SECRET_DE_K8S: NOMBRE_EN_INFISICAL
+  APP_USER: SECRET_APP_USER
+  APP_PASS: SECRET_APP_PASS
+secretName: mi-app-secrets        # nombre del Secret de k8s generado (lo consume envFrom)
+```
+
+`templates/env.yaml` y `templates/secrets.yaml` solo iteran esos mapas: agregar una variable o un secret es agregar una línea en `values.yaml`. El `Deployment` referencia los nombres desde `values.yaml` (no hay nombres duplicados a mano), y lleva un checksum del ConfigMap para reiniciar el Pod cuando cambia una variable. Caso especial: el `imagePullSecret` de `ci-demo` (k8s exige un único JSON `dockerconfigjson`), donde `values.yaml` indica los *nombres en Infisical* del usuario y la contraseña y el template arma el JSON. Límite conocido: cambiar un valor en Infisical actualiza el `Secret` pero no reinicia el Pod solo. Referencias reales: `apps/ci-demo/` y `apps/searxng/`.
 
 ## Rol dentro de O.S.C.A.R.
 
