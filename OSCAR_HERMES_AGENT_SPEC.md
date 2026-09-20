@@ -1893,7 +1893,7 @@ Pod de prueba desplegado el 2026-09-20 (`hermes-poc/claude-code-poc`, `node:22-s
 - [ ] **Test 2 — renovación de token**: access token vence `2026-09-21T01:34:17Z` (~8 h de vida) con refresh token presente — verificar tras esa hora que `claude -p` sigue andando sin re-login.
 - [x] **Test 3 — reinicio de nodo: aprobado** (`qm reboot 103` a las 17:55 hora del nodo, con el Pod ya logueado). El Pod volvió solo, la sesión siguió activa (`loggedIn: true`, `claude -p` responde) sin re-login; `expiresAt` sin cambios (`2026-09-21T01:34:17Z`, todavía dentro de su vida útil). Argo CD y el resto de las apps se recuperaron sin intervención.
 - [ ] **Test 4 — 72 h** desde el login (`2026-09-23T17:34Z`).
-- [ ] **Test 5 — uso simultáneo** desde la Mac personal con la misma cuenta (¿invalida la sesión del Pod?).
+- [x] **Test 5 — uso simultáneo: aprobado en el corto plazo** (2026-09-20). Mac (`~/.local/bin/claude`) y Pod usan la misma cuenta (`mdelgado@tresdoce.com.ar`, plan Pro) con sesiones OAuth independientes (dos logins distintos, no comparten refresh token). 3 rondas intercaladas de `claude -p` en cada lado respondieron bien y ambos siguieron `loggedIn: true`. **Salvedad:** la interferencia más probable aparece recién en la renovación de token (si una renovación invalidara sesiones hermanas) — eso solo se ve en el Test 2 (2026-09-21) y en el de 72 h; repetir una ronda simultánea justo después de la primera renovación.
 
 **Hallazgos reales del armado (no estaban en el spec):**
 
