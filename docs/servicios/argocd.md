@@ -16,7 +16,7 @@ sidebar_position: 7
 | Application | Namespace | Sync | Health | Notas |
 |---|---|---|---|---|
 | `root-app` | `argocd` | Manual (sin `automated`, a propósito — ver Troubleshooting) | Healthy | app-of-apps — descubre `apps/*/application.yaml` e `infra/*/application.yaml` en `oscar-gitops` (ver "Estructura del repo" abajo). Su propio manifiesto vive en `clusters/oscar/root-app.yaml`, pero eso es solo dónde vive el bootstrap, no lo que vigila. |
-| `oscar-led-controller` | `oscar-lab` | **Manual** (su `Application` no define `automated`; hay que disparar el sync a mano, como `root-app`) | Progressing (`0/1`) | El pod está `Running` pero falla el readiness probe — el ESP32 físico está apagado, no es un problema de la plataforma. Ver [runbook](../runbooks/k3s-degradado.md) si en algún momento el ESP32 está prendido y sigue sin ponerse healthy. |
+| `oscar-led-controller` | `oscar-lab` | **Manual** (su `Application` no define `automated`; hay que disparar el sync a mano, como `root-app`) | Progressing / Degraded (`0/1`) | El pod está `Running` pero falla el readiness probe — el ESP32 físico está apagado, no es un problema de la plataforma. Tras un rollout reciente Kubernetes marca el plazo vencido (`ProgressDeadlineExceeded`) y Argo CD lo muestra `Degraded` en vez de `Progressing`: mismo estado de fondo. Ver [runbook](../runbooks/k3s-degradado.md) si en algún momento el ESP32 está prendido y sigue sin ponerse healthy. |
 | `ci-demo` | `oscar-lab` | Automated (`selfHeal`, `prune`) | Healthy | Cierra el loop CI→registry→GitOps→deploy, ver [pipeline de ejemplo](../devops/pipeline-ejemplo.md) |
 | `searxng` | `oscar-ai` | Automated | Healthy | Metabuscador, primera pieza de la capa OSCAR AI (Fase 1 del spec de Hermes). Chart propio `apps/searxng/`, secret desde Infisical. Publicado en `searxng.oscar.home` solo para probar. |
 | `infisical-operator` | `infisical-operator-system` | Automated | Healthy | Chart oficial de Infisical (fuente Helm remota, no un chart propio) — sincroniza `Secret`s de k8s desde Infisical. Ver [gestión de secretos](../seguridad/secretos.md#secrets-en-gitops-k3s--argo-cd). |
@@ -39,17 +39,10 @@ oscar-gitops/
 
 Inspirada en un repo real de referencia revisado en sesión (no copiado 1:1 — se mantuvo el autodiscovery de `root-app` en vez de pasar a un `Application` manual por servicio, que es más control explícito pero más pasos para agregar algo nuevo).
 
-Todas las apps siguen el mismo layout en `values.yaml` (inspirado en un repo de referencia): **`values.yaml` solo tiene valores** — los probes, la estrategia de rollout y la lógica viven en `templates/deployment.yaml` —, con un bloque de componente `backend:`:
+Todas las apps siguen el mismo layout en `values.yaml` (inspirado en un repo de referencia). Criterio: **`values.yaml` solo tiene valores de la app**. Lo que es igual para toda la plataforma (dónde está Infisical, el proyecto, la credencial de acceso, los nombres derivados) o es cableado interno del chart (probes, estrategia de rollout, rutas de volúmenes) vive en `templates/`.
 
 ```yaml
 hpa: {enabled: false, minReplicas: 1, maxReplicas: 1, cpuUtilization: 80}   # opcional
-
-infisical:                        # DÓNDE leer secrets (solo si la app tiene)
-  hostAPI: http://infisical.oscar.home/api
-  projectId: "…"
-  envSlug: prod
-  path: /mi-app
-  credentialsRef: {secretName: infisical-universal-auth, secretNamespace: oscar-lab}
 
 backend:
   image: {repository: …, tag: …, pullPolicy: …}
@@ -65,11 +58,11 @@ backend:
     APP_PASS: SECRET_APP_PASS
 ```
 
-Agregar una variable o un secret es agregar una línea en `values.yaml`: `templates/config-map.yaml` y `templates/secrets.yaml` solo iteran esos mapas. Los nombres de los recursos se derivan del chart (`<chart>-cm`, `<chart>-sc`), no son un valor más que mantener; el Deployment lleva `revisionHistoryLimit`, `CURRENT_COMMIT` (= tag de la imagen) y un checksum del ConfigMap para reiniciar el Pod cuando cambia una variable. Caso especial: el `imagePullSecret` de `ci-demo` (k8s exige un único JSON `dockerconfigjson`): `values.yaml` indica los *nombres en Infisical* del usuario y la contraseña y el template arma el JSON.
+Agregar una variable o un secret es agregar una línea en `values.yaml`: `templates/config-map.yaml` y `templates/secrets.yaml` solo iteran esos mapas. **Los secrets se leen de Infisical por convención, no por configuración:** proyecto "OSCAR Apps", ambiente `prod`, carpeta `/<nombre-del-chart>` (`/ci-demo`, `/searxng`); el host de Infisical, el `projectId` y la identidad de acceso (`infisical-universal-auth`) están en `templates/secrets.yaml`. Los nombres de los recursos se derivan del chart (`<chart>-cm`, `<chart>-sc`); el Deployment lleva `revisionHistoryLimit`, `CURRENT_COMMIT` (= tag de la imagen) y un checksum del ConfigMap para reiniciar el Pod cuando cambia una variable. Caso especial: `imagePullSecret: true` en `ci-demo` (k8s exige un único JSON `dockerconfigjson`): el template arma el JSON con `NEXUS_USER`/`NEXUS_PASSWORD` de la carpeta del chart y deriva el registry del host de `image.repository`.
 
 **Diferencias deliberadas con el repo de referencia:** no se replica `namespace` en `values.yaml` (lo da el `Application`, tenerlo dos veces es duplicar la fuente de verdad), ni el nombre `<chart>-svc` del Service ni las labels `-backend` (el selector de un Deployment vivo es inmutable, y `searxng.oscar-ai.svc` ya es el nombre que usa el resto). `oscar-led-controller` usa `Recreate` en vez de `RollingUpdate`: su readiness depende del WLED físico, y con el ESP32 apagado un Pod nuevo no llega nunca a `Ready` (el rollout no termina y quedan dos Pods sobre el mismo PVC).
 
-**Límites conocidos:** cambiar un valor en Infisical actualiza el `Secret` pero no reinicia el Pod solo; y el CI de `ci-demo` reemplaza con `sed` toda línea `tag: ` de su `values.yaml` (no agregar otra clave `tag:`). Referencias: `apps/searxng/` (la más simple), `apps/ci-demo/`, `apps/oscar-led-controller/`.
+**Límites conocidos:** las constantes de la plataforma están repetidas en el `secrets.yaml` de cada chart (no hay librería compartida a propósito; si crecen las apps con secrets, una librería Helm local las centralizaría); cambiar un valor en Infisical actualiza el `Secret` pero no reinicia el Pod solo; y el CI de `ci-demo` reemplaza con `sed` toda línea `tag: ` de su `values.yaml` (no agregar otra clave `tag:`). Referencias: `apps/searxng/` (la más simple), `apps/ci-demo/`, `apps/oscar-led-controller/`.
 
 ## Rol dentro de O.S.C.A.R.
 
