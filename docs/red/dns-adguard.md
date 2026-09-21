@@ -139,7 +139,7 @@ El AdGuard del Dell (LXC 100) **está caído desde el 2026-09-21 03:32**: su dis
 
 **No se cambió el DHCP del router**: sigue repartiendo `8.8.8.8`/`8.8.4.4`. La condición para activar DNS de red completa (mitigar el cuelgue de la NIC del Dell) sigue en pie; ver el [rollback](#rollback-el-dhcp-wide-se-revirtió-2026-09-18). Para un dispositivo puntual, alcanza con apuntarle el DNS a `192.168.0.213`.
 
-**Efecto colateral detectado:** `core01` y `lab01` tienen `192.168.0.93` como DNS principal (y `1.1.1.1` de respaldo). Con el LXC caído resuelven por `1.1.1.1`, que no conoce `*.oscar.home`: el contenedor de Homepage no resuelve `portainer.oscar.home` ni `git.oscar.home`. Solución pendiente: apuntarlos a `192.168.0.213`.
+**Efecto colateral (resuelto el 2026-09-21):** `core01` y `lab01` tenían `192.168.0.93` como DNS principal (y `1.1.1.1` de respaldo). Con el LXC caído resolvían por `1.1.1.1`, que no conoce `*.oscar.home`, y el contenedor de Homepage no resolvía `portainer.oscar.home` ni `git.oscar.home`. Se apuntaron a `192.168.0.213` (con `1.1.1.1` de respaldo): en `/etc/netplan/50-cloud-init.yaml` de cada VM (backup `50-cloud-init.yaml.bak-dns-pinode`, aplicado con `netplan apply`, sin cambio de IP) y, para `lab01`, también `nameserver` en la cloud-init de Proxmox (`qm set 105 --nameserver "192.168.0.213 1.1.1.1"`) para que un regenerado no revierta. `k3s01` y `devops01` usan `8.8.8.8` y no dependían del AdGuard.
 
 ## Wildcard `*.oscar.home` para apps de k3s (2026-09-15)
 
