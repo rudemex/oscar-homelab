@@ -16,6 +16,12 @@ No vive en `docs/` ni en `inventory/`: es una app propia dentro del monorepo, en
 - Persistencia del último estado real entre reinicios, y un mecanismo de alertas temporales que vuelven al estado anterior (no siempre a `healthy`).
 - Layout físico ya modelado para una instalación con **dos tramos espejados** de la tira (uno por lateral del rack) — `OscarLedLayout`/`MirrorZone` traducen "fila lógica" a los dos segmentos eléctricos reales que le corresponden.
 
+## Código fuente y despliegue
+
+El código del controlador vive en Forgejo: **`http://git.oscar.home/mdelgado/oscar-led-controller`** (repo privado, rama `main`; NestJS + WLED, ~60 archivos, con su propio README). Hasta el 2026-09-21 estaba **solo en el disco local**, sin ningún respaldo; ahora `apps/` está en el `.gitignore` de este repo de documentación para no mezclar las dos cosas.
+
+El despliegue sigue siendo **manual**, sin CI ni registry: se construye la imagen `oscar-led-controller:k3s-pilot` en `core01`, se importa al containerd de `k3s01` y se reinicia el Deployment (los tres pasos están en el `values.yaml` del chart de [`oscar-gitops`](../servicios/argocd.md)). El reinicio hace falta porque el tag no cambia y Argo CD no ve diferencia en el manifiesto. Estado de las pruebas: 74 pasan y 10 fallan de antes de esta sesión (specs desactualizados de `EffectEngine`, `OscarLedController` y `WledProvider`, que esperan colores y estados que el código ya no tiene).
+
 ## Panel táctil (2026-09-21)
 
 El controlador tiene una página `/panel` con un botón grande por estado (Normal, Aurora, Noche, Argentina, Gamer, Pensando, Desplegando, Backup, Arrancando, Recuperando, Éxito, Aviso, Degradado, Crítico, Mantenimiento y Apagar), pensada para la [pantalla táctil del Dell](./dell-7060.md#pantalla-táctil-con-homepage-2026-09-21). La tarjeta *OSCAR LED Controller* de Homepage apunta a `https://led.oscarlab.com.ar/panel`; antes llevaba a la raíz de la API, que solo devuelve un JSON (`{"service":"oscar-led-controller","status":"ok"}`). El Swagger sigue en `/api`.
