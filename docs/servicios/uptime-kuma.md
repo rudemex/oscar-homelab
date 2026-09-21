@@ -24,7 +24,11 @@ Se levantó una copia en [`pinode01`](../hardware/pinode01.md) para sacar el mon
 
 **Validado:** 21 monitores en ambas instancias, el **mismo estado** en cada uno (19 arriba, 2 abajo: `AdGuard Home (LXC 100)` y `Home Assistant (VM 101)`, los dos afectados por la falla del SSD `sda`) y el historial conservado (2 183 latidos del monitor #1 en 30 días contra 2 192 en `core01`).
 
-**Estado: en paralelo, sin cortar.** Las dos instancias monitorean y notifican a la vez. Falta el corte, que es una decisión aparte porque toca cosas externas: repuntar el widget/siteMonitor de Homepage, el hostname `kuma.oscarlab.com.ar` del Cloudflare Tunnel (hoy apunta a `core01`) y apagar el Kuma de `core01`. El monitor de `Uptime Kuma` mismo y la status page hay que revisarlos tras el corte.
+**Corte hecho (2026-09-21): Kuma vive solo en `pinode01`.** Homepage (widget `uptimekuma` y `siteMonitor`) apunta a `http://192.168.0.213:3001`; el Kuma de `core01` quedó **detenido** (`docker compose stop`, el volumen `uptime-kuma_uptime-kuma-data` se conserva unos días como respaldo antes de borrarlo). El hostname público `kuma.oscarlab.com.ar` (con su política de Cloudflare Access, que va atada al hostname) sigue publicado.
+
+**Túnel propio para la Pi, no un segundo conector del de `core01`.** Las rutas de un túnel son compartidas por todos sus conectores: sumar la Pi al túnel de `core01` haría que Cloudflare mandara a la Pi parte del tráfico de `vault`/`n8n`/`home`/`beszel`, que apuntan a `localhost` de `core01` (y Vaultwarden solo escucha en `127.0.0.1:8082`). Por eso la Pi tiene su **propio túnel** (`pinode01`) con su conector y, así, `kuma.oscarlab.com.ar` sobrevive a una caída del Dell. Un hostname pertenece a un solo túnel: la ruta `kuma` se borra del túnel de `core01` y se crea en el de la Pi (`http://localhost:3001`).
+
+Durante la migración, la ruta de `core01` para Kuma estuvo apuntando a `http://192.168.0.213:3001` (no a `localhost:3001`, que era el Kuma detenido).
 
 ## Rol dentro de O.S.C.A.R.
 

@@ -33,6 +33,7 @@ Casi toda la resiliencia de O.S.C.A.R. vive en un solo Dell (`oscar-core`): si c
 | `node_exporter` | Activo | métricas en el puerto `9100` (1640 series), listo para que Prometheus las levante |
 | **AdGuard Home** `v0.107.79` | Activo | DNS en `192.168.0.213:53` y UI en `:3000`, ~68 MB de RAM. Config nueva (rate limit 300, rewrites de `*.oscar.home`). Detalle en [DNS con AdGuard Home](../red/dns-adguard.md#adguard-home-en-pinode01-2026-09-21). El router **no** lo reparte por DHCP todavía |
 | **Uptime Kuma** `2.5.4` | Activo (en paralelo) | copia migrada de la de `core01` (21 monitores, historial), en Docker; UI `:3001`. Aún no es la instancia principal. Ver [Uptime Kuma](../servicios/uptime-kuma.md#segunda-instancia-en-pinode01-2026-09-21) |
+| `cloudflared` `2026.9.1` | Activo | conector de un **túnel propio** (`pinode01`, distinto del de `core01`), en Docker con `network_mode: host`; token en `/srv/oscar/apps/cloudflared/.env` (`600`, no está en Git). Publica solo lo que vive en la Pi (`kuma.oscarlab.com.ar` → `localhost:3001`). ~30 MB de RAM |
 | Docker `26.1.5` + Compose `2.26.1` | Activo | solo para Kuma; usuario `pi` en el grupo `docker` |
 | `avahi-daemon` | Activo | mDNS: `pinode01.local` |
 | `rpcbind` | Activo (sin uso) | puerto `111` abierto sin necesidad real — candidato a deshabilitar |
@@ -71,6 +72,7 @@ PiNode01 y `core01` anuncian la misma ruta y las dos están aprobadas; Tailscale
 - [ ] Repartirlo como DNS primario por DHCP del router (con backup del router antes, y solo tras mitigar el cuelgue de la NIC del Dell). Hasta entonces, apuntar a mano `core01` y `lab01` a `192.168.0.213`.
 - [ ] Restaurar las listas de bloqueo del AdGuard viejo si se recupera el disco.
 - [x] **Uptime Kuma** migrado con su historial (2026-09-21), en paralelo.
-- [ ] **Corte de Kuma a `pinode01`**: repuntar Homepage (widget y siteMonitor) y el hostname `kuma.oscarlab.com.ar` del Cloudflare Tunnel, y apagar el de `core01`.
+- [x] **Corte de Kuma a `pinode01`** (2026-09-21): Homepage (widget y siteMonitor) repuntado, Kuma de `core01` detenido (volumen conservado como respaldo) y `kuma.oscarlab.com.ar` en un túnel propio de la Pi. Ver [Uptime Kuma](../servicios/uptime-kuma.md).
+- [ ] **Rotar el token del túnel `pinode01`**: quedó escrito en una conversación (Cloudflare One → Tunnels → `pinode01` → *Refresh token*, y actualizar `.env` en la Pi).
 - [ ] Deshabilitar `rpcbind` (sin uso).
 - [ ] Enrolar a Prometheus como target (`pinode01:9100`) cuando exista.
