@@ -127,7 +127,7 @@ El AdGuard del Dell (LXC 100) **está caído desde el 2026-09-21 03:32**: su dis
 |---|---|
 | Versión | AdGuard Home `v0.107.79` (binario oficial arm64, checksum SHA-256 verificado) en `/opt/AdGuardHome`, servicio systemd `AdGuardHome` |
 | Escucha | DNS `192.168.0.213:53` (UDP/TCP, también por la IP de tailnet `100.102.205.119`); UI `http://192.168.0.213:3000` (solo LAN) |
-| Acceso | usuario `admin`, contraseña en Vaultwarden ("AdGuard Home (pinode01) — admin") |
+| Acceso | **mismo usuario y contraseña que el AdGuard anterior** (usuario `mdelgado`; la contraseña es la del ítem de AdGuard en Vaultwarden). No se generaron credenciales nuevas a propósito: se mantienen entre instancias |
 | `ratelimit` | `300`, `ratelimit_subnet_len_ipv4: 24` (el fix del incidente de arriba, ya desde el inicio) |
 | Upstreams | `1.1.1.1` y `8.8.8.8` (balanceo de carga) |
 | Filtros | *AdGuard DNS filter* (181 586 reglas, activo). Las listas del LXC viejo no se pudieron recuperar |
