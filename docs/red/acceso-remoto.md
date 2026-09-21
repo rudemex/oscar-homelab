@@ -11,9 +11,9 @@ El objetivo es administrar O.S.C.A.R. sin publicar paneles directamente en Inter
 
 ### VPN — Tailscale (Actual)
 
-Desplegado con **dos subnet routers** que advierten `192.168.0.0/24`: [`pinode01`](../hardware/pinode01.md) (Raspberry Pi 3, IP de tailnet `100.102.205.119`) es el **principal** desde 2026-09-21, y `core01` quedó de **respaldo** con la misma ruta aprobada. Tailscale usa uno solo a la vez y pasa al otro si el activo se cae. Cualquier dispositivo sumado al mismo tailnet puede alcanzar cualquier IP de la LAN de casa, no solo la de los routers.
+Desplegado con **dos subnet routers** que advierten `192.168.0.0/24`: [`pinode01`](../hardware/pinode01.md) (Raspberry Pi 3, IP de tailnet `100.102.205.119`) y `core01` anuncian la misma ruta y las dos están aprobadas (2026-09-21). Tailscale usa **uno solo a la vez** y pasa al otro si el activo se cae; **no hay prioridad configurable ni vuelta automática** ("failback"): quien queda activo después de una caída sigue activo aunque el otro vuelva. Para saber cuál está activo: `tailscale status --json` y mirar `PrimaryRoutes` en cada equipo. Cualquier dispositivo sumado al mismo tailnet puede alcanzar cualquier IP de la LAN de casa, no solo la de los routers.
 
-La razón de sumar `pinode01`: con un solo router en `core01`, una caída del Dell dejaba sin acceso remoto justo cuando más hacía falta. **Pendiente de validar:** probar el respaldo real (bajar `tailscaled` en `pinode01` y comprobar desde el celular con datos móviles que la LAN sigue alcanzable por `core01`).
+La razón de sumar `pinode01`: con un solo router en `core01`, una caída del Dell dejaba sin acceso remoto justo cuando más hacía falta. **Respaldo validado (2026-09-21):** con `tailscale down` en `pinode01`, la ruta pasó a `core01` en menos de 30 s y desde el celular con datos móviles se siguió cargando Homepage (`http://192.168.0.156:3005/`). Al volver a subir `pinode01` la ruta **se quedó en `core01`** (sin failback), y así quedó.
 
 Se prefirió sobre WireGuard nativo por no depender de OPNsense (no desplegado todavía) ni de port-forward en el router — ver [ADR-006](../arquitectura/decisiones-arquitectonicas.md#adr-006--cloudflare-tunnel--access-para-acceso-remoto).
 

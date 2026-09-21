@@ -38,7 +38,7 @@ Puertos escuchando hoy: `22` (SSH), `9100` (`node_exporter`), `111` (`rpcbind`).
 
 ### Tailscale: rol dentro del acceso remoto
 
-PiNode01 es hoy el subnet router **principal**; `core01` quedó como respaldo con la misma ruta aprobada. Detalle y limitaciones en [acceso remoto](../red/acceso-remoto.md).
+PiNode01 y `core01` anuncian la misma ruta y las dos están aprobadas; Tailscale usa una a la vez y conmuta si la activa cae, **sin volver sola** a la anterior. El respaldo se probó el 2026-09-21 (ver [acceso remoto](../red/acceso-remoto.md)); tras la prueba quedó activa `core01`. Detalle y limitaciones en [acceso remoto](../red/acceso-remoto.md).
 
 ## Decisiones y por qué
 
@@ -61,7 +61,7 @@ PiNode01 es hoy el subnet router **principal**; `core01` quedó como respaldo co
 - [x] **IP fija** (2026-09-21): `192.168.0.213/24` configurada en la propia Pi con `nmcli` (mismo problema que ya hubo con el LXC de AdGuard, que usaba DHCP).
 - [ ] **Reserva DHCP en el router** para la MAC `b8:27:eb:5b:1f:30` → `192.168.0.213`. La IP fija en la Pi no le avisa al router: si `.213` está dentro de su rango de reparto, podría entregársela a otro equipo y generar un conflicto.
 - [ ] **Mover al router**: hoy está en el switch. El plan la quiere conectada **directo a un puerto del router** para sobrevivir también a una falla del switch de OSCAR. Se hace después, con la IP ya fija no cambia nada al mover el cable.
-- [ ] **Probar el respaldo de Tailscale**: bajar `tailscaled` un momento en la Pi y confirmar desde el celular con datos móviles que la LAN sigue alcanzable por `core01`.
+- [x] **Probar el respaldo de Tailscale** (2026-09-21): con `tailscale down` en la Pi la ruta pasó a `core01` y el celular con datos móviles siguió llegando a Homepage. Sin failback automático.
 - [ ] **AdGuard Home** como DNS primario (el del Dell pasa a secundario); el cambio en el DHCP del router va aparte y con backup. Ver [DNS con AdGuard Home](../red/dns-adguard.md).
 - [ ] **Uptime Kuma**: migrar con su historial (volumen `/app/data`), no recrearlo.
 - [ ] Deshabilitar `rpcbind` (sin uso).
