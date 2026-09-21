@@ -52,6 +52,7 @@ PiNode01 y `core01` anuncian la misma ruta y las dos están aprobadas; Tailscale
 - **Sin escritorio.** La imagen vino con escritorio; se pasó a `multi-user.target` para liberar RAM (de ~520 MB a ~720 MB disponibles). Volver: `sudo systemctl set-default graphical.target && sudo reboot`.
 - **VNC apagado.** La imagen trae `wayvnc` habilitado y escuchando en el `5900` hacia toda la LAN; en un nodo de DNS y VPN es control remoto abierto sin necesidad. También se deshabilitaron `bluetooth` y `packagekit`.
 - **Sin kiosco.** Se probó Homepage a pantalla completa (`cage` + Chromium): funcionó, pero come ~350 MB de una Pi de 1 GB, casi lo mismo que queda libre para AdGuard y Tailscale. Se desinstaló y la pantalla táctil se conecta al Dell.
+- **Sin rotación de credenciales (decisión 2026-09-21).** La contraseña de `pi` y el token del túnel `pinode01` no se rotan aunque hayan quedado escritos en una conversación: se considera un entorno de red doméstica seguro. Queda anotado como decisión explícita, no como pendiente olvidado.
 - **Tailscale por repositorio apt firmado** en vez del script de instalación, para tener actualizaciones con `apt`.
 
 ## Incidentes del alta (2026-09-21)
@@ -63,7 +64,7 @@ PiNode01 y `core01` anuncian la misma ruta y las dos están aprobadas; Tailscale
 
 ## Pendientes
 
-- [ ] **Rotar la contraseña de `pi`**: la actual se reusa en otros servicios y quedó escrita en una conversación. Después, `PasswordAuthentication no` en SSH (solo clave).
+- [ ] *(opcional)* SSH solo por clave: `PasswordAuthentication no`. Ya entra por clave desde la Mac; es endurecimiento, no urgente.
 - [x] **IP fija** (2026-09-21): `192.168.0.213/24` configurada en la propia Pi con `nmcli` (mismo problema que ya hubo con el LXC de AdGuard, que usaba DHCP).
 - [ ] **Reserva DHCP en el router** para la MAC `b8:27:eb:5b:1f:30` → `192.168.0.213`. La IP fija en la Pi no le avisa al router: si `.213` está dentro de su rango de reparto, podría entregársela a otro equipo y generar un conflicto.
 - [ ] **Mover al router**: hoy está en el switch. El plan la quiere conectada **directo a un puerto del router** para sobrevivir también a una falla del switch de OSCAR. Se hace después, con la IP ya fija no cambia nada al mover el cable.
@@ -73,6 +74,5 @@ PiNode01 y `core01` anuncian la misma ruta y las dos están aprobadas; Tailscale
 - [ ] Restaurar las listas de bloqueo del AdGuard viejo si se recupera el disco.
 - [x] **Uptime Kuma** migrado con su historial (2026-09-21), en paralelo.
 - [x] **Corte de Kuma a `pinode01`** (2026-09-21): Homepage (widget y siteMonitor) repuntado, Kuma de `core01` detenido (volumen conservado como respaldo) y `kuma.oscarlab.com.ar` en un túnel propio de la Pi. Ver [Uptime Kuma](../servicios/uptime-kuma.md).
-- [ ] **Rotar el token del túnel `pinode01`**: quedó escrito en una conversación (Cloudflare One → Tunnels → `pinode01` → *Refresh token*, y actualizar `.env` en la Pi).
 - [ ] Deshabilitar `rpcbind` (sin uso).
 - [ ] Enrolar a Prometheus como target (`pinode01:9100`) cuando exista.
