@@ -11,6 +11,10 @@ sidebar_position: 7
 **Red/puertos:** `argocd-server` es `ClusterIP` (80/443, sin `LoadBalancer`/ServiceLB) — se expone vía `Ingress` de Traefik en `http://argocd.oscar.home` (manifiesto en `oscar-gitops/infra/argocd/manifests/ingress.yaml`, gestionado por la Application `argocd-config`), solo alcanzable desde la LAN con DNS apuntado a AdGuard — nunca a internet (ADR-005)  
 **Persistencia:** estado principalmente reconstruible; config declarativa en el repo `oscar-gitops` (origen real en Forgejo desde [ADR-012](../arquitectura/decisiones-arquitectonicas.md#adr-012--forgejo-como-mirror-de-solo-lectura-de-oscar-gitops-no-origen), no GitHub)
 
+## Token de Homepage (rotado 2026-09-21)
+
+El widget de Argo CD en Homepage usa una cuenta propia de solo lectura, `homepage` (`accounts.homepage: apiKey` en `argocd-cm`), con un token JWT en el campo `key` del `services.yaml` de `core01`. El 2026-09-21 el token anterior quedó expuesto en una salida de consola y se **rotó**: se generó uno nuevo por la API (`POST /api/v1/account/homepage/token`, con la sesión de `admin`), se verificó el widget (lee las 8 aplicaciones) y recién entonces se **revocó el viejo** (`DELETE /api/v1/account/homepage/token/<id>`, comprobado con `401`). El valor vive solo en Vaultwarden y en el `services.yaml`; no está en Git. Para rotarlo de nuevo, el mismo procedimiento; el `id` del token es el `jti` de su JWT.
+
 ## Applications reales
 
 | Application | Namespace | Sync | Health | Notas |
