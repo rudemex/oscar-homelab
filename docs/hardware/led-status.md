@@ -16,6 +16,10 @@ No vive en `docs/` ni en `inventory/`: es una app propia dentro del monorepo, en
 - Persistencia del último estado real entre reinicios, y un mecanismo de alertas temporales que vuelven al estado anterior (no siempre a `healthy`).
 - Layout físico ya modelado para una instalación con **dos tramos espejados** de la tira (uno por lateral del rack) — `OscarLedLayout`/`MirrorZone` traducen "fila lógica" a los dos segmentos eléctricos reales que le corresponden.
 
+## Panel táctil (2026-09-21)
+
+El controlador tiene una página `/panel` con un botón grande por estado (Normal, Aurora, Noche, Argentina, Gamer, Pensando, Desplegando, Backup, Arrancando, Recuperando, Éxito, Aviso, Degradado, Crítico, Mantenimiento y Apagar), pensada para la [pantalla táctil del Dell](./dell-7060.md#pantalla-táctil-con-homepage-2026-09-21). La tarjeta *OSCAR LED Controller* de Homepage apunta a `https://led.oscarlab.com.ar/panel`; antes llevaba a la raíz de la API, que solo devuelve un JSON (`{"service":"oscar-led-controller","status":"ok"}`). El Swagger sigue en `/api`.
+
 ## Sobre el hardware final: WS2812B + ESP32
 
 El objetivo físico es una tira WS2812B direccionable por LED controlada por un ESP32 (probablemente vía [WLED](https://kno.wled.ge/)) — eso es lo que permitiría de verdad pintar segmentos individuales (`ZoneCapableProvider` en el código). **Todavía no existe ese provider**: hoy el controlador corre contra Hue o Tapo (luces/tiras inteligentes convencionales, no direccionables por LED individual) mientras se termina de validar la arquitectura de efectos. Cuando exista el `WledProvider`, se conecta al mismo `EffectEngine` sin tocar `OscarState` ni la API — es justamente el punto de la separación `LedProvider` ↔ `EffectEngine` que ya está construida.
