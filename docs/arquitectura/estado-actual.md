@@ -111,6 +111,8 @@ A las 18:19 la placa de red física del Dell (`e1000e`) tiró un **"Detected Har
 
 **Riesgo vigente:** con el SSD fuera, **no hay ningún backup** de `core01`, `k3s01`, `devops01` ni `lab01` (sus discos viven en el NVMe, sin copia). Prioridad: un destino de backup nuevo en otro disco físico.
 
+**Home Assistant rehecho (2026-09-21):** VM nueva 106 (`haos-18.3`, imagen oficial con checksum verificado, 2 vCPU / 4 GB / 32 GB) sobre `local-lvm` (NVMe), UEFI, misma MAC que la vieja. La VM 101 y el LXC 100 quedan detenidos con `onboot: 0` y su configuración sin borrar hasta resolver el SSD (no se pueden destruir con el storage deshabilitado).
+
 **Estado tras el reinicio del host:** VMs 102–105 corriendo con normalidad (`devops01` y `lab01` tardan unos minutos más por el arranque escalonado); VM 101 detenida (su disco está en `Backups`). **No existe ninguna copia de Home Assistant fuera de ese SSD**: se buscó en el storage `local` (NVMe) y en la Mac. El monitor de `Home Assistant (VM 101)` en Kuma seguirá en rojo.
 
 **Consecuencias vigentes:** sin backups nuevos (el job de las 00:00 fallará mientras esté así), Home Assistant sin escritura, AdGuard viejo caído (reemplazado por el de [`pinode01`](../hardware/pinode01.md)), y `core01`/`lab01` con el DNS principal apuntando a ese AdGuard caído (ver [DNS](../red/dns-adguard.md#adguard-home-en-pinode01-2026-09-21)).
