@@ -7,6 +7,8 @@ sidebar_position: 2
 
 ## Prioridad alta (barato/rápido, desbloquea el resto)
 
+- **URGENTE — recuperar o reemplazar el SSD SATA de `Backups`** (caído desde 2026-09-21 03:32): Home Assistant (VM 101) no puede escribir su disco y no hay backups nuevos. Pasos: leer SMART (`smartmontools` ya instalado), detener la VM 101, soltar el montaje y reescanear el bus; si no vuelve, reasentar cable/reiniciar el host; si el SSD está muriendo, reemplazarlo y restaurar HA (sin backup accesible, revisar copias externas de HA). Ver [incidente](../arquitectura/estado-actual.md#incidente-el-ssd-sata-de-backups-dejó-de-responder-2026-09-21).
+- **DNS de `core01` y `lab01`**: apuntan a `192.168.0.93` (AdGuard del Dell, caído); apuntarlos a `192.168.0.213` (`pinode01`).
 - **integrar el UPS/estabilizador existente** al rack (reubicar + NUT) — ya está pagado, es la tarea de menor costo/mayor impacto del backlog, ver [Fase 1 del roadmap](./roadmap-general.md#fase-1--rack-red-y-energía);
 - **destino off-site de backup** — no requiere NAS ni hardware nuevo, alcanza con una cuenta de object storage barata; hoy es el mayor riesgo activo porque todo vive en un solo Dell (ver [estrategia 3-2-1](../backup-dr/estrategia-321.md));
 - switch >8 puertos definitivo para RackMate T2 (cualquier gigabit gestionable que entre en 10" resuelve esto — no requiere tanta deliberación como las demás decisiones de esta lista).

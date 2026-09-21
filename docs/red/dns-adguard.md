@@ -5,7 +5,7 @@ sidebar_position: 4
 
 # DNS con AdGuard Home
 
-**Estado:** Actual — corriendo como LXC (`vmid 100`, tag `adblock;community-script`) en `oscar-core`, instalado vía el script comunitario de [community-scripts.github.io/ProxmoxVE](https://community-scripts.github.io/ProxmoxVE/). Sano y disponible, pero **ya NO es el DNS de toda la LAN** — se activó por DHCP el 2026-09-18 y se revirtió ese mismo día tras una recurrencia del hang de NIC del Dell (ver [rollback](#rollback-el-dhcp-wide-se-revirtió-2026-09-18) más abajo). El router (TP-Link Archer) reparte `8.8.8.8`/`8.8.4.4` (Google) por defecto hoy; AdGuard sigue usable apuntándolo a mano por dispositivo.
+**Estado:** LXC 100 **caído desde 2026-09-21** (falla del disco `sda`); DNS activo en [`pinode01`](../hardware/pinode01.md) — sección más abajo. Histórico: corriendo como LXC (`vmid 100`, tag `adblock;community-script`) en `oscar-core`, instalado vía el script comunitario de [community-scripts.github.io/ProxmoxVE](https://community-scripts.github.io/ProxmoxVE/). Sano y disponible, pero **ya NO es el DNS de toda la LAN** — se activó por DHCP el 2026-09-18 y se revirtió ese mismo día tras una recurrencia del hang de NIC del Dell (ver [rollback](#rollback-el-dhcp-wide-se-revirtió-2026-09-18) más abajo). El router (TP-Link Archer) reparte `8.8.8.8`/`8.8.4.4` (Google) por defecto hoy; AdGuard sigue usable apuntándolo a mano por dispositivo.
 
 Reemplaza a Pi-hole en el rol de DNS/adblock de O.S.C.A.R. — cubre lo mismo (bloqueo por DNS, resolución de nombres locales, visibilidad de consultas) con una UI que a algunos les resulta más cómoda y con DNS-over-HTTPS/TLS nativo si se necesita salir cifrado hacia el resolver upstream. La elección fue simplemente cuál instaló el script comunitario primero — no hay una razón técnica fuerte para preferir uno sobre otro a esta escala; si en algún momento se quiere volver a Pi-hole, el rol y el diseño de abajo aplican igual.
 
@@ -118,6 +118,28 @@ La activación de más arriba duró el mismo día. A las 20:32 el [hang recurren
 - AdGuard sigue arriba, sano, y se puede seguir usando apuntándolo a mano en un dispositivo puntual — solo dejó de ser el default de toda la LAN.
 
 **Condición para reactivar:** la NIC del Dell necesita una mitigación real (ver el incidente en `estado-actual.md`) antes de volver a intentar DHCP-wide — si vuelve a colgarse con la LAN entera dependiendo de ella, el radio de impacto es toda la casa, no solo OSCAR.
+
+## AdGuard Home en `pinode01` (2026-09-21)
+
+El AdGuard del Dell (LXC 100) **está caído desde el 2026-09-21 03:32**: su disco vive en el storage `Backups` (SSD SATA `sda`), que dejó de responder — ver [estado actual](../arquitectura/estado-actual.md). Como su config no se pudo leer, se instaló uno **nuevo** en [`pinode01`](../hardware/pinode01.md) con la configuración documentada arriba.
+
+| Dato | Valor |
+|---|---|
+| Versión | AdGuard Home `v0.107.79` (binario oficial arm64, checksum SHA-256 verificado) en `/opt/AdGuardHome`, servicio systemd `AdGuardHome` |
+| Escucha | DNS `192.168.0.213:53` (UDP/TCP, también por la IP de tailnet `100.102.205.119`); UI `http://192.168.0.213:3000` (solo LAN) |
+| Acceso | usuario `admin`, contraseña en Vaultwarden ("AdGuard Home (pinode01) — admin") |
+| `ratelimit` | `300`, `ratelimit_subnet_len_ipv4: 24` (el fix del incidente de arriba, ya desde el inicio) |
+| Upstreams | `1.1.1.1` y `8.8.8.8` (balanceo de carga) |
+| Filtros | *AdGuard DNS filter* (181 586 reglas, activo). Las listas del LXC viejo no se pudieron recuperar |
+| Rewrites | `git`, `nexus`, `portainer`, `infisical` `.oscar.home` → `192.168.0.156` (los 4 proxy hosts reales de NPM); `*.oscar.home` → `192.168.0.150` (Traefik) |
+| Querylog | retención de 24 h (cuida la microSD) |
+| Consumo | ~68 MB de RAM |
+
+**Validado:** los rewrites y el wildcard resuelven bien, `doubleclick.net` se bloquea (`0.0.0.0`), Internet resuelve, y **60/60 consultas simultáneas** contestan (la regresión que tenía el `ratelimit: 20`).
+
+**No se cambió el DHCP del router**: sigue repartiendo `8.8.8.8`/`8.8.4.4`. La condición para activar DNS de red completa (mitigar el cuelgue de la NIC del Dell) sigue en pie; ver el [rollback](#rollback-el-dhcp-wide-se-revirtió-2026-09-18). Para un dispositivo puntual, alcanza con apuntarle el DNS a `192.168.0.213`.
+
+**Efecto colateral detectado:** `core01` y `lab01` tienen `192.168.0.93` como DNS principal (y `1.1.1.1` de respaldo). Con el LXC caído resuelven por `1.1.1.1`, que no conoce `*.oscar.home`: el contenedor de Homepage no resuelve `portainer.oscar.home` ni `git.oscar.home`. Solución pendiente: apuntarlos a `192.168.0.213`.
 
 ## Wildcard `*.oscar.home` para apps de k3s (2026-09-15)
 

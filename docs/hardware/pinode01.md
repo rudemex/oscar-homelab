@@ -31,10 +31,11 @@ Casi toda la resiliencia de O.S.C.A.R. vive en un solo Dell (`oscar-core`): si c
 | SSH | Activo | solo por red; clave `id_rsa` de la Mac cargada. Sigue aceptando contraseña (ver [pendientes](#pendientes)) |
 | Tailscale `1.102.4` | Activo | **subnet router** de `192.168.0.0/24` (anunciada y aprobada), `--accept-dns=false`. IP de tailnet `100.102.205.119`. Repositorio oficial de apt, no `curl \| sh` |
 | `node_exporter` | Activo | métricas en el puerto `9100` (1640 series), listo para que Prometheus las levante |
+| **AdGuard Home** `v0.107.79` | Activo | DNS en `192.168.0.213:53` y UI en `:3000`, ~68 MB de RAM. Config nueva (rate limit 300, rewrites de `*.oscar.home`). Detalle en [DNS con AdGuard Home](../red/dns-adguard.md#adguard-home-en-pinode01-2026-09-21). El router **no** lo reparte por DHCP todavía |
 | `avahi-daemon` | Activo | mDNS: `pinode01.local` |
 | `rpcbind` | Activo (sin uso) | puerto `111` abierto sin necesidad real — candidato a deshabilitar |
 
-Puertos escuchando hoy: `22` (SSH), `9100` (`node_exporter`), `111` (`rpcbind`).
+Puertos escuchando hoy: `22` (SSH), `53` (DNS, UDP/TCP), `3000` (UI de AdGuard), `9100` (`node_exporter`), `111` (`rpcbind`).
 
 ### Tailscale: rol dentro del acceso remoto
 
@@ -62,7 +63,9 @@ PiNode01 y `core01` anuncian la misma ruta y las dos están aprobadas; Tailscale
 - [ ] **Reserva DHCP en el router** para la MAC `b8:27:eb:5b:1f:30` → `192.168.0.213`. La IP fija en la Pi no le avisa al router: si `.213` está dentro de su rango de reparto, podría entregársela a otro equipo y generar un conflicto.
 - [ ] **Mover al router**: hoy está en el switch. El plan la quiere conectada **directo a un puerto del router** para sobrevivir también a una falla del switch de OSCAR. Se hace después, con la IP ya fija no cambia nada al mover el cable.
 - [x] **Probar el respaldo de Tailscale** (2026-09-21): con `tailscale down` en la Pi la ruta pasó a `core01` y el celular con datos móviles siguió llegando a Homepage. Sin failback automático.
-- [ ] **AdGuard Home** como DNS primario (el del Dell pasa a secundario); el cambio en el DHCP del router va aparte y con backup. Ver [DNS con AdGuard Home](../red/dns-adguard.md).
+- [x] **AdGuard Home** instalado (2026-09-21), con config nueva.
+- [ ] Repartirlo como DNS primario por DHCP del router (con backup del router antes, y solo tras mitigar el cuelgue de la NIC del Dell). Hasta entonces, apuntar a mano `core01` y `lab01` a `192.168.0.213`.
+- [ ] Restaurar las listas de bloqueo del AdGuard viejo si se recupera el disco.
 - [ ] **Uptime Kuma**: migrar con su historial (volumen `/app/data`), no recrearlo.
 - [ ] Deshabilitar `rpcbind` (sin uso).
 - [ ] Enrolar a Prometheus como target (`pinode01:9100`) cuando exista.

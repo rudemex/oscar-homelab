@@ -19,7 +19,7 @@ Proxmox ya está instalado, con **cinco VMs/LXC** arriba (`core01`, `devops01`, 
 |---|---|---|
 | Rack GeeekPi RackMate T2 (10", 12U) | Actual | — |
 | Dell OptiPlex 7060 Micro (i7 8ª gen, 32 GB RAM, NVMe 1 TB + SATA 1 TB) | Actual | RAM y M.2 ya ampliados (16→32 GB, 512 GB→1 TB). Corriendo Proxmox VE 9.2 como nodo `oscar-core`. |
-| 1× Raspberry Pi 3 (`pinode01`) | Actual | En línea desde 2026-09-21: nodo de red/observabilidad fuera del Dell. Tailscale (subnet router principal) y `node_exporter`; sin escritorio. Ver [PiNode01](../hardware/pinode01.md). |
+| 1× Raspberry Pi 3 (`pinode01`) | Actual | En línea desde 2026-09-21: nodo de red/observabilidad fuera del Dell. Tailscale (subnet router), `node_exporter` y AdGuard Home (DNS); sin escritorio. Ver [PiNode01](../hardware/pinode01.md). |
 | 1× Raspberry Pi 3, 3× Pi Zero W | Actual | Sin rol asignado todavía. |
 | Router/mesh TP-Link Archer AX55 | Actual | Es el gateway hoy — no hay firewall dedicado. |
 | Switch TP-Link TL-SF1008D (8p/100 Mbps) | Actual, marcado para reemplazo | Bloquea VLAN y gigabit real. |
@@ -31,7 +31,7 @@ Proxmox ya está instalado, con **cinco VMs/LXC** arriba (`core01`, `devops01`, 
 
 | Componente | Tipo | Estado | Nota |
 |---|---|---|---|
-| Proxmox VE 9.2.18 | Hypervisor | Actual | Nodo único `oscar-core`, storage `local-lvm` (M.2) + `Backups` (SATA, dir storage). Sano: load bajo, sin swap, sin tareas fallidas. |
+| Proxmox VE 9.2.18 | Hypervisor | Actual | Nodo único `oscar-core`, storage `local-lvm` (M.2) + `Backups` (SATA, dir storage). **`Backups` caído desde 2026-09-21 03:32** (falla del SSD SATA `sda`, ver [incidente](#incidente-el-ssd-sata-de-backups-dejó-de-responder-2026-09-21)); `smartmontools` instalado en el host. |
 | Home Assistant OS 18.2 | VM (vmid 101) | Actual | 2 vCPU / 4 GB / 32 GB disco, instalada vía community-script. Ver [Home Assistant](../servicios/home-assistant.md). |
 | AdGuard Home | LXC (vmid 100) | Actual | **Ya NO es el DNS de toda la LAN** — se activó por DHCP el 2026-09-18 y se revirtió ese mismo día: un hang de la NIC física del Dell (ver incidente de abajo) lo dejó inalcanzable un rato, y con toda la casa dependiendo de él como primario eso tumbó DNS para cualquier dispositivo. Router vuelto al backup de antes del cambio (reparte `8.8.8.8`/`8.8.4.4`, Google). AdGuard sigue arriba y sano, solo que ya no es el DNS por defecto de nadie salvo que se le apunte a mano. Ver [rollback documentado](../red/dns-adguard.md#rollback-el-dhcp-wide-se-revirtió-2026-09-18). |
 | `core01` — Ubuntu 24.04 LTS + Docker 29 | VM (vmid 102) | Actual | 2 vCPU / **8 GB** / 60 GB disco (subida de 4→8 GB, el uso real llegó a 91% con 9 contenedores), creada desde cloud image vía Cloud-Init (SSH por clave, sin password). IP estática `192.168.0.156/24` vía `ipconfig0` de Cloud-Init (no DHCP, pese a lo que decía esta página antes). DNS corregido recién (2026-09-16): tenía `8.8.8.8` fijo desde su creación, sin apuntar nunca a AdGuard — ningún contenedor del host podía resolver `*.oscar.home` hasta que Homepage lo necesitó por primera vez. Ahora `192.168.0.93` + `1.1.1.1` de fallback. Ver [crear VM core01](../proxmox/crear-vm-core01.md). |
@@ -98,6 +98,16 @@ A las 18:19 la placa de red física del Dell (`e1000e`) tiró un **"Detected Har
 ## Dominio — en uso
 
 `oscarlab.ar` y `oscarlab.com.ar` están registrados (NIC Argentina, pagos — $25.500 y $8.500 ARS respectivamente) y delegados a Cloudflare. `oscarlab.com.ar` es el dominio primario: los 7 servicios reales ya tienen subdominio público protegido por Cloudflare Access — ver [Cloudflare Tunnel](../servicios/cloudflare-tunnel.md).
+
+## Incidente: el SSD SATA de `Backups` dejó de responder (2026-09-21)
+
+**Qué pasó.** A las **03:32:23** el SSD SATA de 1 TB (`/dev/sda`, modelo `FTM1TN325H`) dejó de responder: el kernel registró `I/O error`, ext4 abortó el journal y remontó `Backups` en solo lectura (`emergency_ro`); desde entonces el dispositivo está en `DID_BAD_TARGET` (el kernel lo ve con capacidad cero) y `smartctl` falla con `INQUIRY failed`. El último `vzdump` exitoso fue el de las 00:00 de ese mismo día.
+
+**Qué depende de ese disco** (además de todos los backups): la VM 101 (**Home Assistant**, sigue "running" pero sin poder escribir su disco desde las 03:32) y el LXC 100 (**AdGuard**, se detuvo a las 03:34). Las VMs 102–105 y el template están en `local-lvm` (NVMe) y no se vieron afectadas.
+
+**Qué se intentó** (2026-09-21): rescan del dispositivo SCSI (sin efecto). Quedó **pendiente y sin ejecutar** lo siguiente, porque toca cargas de trabajo y se dejó para decisión explícita: detener la VM 101, soltar el montaje de `Backups`, quitar `sda` del kernel y reescanear el bus SATA; si el disco no reaparece, reiniciar el host (o apagar y reasentar el cable SATA). No se sabe todavía si es cable/conector/alimentación o el SSD muriendo.
+
+**Consecuencias vigentes:** sin backups nuevos (el job de las 00:00 fallará mientras esté así), Home Assistant sin escritura, AdGuard viejo caído (reemplazado por el de [`pinode01`](../hardware/pinode01.md)), y `core01`/`lab01` con el DNS principal apuntando a ese AdGuard caído (ver [DNS](../red/dns-adguard.md#adguard-home-en-pinode01-2026-09-21)).
 
 ## Backups — parcialmente resuelto
 
