@@ -24,6 +24,12 @@ raspberry_pi:
   - model: Raspberry Pi 3
     quantity: 2
     status: current
+    in_use:
+      - hostname: pinode01
+        ip: 192.168.0.213
+        role: network/observability node (Tailscale subnet router, node_exporter)
+        since: 2026-09-21
+        docs: docs/hardware/pinode01.md
   - model: Raspberry Pi Zero W
     quantity: 3
     status: current

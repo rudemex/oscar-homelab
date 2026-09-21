@@ -11,7 +11,9 @@ El objetivo es administrar O.S.C.A.R. sin publicar paneles directamente en Inter
 
 ### VPN — Tailscale (Actual)
 
-Desplegado: `core01` corre como **subnet router**, advirtiendo `192.168.0.0/24` — cualquier dispositivo sumado al mismo tailnet puede alcanzar cualquier IP de la LAN de casa, no solo `core01`.
+Desplegado con **dos subnet routers** que advierten `192.168.0.0/24`: [`pinode01`](../hardware/pinode01.md) (Raspberry Pi 3, IP de tailnet `100.102.205.119`) es el **principal** desde 2026-09-21, y `core01` quedó de **respaldo** con la misma ruta aprobada. Tailscale usa uno solo a la vez y pasa al otro si el activo se cae. Cualquier dispositivo sumado al mismo tailnet puede alcanzar cualquier IP de la LAN de casa, no solo la de los routers.
+
+La razón de sumar `pinode01`: con un solo router en `core01`, una caída del Dell dejaba sin acceso remoto justo cuando más hacía falta. **Pendiente de validar:** probar el respaldo real (bajar `tailscaled` en `pinode01` y comprobar desde el celular con datos móviles que la LAN sigue alcanzable por `core01`).
 
 Se prefirió sobre WireGuard nativo por no depender de OPNsense (no desplegado todavía) ni de port-forward en el router — ver [ADR-006](../arquitectura/decisiones-arquitectonicas.md#adr-006--cloudflare-tunnel--access-para-acceso-remoto).
 
@@ -23,7 +25,7 @@ Dos pasos de aprobación separados, ambos manuales por diseño de Tailscale (no 
 
 Instalar el cliente en cada dispositivo desde el que se quiera acceder (laptop, celular) con la misma cuenta — paso manual, no se automatiza desde acá.
 
-**Limitación real conocida:** conectado por Tailscale, se llega por IP a cualquier host de la LAN (`192.168.0.150`, etc.) pero **no** por hostname `*.oscar.home` — ese wildcard solo resuelve contra AdGuard (`192.168.0.93`), y Tailscale no manda las consultas DNS del dispositivo ahí a menos que se configure *Split DNS* en el admin de Tailscale (`login.tailscale.com/admin/dns`, nameserver `192.168.0.93` restringido al dominio `oscar.home`). Se evaluó y se descartó a propósito (2026-09-15): el objetivo de `*.oscar.home` es DNS por nombre dentro de la LAN, no resolver el acceso remoto — ver [DNS con AdGuard Home](./dns-adguard.md#cómo-resuelven-hoy-los-dispositivos). Si en algún momento se quiere que `argocd.oscar.home` (por ejemplo) ande también desde el celular vía Tailscale, ese Split DNS es el camino, simplemente no está activado hoy.
+**Limitación real conocida:** conectado por Tailscale, hay ruta de red por IP a cualquier host de la LAN, pero las **apps web de k3s no responden por IP**: `http://192.168.0.150/` devuelve `404` porque es Traefik, y Traefik solo contesta a los hostnames de sus Ingress (`argocd.oscar.home`, etc.). Ese `404` es la confirmación de que la ruta anda (se llegó a Traefik), no un fallo. Las apps de Docker Compose con puerto propio sí cargan por IP (`http://192.168.0.156:3005/`, Homepage, verificado desde el celular por `pinode01`). Tampoco se llega por hostname `*.oscar.home` — ese wildcard solo resuelve contra AdGuard (`192.168.0.93`), y Tailscale no manda las consultas DNS del dispositivo ahí a menos que se configure *Split DNS* en el admin de Tailscale (`login.tailscale.com/admin/dns`, nameserver `192.168.0.93` restringido al dominio `oscar.home`). Se evaluó y se descartó a propósito (2026-09-15): el objetivo de `*.oscar.home` es DNS por nombre dentro de la LAN, no resolver el acceso remoto — ver [DNS con AdGuard Home](./dns-adguard.md#cómo-resuelven-hoy-los-dispositivos). Si en algún momento se quiere que `argocd.oscar.home` (por ejemplo) ande también desde el celular vía Tailscale, ese Split DNS es el camino, simplemente no está activado hoy.
 
 ### Cloudflare Tunnel + Access
 
