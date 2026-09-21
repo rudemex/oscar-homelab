@@ -19,7 +19,7 @@ Casi toda la resiliencia de O.S.C.A.R. vive en un solo Dell (`oscar-core`): si c
 |---|---|
 | Modelo | Raspberry Pi 3 Model B Rev 1.2 (1 GB de RAM, ARM64) |
 | Almacenamiento | microSD de 64 GB (58,3 GB usables), 11 % usado |
-| Red | Ethernet `eth0` — `192.168.0.213` por DHCP, MAC `b8:27:eb:5b:1f:30`. Wi-Fi (`wlan0`) apagado a propósito |
+| Red | Ethernet `eth0` — `192.168.0.213/24` **fija** (NetworkManager, método `manual`; gateway `192.168.0.1`, DNS `8.8.8.8`/`8.8.4.4`), MAC `b8:27:eb:5b:1f:30`. Hoy conectada al **switch** de OSCAR, no directo al router. Wi-Fi (`wlan0`) apagado a propósito |
 | Alimentación | sin avisos de bajo voltaje (`throttled=0x0`) |
 | Sistema | Raspberry Pi OS (Debian 13 "trixie", 64 bits), kernel 6.18.50 |
 | Arranque | modo consola (sin escritorio) — ver [decisiones](#decisiones-y-por-qué) |
@@ -58,8 +58,9 @@ PiNode01 es hoy el subnet router **principal**; `core01` quedó como respaldo co
 ## Pendientes
 
 - [ ] **Rotar la contraseña de `pi`**: la actual se reusa en otros servicios y quedó escrita en una conversación. Después, `PasswordAuthentication no` en SSH (solo clave).
-- [ ] **IP fija o reserva DHCP para `192.168.0.213`.** Hoy es dinámica; un nodo de DNS/VPN no debe cambiar de dirección (mismo problema que ya hubo con el LXC de AdGuard).
-- [ ] **Confirmar el cableado**: el plan lo quiere directo a un puerto del router (no detrás del switch de OSCAR) para sobrevivir a una falla del switch. Hoy no está verificado.
+- [x] **IP fija** (2026-09-21): `192.168.0.213/24` configurada en la propia Pi con `nmcli` (mismo problema que ya hubo con el LXC de AdGuard, que usaba DHCP).
+- [ ] **Reserva DHCP en el router** para la MAC `b8:27:eb:5b:1f:30` → `192.168.0.213`. La IP fija en la Pi no le avisa al router: si `.213` está dentro de su rango de reparto, podría entregársela a otro equipo y generar un conflicto.
+- [ ] **Mover al router**: hoy está en el switch. El plan la quiere conectada **directo a un puerto del router** para sobrevivir también a una falla del switch de OSCAR. Se hace después, con la IP ya fija no cambia nada al mover el cable.
 - [ ] **Probar el respaldo de Tailscale**: bajar `tailscaled` un momento en la Pi y confirmar desde el celular con datos móviles que la LAN sigue alcanzable por `core01`.
 - [ ] **AdGuard Home** como DNS primario (el del Dell pasa a secundario); el cambio en el DHCP del router va aparte y con backup. Ver [DNS con AdGuard Home](../red/dns-adguard.md).
 - [ ] **Uptime Kuma**: migrar con su historial (volumen `/app/data`), no recrearlo.
