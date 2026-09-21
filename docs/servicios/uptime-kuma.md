@@ -5,11 +5,26 @@ sidebar_position: 11
 
 # Uptime Kuma
 
-**Estado:** Actual · Disponibilidad — corriendo en `core01`  
+**Estado:** Actual · Disponibilidad — corriendo en `core01` y, en paralelo desde 2026-09-21, en `pinode01` (ver [segunda instancia](#segunda-instancia-en-pinode01-2026-09-21))  
 **Dónde corre:** Docker Core  
 **Sizing inicial:** 1 vCPU, 512 MB–1 GB RAM  
 **Red/puertos:** 3001 interno  
 **Persistencia:** DB/configuración y monitores
+
+## Segunda instancia en `pinode01` (2026-09-21)
+
+Se levantó una copia en [`pinode01`](../hardware/pinode01.md) para sacar el monitoreo del Dell (si `oscar-core` cae, Kuma cae con él justo cuando hace falta). **Migración, no recreación:** se sacó una instantánea consistente de la base con `VACUUM INTO` (sin parar el Kuma de `core01`), se verificó el hash al copiarla y se levantó la misma versión `2.5.4`.
+
+| Dato | Valor |
+|---|---|
+| Ubicación | `pinode01`, `/srv/oscar/apps/uptime-kuma/` (`compose.yaml` + `data/` como bind mount), Docker `26.1.5` |
+| Acceso | `http://192.168.0.213:3001`, mismas credenciales que la instancia de `core01` |
+| Consumo | ~140 MB de RAM en régimen (los primeros minutos, con los 21 monitores arrancando a la vez, la CPU de la Pi 3 llega al 100 %) |
+| DNS de la Pi | `192.168.0.213` (su propio AdGuard) y `1.1.1.1`, para que los monitores de `*.oscar.home` resuelvan |
+
+**Validado:** 21 monitores en ambas instancias, el **mismo estado** en cada uno (19 arriba, 2 abajo: `AdGuard Home (LXC 100)` y `Home Assistant (VM 101)`, los dos afectados por la falla del SSD `sda`) y el historial conservado (2 183 latidos del monitor #1 en 30 días contra 2 192 en `core01`).
+
+**Estado: en paralelo, sin cortar.** Las dos instancias monitorean y notifican a la vez. Falta el corte, que es una decisión aparte porque toca cosas externas: repuntar el widget/siteMonitor de Homepage, el hostname `kuma.oscarlab.com.ar` del Cloudflare Tunnel (hoy apunta a `core01`) y apagar el Kuma de `core01`. El monitor de `Uptime Kuma` mismo y la status page hay que revisarlos tras el corte.
 
 ## Rol dentro de O.S.C.A.R.
 
