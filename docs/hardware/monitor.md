@@ -35,9 +35,9 @@ Hasta que se instaló, O.S.C.A.R. no tenía ninguna observabilidad con historial
 | **Blackbox Exporter** `v0.25.0` | Activo | `http://192.168.0.214:9115`, chequea HTTP de Homepage, Forgejo, Nexus, AdGuard y el propio `node_exporter`. Módulo ICMP (monitor de Internet) preparado en el código, sin desplegar |
 | `node_exporter` | Activo | métricas propias en el puerto `9100` |
 | Docker `26` + plugin `compose` v2 | Activo | el plugin es el binario oficial de GitHub (checksum verificado); no está en los repos de Debian, y se evitó a propósito agregar el repositorio de Docker |
-| **Uptime Kuma** | ⚠️ Pendiente de migrar | va a mudarse acá desde [`network`](./network.md) como parte de la reorganización — única instancia de Kuma para todo OSCAR |
+| **Uptime Kuma** `2.5.4` | Activo (2026-09-22) | migró desde [`network`](./network.md) — 21 monitores + historial, ver [migración](../servicios/uptime-kuma.md#migración-a-monitor-2026-09-22). UI `:3001` |
 
-Puertos escuchando: `22` (SSH), `9090` (Prometheus), `9100` (`node_exporter`), `9115` (Blackbox), `3006` (Grafana).
+Puertos escuchando: `22` (SSH), `9090` (Prometheus), `9100` (`node_exporter`), `9115` (Blackbox), `3006` (Grafana), `3001` (Uptime Kuma).
 
 ## Qué mide Prometheus hoy
 
@@ -66,7 +66,7 @@ El 2026-09-21/22 el Dell (`oscar-core`) tuvo un cuelgue completo de red (no solo
 
 - [ ] Sumar el exporter de Proxmox (`oscar-core`) a Prometheus.
 - [ ] Desplegar el Speedtest exporter en `core01` y Blackbox ICMP acá (ya están en el código de Ansible, falta correr el playbook).
-- [ ] Migrar Uptime Kuma desde `network` (exportar/importar SQLite, repuntar el `cloudflared` dedicado que hoy vive en `network`).
+- [x] **Uptime Kuma migrado desde `network`** (2026-09-22).
 - [ ] Dashboards adicionales (Network, Kubernetes, Home, Services) una vez validado el primero en el uso real.
 - [ ] Reserva DHCP en el router para `192.168.0.214` (mismo pendiente que `network`).
 - [ ] Documentar el control node de Ansible en su propia página, si crece más allá de este stack.

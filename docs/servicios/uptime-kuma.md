@@ -5,7 +5,7 @@ sidebar_position: 11
 
 # Uptime Kuma
 
-**Estado:** Actual · Disponibilidad — corriendo en `core01` y, en paralelo desde 2026-09-21, en `pinode01` (ver [segunda instancia](#segunda-instancia-en-pinode01-2026-09-21))  
+**Estado:** Actual · Disponibilidad — única instancia, corriendo en `monitor` desde 2026-09-22 (ver [migración a `monitor`](#migración-a-monitor-2026-09-22)). Historia previa: `core01` → `pinode01` (2026-09-21) → `monitor` (2026-09-22).  
 **Dónde corre:** Docker Core  
 **Sizing inicial:** 1 vCPU, 512 MB–1 GB RAM  
 **Red/puertos:** 3001 interno  
@@ -29,6 +29,24 @@ Se levantó una copia en [`pinode01`](../hardware/network.md) para sacar el moni
 **Túnel propio para la Pi, no un segundo conector del de `core01`.** Las rutas de un túnel son compartidas por todos sus conectores: sumar la Pi al túnel de `core01` haría que Cloudflare mandara a la Pi parte del tráfico de `vault`/`n8n`/`home`/`beszel`, que apuntan a `localhost` de `core01` (y Vaultwarden solo escucha en `127.0.0.1:8082`). Por eso la Pi tiene su **propio túnel** (`pinode01`) con su conector y, así, `kuma.oscarlab.com.ar` sobrevive a una caída del Dell. Un hostname pertenece a un solo túnel: la ruta `kuma` se borra del túnel de `core01` y se crea en el de la Pi (`http://localhost:3001`).
 
 Durante la migración, la ruta de `core01` para Kuma estuvo apuntando a `http://192.168.0.213:3001` (no a `localhost:3001`, que era el Kuma detenido).
+
+**Corrección (2026-09-22): el "túnel propio" del párrafo de arriba nunca enrutó `kuma.oscarlab.com.ar` en la práctica.** Al revisar la configuración real por la API de Cloudflare para la migración de abajo, se encontró que el registro DNS de `kuma.oscarlab.com.ar` siempre apuntó al túnel de `core01` (`ace28107-...`), con un ingress rule `service: http://192.168.0.213:3001` — es decir, el tráfico público pasó todo este tiempo por el conector de `core01`, proxeando por LAN hacia la Pi, **no** por el túnel dedicado `pinode01` (que existe registrado en Cloudflare pero con `config: null`, sin ingress rules). La resiliencia real ante una caída del Dell para este hostname público **no estaba dada** como se documentó originalmente — sí sigue estando `http://192.168.0.213:3001` (ahora `.214`) accesible directo por LAN/Tailscale si el Dell cae. Corregir esto (mover el ingress rule real al túnel de la Pi, o dar de baja el túnel `pinode01` si no se usa) queda como pendiente del paso 9 de `REORGANIZACION_RACK.md` ("centralizar cloudflared en `network`").
+
+## Migración a `monitor` (2026-09-22)
+
+Segunda migración, mismo patrón que la de `core01`→`pinode01`: parar el contenedor, empaquetar `data/` (`tar.gz`, checksum SHA-256 verificado en origen/Mac/destino), copiar a `monitor` (192.168.0.214), levantar la misma versión `2.5.4`. Motivo: consolidar toda la observabilidad (Prometheus, Grafana, Blackbox, y ahora Kuma) en un solo host, según la arquitectura de `REORGANIZACION_RACK.md` — "una única instancia de Uptime Kuma... vive en `monitor`".
+
+| Dato | Valor |
+|---|---|
+| Ubicación | `monitor`, `/srv/oscar/apps/uptime-kuma/` (mismo `compose.yaml`, `data/` como bind mount) |
+| Acceso | `http://192.168.0.214:3001` |
+| Verificado | contenedor `healthy`, monitores e historial presentes en los logs de arranque (mismos IDs que antes, ej. Monitor #7 `AdGuard Home`, #10 `Home Assistant`) |
+
+**Actualizado en el mismo movimiento:**
+- Homepage (widget `uptimekuma` y `siteMonitor`): `192.168.0.213:3001` → `192.168.0.214:3001` (`services.yaml`, backup dejado en el host como `services.yaml.bak-kuma-migration-2026-09-22`).
+- El ingress rule real de `kuma.oscarlab.com.ar` en el túnel de `core01` (ver corrección arriba): `http://192.168.0.213:3001` → `http://192.168.0.214:3001`, vía API de Cloudflare.
+
+**`network` (antes `pinode01`) queda detenido, no borrado**: `docker compose stop`, datos conservados en `/srv/oscar/apps/uptime-kuma/data/` unos días como respaldo antes de decidir si se borran.
 
 ## Rol dentro de O.S.C.A.R.
 
@@ -66,7 +84,7 @@ Durante la migración, la ruta de `core01` para Kuma estuvo apuntando a `http://
 | MySpeed | `http://192.168.0.156:5216` | (2026-09-20) |
 | Glances | `http://192.168.0.156:61208` | (2026-09-20) |
 
-Los servidores de juegos (Minecraft, CS2) no tienen monitor a propósito: están apagados por defecto y saldrían siempre en rojo. Los monitores de servicios en k3s usan el hostname `*.oscar.home` (Kuma corre en `core01`, que resuelve vía AdGuard); los de Docker siguen por IP+puerto.
+Los servidores de juegos (Minecraft, CS2) no tienen monitor a propósito: están apagados por defecto y saldrían siempre en rojo. Los monitores de servicios en k3s usan el hostname `*.oscar.home` (Kuma corre en `monitor`, que resuelve `*.oscar.home` vía el AdGuard de `network`); los de Docker siguen por IP+puerto.
 
 Se armaron vía la API de socket.io (paquete `uptime-kuma-api`, no la REST API — Kuma no tiene una para crear monitores, el API Key propio de Kuma solo sirve para el endpoint de métricas de Prometheus, no para esto).
 

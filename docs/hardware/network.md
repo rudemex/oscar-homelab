@@ -34,13 +34,13 @@ Casi toda la resiliencia de O.S.C.A.R. vive en un solo Dell (`oscar-core`): si c
 | Tailscale `1.102.4` | Activo | **subnet router** de `192.168.0.0/24` (anunciada y aprobada), `--accept-dns=false`. IP de tailnet `100.102.205.119`. Repositorio oficial de apt, no `curl \| sh` |
 | `node_exporter` | Activo | métricas en el puerto `9100` (1640 series), listo para que Prometheus las levante |
 | **AdGuard Home** `v0.107.79` | Activo | DNS en `192.168.0.213:53` y UI en `:3000`, ~68 MB de RAM. Config nueva (rate limit 300, rewrites de `*.oscar.home`). Detalle en [DNS con AdGuard Home](../red/dns-adguard.md#adguard-home-en-pinode01-2026-09-21). El router **no** lo reparte por DHCP todavía (decisión firme, ver `REORGANIZACION_RACK.md`) |
-| **Uptime Kuma** `2.5.4` | ⚠️ Migra a [`monitor`](./monitor.md) | copia migrada de la de `core01` (21 monitores, historial), en Docker; UI `:3001`. Pasa a `monitor` como parte de la reorganización — ver [Uptime Kuma](../servicios/uptime-kuma.md#segunda-instancia-en-pinode01-2026-09-21) |
-| `cloudflared` `2026.9.1` | Activo | conector de un **túnel propio**, en Docker con `network_mode: host`; token en `/srv/oscar/apps/cloudflared/.env` (`600`, no está en Git). Publica solo lo que vive en la Pi (`kuma.oscarlab.com.ar` → `localhost:3001`, hasta que Kuma migre a `monitor`). ~30 MB de RAM |
+| **Uptime Kuma** `2.5.4` | ⚠️ Detenido (2026-09-22) | migró a [`monitor`](./monitor.md) — ver [migración](../servicios/uptime-kuma.md#migración-a-monitor-2026-09-22). Contenedor parado, datos conservados en `/srv/oscar/apps/uptime-kuma/data/` como respaldo unos días |
+| `cloudflared` `2026.9.1` | ⚠️ Activo pero sin uso real confirmado | conector de un tunnel registrado en Cloudflare (`pinode01`), en Docker con `network_mode: host`; token en `/srv/oscar/apps/cloudflared/.env` (`600`, no está en Git). **Hallazgo 2026-09-22:** el tráfico público de `kuma.oscarlab.com.ar` en realidad siempre pasó por el túnel de `core01` (proxeando por LAN), no por este — ver [Uptime Kuma](../servicios/uptime-kuma.md#migración-a-monitor-2026-09-22). Este túnel tiene `config: null` (sin ingress rules). Pendiente decidir en el paso 9 de `REORGANIZACION_RACK.md` si se le da un uso real o se da de baja |
 | Docker `26.1.5` + Compose `2.26.1` | Activo | solo para Kuma; usuario `pi` en el grupo `docker` |
 | `avahi-daemon` | Activo | mDNS: `network.local` |
 | `rpcbind` | Activo (sin uso) | puerto `111` abierto sin necesidad real — candidato a deshabilitar |
 
-Puertos escuchando hoy: `22` (SSH), `53` (DNS, UDP/TCP), `3000` (UI de AdGuard), `3001` (Uptime Kuma, hasta que migre), `9100` (`node_exporter`), `111` (`rpcbind`).
+Puertos escuchando hoy: `22` (SSH), `53` (DNS, UDP/TCP), `3000` (UI de AdGuard), `9100` (`node_exporter`), `111` (`rpcbind`). El `3001` de Kuma ya no escucha (migró a `monitor`).
 
 RAM con todo corriendo: ~440 MB en uso y ~460 MB disponibles (incluye caché). Es el margen que queda; conviene no sumar mucho más a esta Pi 3.
 
@@ -76,6 +76,7 @@ RAM con todo corriendo: ~440 MB en uso y ~460 MB disponibles (incluye caché). E
 - [ ] Restaurar las listas de bloqueo del AdGuard viejo si se recupera el disco.
 - [x] **Uptime Kuma** migrado con su historial (2026-09-21), en paralelo.
 - [x] **Corte de Kuma a esta Pi** (2026-09-21, como `pinode01`): Homepage (widget y siteMonitor) repuntado, Kuma de `core01` detenido (volumen conservado como respaldo) y `kuma.oscarlab.com.ar` en un túnel propio de la Pi. Ver [Uptime Kuma](../servicios/uptime-kuma.md).
-- [ ] **Migrar Uptime Kuma a `monitor`** (parte de la reorganización: una sola instancia de Kuma, vive en `monitor` junto al resto de la observabilidad) — exportar/importar su SQLite y repuntar el `cloudflared` dedicado.
+- [x] **Uptime Kuma migrado a `monitor`** (2026-09-22) — una sola instancia, vive en `monitor` junto al resto de la observabilidad.
+- [ ] **Decidir el destino del túnel `pinode01`** (Cloudflare): hoy no enruta nada real (ver hallazgo en la tabla de Servicios). Darle un uso real o darlo de baja, parte del paso 9 de `REORGANIZACION_RACK.md`.
 - [ ] Deshabilitar `rpcbind` (sin uso).
 - [x] Enrolar a Prometheus como target (`network:9100`, ya scrapeado desde `monitor`).

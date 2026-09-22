@@ -289,7 +289,13 @@ estado que todavía no existe. Se actualiza en el momento en que cada migración
    `docs/hardware/pinode01.md`→`network.md`, `pinode02.md`→`monitor.md` en `oscar-homelab` (commit `87e8557`).
    Verificado: `ansible -m ping` contra los 5 hosts responde `pong` con los nombres nuevos; Prometheus/Grafana/
    AdGuard siguen respondiendo tras el rename.
-2. Migrar Uptime Kuma de `network` a `monitor` (exportar/importar SQLite, actualizar el `cloudflared` dedicado).
+2. ✅ **Hecho (2026-09-22).** Migrar Uptime Kuma de `network` a `monitor`: datos copiados con checksum verificado,
+   Homepage repuntado, e ingress rule de Cloudflare actualizado (ver hallazgo abajo). Detalle en
+   `docs/servicios/uptime-kuma.md#migración-a-monitor-2026-09-22`.
+   **Hallazgo en el camino:** el túnel dedicado `pinode01` de Cloudflare (pensado para que `kuma.oscarlab.com.ar`
+   sobreviva a una caída del Dell) nunca enrutó nada en la práctica — el DNS real siempre apuntó al túnel de
+   `core01`, que proxea por LAN hacia la Pi. Pendiente decidir en el paso 9 si se le da uso real al túnel
+   `pinode01` o se da de baja.
 3. Right-sizing de RAM en `core01`/`devops01`/`k3s01`/`lab01` según la tabla de arriba, antes de crear hosts nuevos.
 4. Crear `automation` (VM), migrar n8n+Postgres desde `core01` con sus datos.
 5. Crear `services` (LXC unprivileged), migrar Vaultwarden desde `core01` con sus datos; evaluar SearXNG y sumar
