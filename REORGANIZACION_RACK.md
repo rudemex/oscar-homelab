@@ -56,6 +56,7 @@ O.S.C.A.R.
 ├── PLATFORM
 │   ├── devops                      [VM, Dell]
 │   │   ├── Forgejo
+│   │   ├── Forgejo Actions Runner (ya corre acá, contenedor `forgejo-runner`)
 │   │   ├── Nexus
 │   │   └── Infisical
 │   │
@@ -70,7 +71,9 @@ O.S.C.A.R.
 │       ├── Traefik
 │       ├── Headlamp
 │       ├── Infisical Operator
-│       └── (por ahora) ci-demo, oscar-led-controller — ver nota "apps" más abajo
+│       └── ⚠️ PROVISIONAL: ci-demo, oscar-led-controller — pertenecen conceptualmente a `apps`,
+│           se quedan acá hasta la Fase 2 (ver nota "apps" más abajo). No agregar más apps propias
+│           a `k3s` asumiendo que se van a quedar — nacen ya marcadas para migrar.
 │
 ├── WORKLOADS
 │   ├── services                    [LXC nueva unprivileged, Dell]
@@ -110,13 +113,63 @@ servicio es liviano, estable, y no necesita aislamiento ni capacidades especiale
 
 Los LXC que se creen van **unprivileged** siempre que sea posible.
 
-## MySpeed / medición de velocidad — corregido respecto al diseño original
+## Monitoreo de Internet — throughput y caídas son dos cosas distintas
 
-El diseño inicial ponía MySpeed en `monitor` (la Raspberry Pi). **Se corrige**: la Pi 3 tiene Ethernet limitado a
-~100Mbps (comparte bus con USB 2.0) — si el internet real de OSCAR supera eso, medir velocidad desde ahí reporta un
-techo falso. MySpeed (y más adelante el Speedtest exporter) se queda en `core` (Dell, NIC gigabit), igual que ya
-decía el rol `monitoring_stack` de Ansible (`speedtest_exporter_target` apuntando a `core01`). `monitor` solo
-grafica el dato remoto.
+Internet real: 600Mb simétrico. El requisito es medir **cuánto anda** (throughput) y **si corta** (disponibilidad) —
+son dos mediciones con requisitos técnicos distintos, y van en hosts distintos a propósito:
+
+| Qué mide | Dónde | Por qué ahí |
+|---|---|---|
+| Throughput real (Mbps) | `core` (MySpeed hoy, Speedtest exporter después) | Necesita NIC gigabit. La Pi 3 tiene Ethernet limitado a ~100Mbps (comparte bus con USB 2.0) — medir desde ahí reportaría un techo falso muy por debajo de los 600Mb reales |
+| Caídas/cortes (¿hay internet o no?) | `monitor` (Blackbox Exporter, módulo `icmp`, ya preparado en el rol `monitoring_stack` de Ansible, pinguea `1.1.1.1`/`8.8.8.8`) | Un ping no pesa nada — el techo de 100Mbps de la Pi no es un problema para esto. Además Uptime Kuma (que se muda a `monitor`) puede sumar su propio monitor de "Internet" con notificación push si se corta |
+
+`monitor` grafica el throughput real via el dato que le manda `core`, pero la medición en sí no se mueve de ahí.
+
+## AdGuard — no se activa como DNS de toda la LAN (decisión firme)
+
+**No reactivar el DHCP-wide de AdGuard.** Ya se probó (2026-09-18): coincidió con una caída real de velocidad
+percibida (600→20Mbps). La causa raíz se diagnosticó y se corrigió técnicamente (`ratelimit: 20` en la config de
+AdGuard descartaba en silencio consultas DNS por encima de ese límite agregado por subred — se subió a `300`, ver
+[`docs/red/dns-adguard.md`](docs/red/dns-adguard.md)), pero **la decisión es no volver a activarlo** de todos
+modos. Se queda como DNS opt-in por dispositivo (`192.168.0.213` hoy, la IP de `network` después del rename), no
+como default del router. El router sigue repartiendo `8.8.8.8`/`8.8.4.4` por DHCP.
+
+Esto es relevante para la sección de acceso de abajo: sin AdGuard como DNS por defecto, ningún dispositivo nuevo
+resuelve `*.oscar.home` solo — necesita `/etc/hosts` o apuntar su DNS a mano.
+
+## Acceso y exposición — cómo llega cada servicio
+
+Clasificación de cómo se accede a lo que corre en O.S.C.A.R., para no tener que redescubrirlo cada vez:
+
+| Forma de acceso | Qué significa | Requiere |
+|---|---|---|
+| **IP directa LAN** | `192.168.0.x:puerto`, sin DNS de por medio | nada, funciona siempre dentro de la LAN |
+| **`*.oscar.home` (AdGuard)** | nombre resuelto por AdGuard en `network`, wildcard a Traefik (`k3s`) o rewrites puntuales a NPM (`core`) | el dispositivo tiene que apuntar su DNS a `192.168.0.213` a mano — **no es el default de la LAN** (ver decisión de arriba) |
+| **`/etc/hosts`** | entrada manual `IP nombre.oscar.home` en el dispositivo cliente | para un dispositivo puntual que no quiere cambiar su DNS pero sí usar el nombre corto |
+| **Cloudflare Tunnel + Access** | hostname público (`*.oscarlab.com.ar`), pero pide login (Cloudflare Access) antes de llegar al servicio | cuenta autorizada en Cloudflare Access; el servicio nunca expone su puerto directo a Internet |
+| **Cloudflare Tunnel público** | hostname público sin Access — cualquiera que lo conozca entra | usar solo para algo pensado para ser público de verdad |
+
+Estado real hoy, por servicio (ver también la tabla de "Redundancias"/inventario más arriba y
+[`docs/seguridad/exposicion-internet.md`](docs/seguridad/exposicion-internet.md) para el detalle de seguridad):
+
+| Servicio | LAN directo | `*.oscar.home` | Cloudflare Access | Público sin Access |
+|---|---|---|---|---|
+| Homepage | ✅ `:3005` | — | ✅ `home.oscarlab.com.ar` | — |
+| Vaultwarden | — | — | ✅ `vault.oscarlab.com.ar` | — |
+| n8n | — | — | ✅ `n8n.oscarlab.com.ar` | — |
+| Beszel | — | — | ✅ `beszel.oscarlab.com.ar` | — |
+| ProxMenux Monitor | ✅ `:8008` | — | ✅ `monitor.oscarlab.com.ar` | — |
+| Home Assistant | — | — | ✅ `ha.oscarlab.com.ar` | — |
+| oscar-led-controller | ✅ (Traefik, `k3s`) | ✅ `led.oscar.home` | ✅ `led.oscarlab.com.ar` | — |
+| Uptime Kuma | ✅ `:3001` (hoy en `network`, después `monitor`) | — | ✅ `kuma.oscarlab.com.ar` (túnel propio) | — |
+| Forgejo, Nexus, Infisical, Argo CD, Headlamp, SearXNG, ci-demo | ✅ vía IP o `*.oscar.home` | ✅ | — | — |
+| Proxmox VE, AdGuard UI, Grafana, Prometheus | ✅ solo IP directa | — | — | — (deliberado: nunca exponer gestión de infra a Internet) |
+
+**Regla para todo lo nuevo:** ¿lo necesita alguien fuera de la LAN? → Cloudflare Tunnel, con Access salvo que
+exista una razón concreta para que sea público. ¿Es solo para uso dentro de casa? → IP directa o `*.oscar.home` (a
+mano por `/etc/hosts` o DNS del dispositivo, mientras AdGuard no sea el default de la LAN), nunca expuesto afuera.
+Paneles de gestión de infraestructura (Proxmox, AdGuard, Grafana, Prometheus) **nunca** salen a Internet, ni con
+Access.
 
 ## `apps` como worker de k3s — Fase 2, diferida
 
