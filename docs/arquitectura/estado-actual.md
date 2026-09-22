@@ -109,7 +109,11 @@ A las 18:19 la placa de red física del Dell (`e1000e`) tiró un **"Detected Har
 
 **Conclusión:** no es recuperable por software y **no se puede formatear un disco que el sistema no ve**. La causa más probable (no confirmada) es el propio SSD (`FTM1TN325H`); las alternativas son el cable/alimentación SATA del Dell y un cuelgue por ahorro de energía del enlace. Lo que lo distingue es probarlo fuera del Dell: si responde ahí, no está roto. Formatear no lo arreglaría y destruiría los `vzdump` que pudieran leerse.
 
-**Riesgo vigente:** con el SSD fuera, **no hay ningún backup** de `core01`, `k3s01`, `devops01` ni `lab01` (sus discos viven en el NVMe, sin copia). Prioridad: un destino de backup nuevo en otro disco físico.
+**Resuelto (2026-09-22): era el conector.** Con el Dell apagado, se desconectó el SSD, se limpió el conector SATA y se volvió a conectar — el disco respondió de inmediato (enlace limpio a 6 Gb/s, `ATA-10` identificado sin errores). SMART: autoevaluación `PASSED`, pero con señales reales de desgaste (`Offline_Uncorrectable`: 294, `Current_Pending_Sector`: 1, `Reallocated_Event_Count`: 294) — no es un disco sano al 100%, coincide en número con el evento de falla del 21/9.
+
+**Rescate hecho antes de reactivarlo:** montado en solo lectura, `e2fsck -n` sin corrupción, se copiaron al NVMe (`/var/lib/vz/rescate-ssd-2026-09-22/`, checksums verificados) los discos en vivo de la VM 101 vieja (Home Assistant) y el LXC 100 viejo (AdGuard), más el último backup `vzdump` de cada uno — la única copia que quedaba de esa configuración. Se descartó (a propósito) rescatar los backups viejos de `core01`/`k3s01`/`devops01`/`lab01`: son solo redundancia histórica de VMs que están vivas y sanas en el NVMe, no había nada en riesgo real ahí.
+
+**Decisión del usuario (2026-09-22): seguir usando este SSD como antes**, a pesar del desgaste, con un disco de 1 TB + cables USB-SATA en camino como plan de contingencia si vuelve a fallar. Storage `Backups` reactivado (`pvesm set Backups --disable 0`), remontado en lectura-escritura. El job de `vzdump` (lunes a viernes 00:00) retoma solo, sin backups desde el 21/9.
 
 **Home Assistant rehecho (2026-09-21):** VM nueva 106 (`haos-18.3`, imagen oficial con checksum verificado, 2 vCPU / 4 GB / 32 GB) sobre `local-lvm` (NVMe), UEFI, misma MAC que la vieja. La VM 101 y el LXC 100 quedan detenidos con `onboot: 0` y su configuración sin borrar hasta resolver el SSD (no se pueden destruir con el storage deshabilitado).
 
