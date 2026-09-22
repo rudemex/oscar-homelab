@@ -13,7 +13,7 @@ sidebar_position: 11
 
 ## Segunda instancia en `pinode01` (2026-09-21)
 
-Se levantó una copia en [`pinode01`](../hardware/pinode01.md) para sacar el monitoreo del Dell (si `oscar-core` cae, Kuma cae con él justo cuando hace falta). **Migración, no recreación:** se sacó una instantánea consistente de la base con `VACUUM INTO` (sin parar el Kuma de `core01`), se verificó el hash al copiarla y se levantó la misma versión `2.5.4`.
+Se levantó una copia en [`pinode01`](../hardware/network.md) para sacar el monitoreo del Dell (si `oscar-core` cae, Kuma cae con él justo cuando hace falta). **Migración, no recreación:** se sacó una instantánea consistente de la base con `VACUUM INTO` (sin parar el Kuma de `core01`), se verificó el hash al copiarla y se levantó la misma versión `2.5.4`.
 
 | Dato | Valor |
 |---|---|

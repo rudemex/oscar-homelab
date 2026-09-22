@@ -19,7 +19,7 @@ Proxmox ya está instalado, con **cinco VMs/LXC** arriba (`core01`, `devops01`, 
 |---|---|---|
 | Rack GeeekPi RackMate T2 (10", 12U) | Actual | — |
 | Dell OptiPlex 7060 Micro (i7 8ª gen, 32 GB RAM, NVMe 1 TB + SATA 1 TB) | Actual | RAM y M.2 ya ampliados (16→32 GB, 512 GB→1 TB). Corriendo Proxmox VE 9.2 como nodo `oscar-core`. |
-| 1× Raspberry Pi 3 (`pinode01`) | Actual | En línea desde 2026-09-21: nodo de red/observabilidad fuera del Dell. Tailscale (subnet router), `node_exporter` y AdGuard Home (DNS); sin escritorio. Ver [PiNode01](../hardware/pinode01.md). |
+| 1× Raspberry Pi 3 (`pinode01`) | Actual | En línea desde 2026-09-21: nodo de red/observabilidad fuera del Dell. Tailscale (subnet router), `node_exporter` y AdGuard Home (DNS); sin escritorio. Ver [PiNode01](../hardware/network.md). |
 | 1× Raspberry Pi 3, 3× Pi Zero W | Actual | Sin rol asignado todavía. |
 | Router/mesh TP-Link Archer AX55 | Actual | Es el gateway hoy — no hay firewall dedicado. |
 | Switch TP-Link TL-SF1008D (8p/100 Mbps) | Actual, marcado para reemplazo | Bloquea VLAN y gigabit real. |
@@ -119,7 +119,7 @@ A las 18:19 la placa de red física del Dell (`e1000e`) tiró un **"Detected Har
 
 **Estado tras el reinicio del host:** VMs 102–105 corriendo con normalidad (`devops01` y `lab01` tardan unos minutos más por el arranque escalonado); VM 101 detenida (su disco está en `Backups`). **No existe ninguna copia de Home Assistant fuera de ese SSD**: se buscó en el storage `local` (NVMe) y en la Mac. El monitor de `Home Assistant (VM 101)` en Kuma seguirá en rojo.
 
-**Consecuencias vigentes:** sin backups nuevos (el job de las 00:00 fallará mientras esté así), Home Assistant sin escritura, AdGuard viejo caído (reemplazado por el de [`pinode01`](../hardware/pinode01.md)), y `core01`/`lab01` con el DNS principal apuntando a ese AdGuard caído (ver [DNS](../red/dns-adguard.md#adguard-home-en-pinode01-2026-09-21)).
+**Consecuencias vigentes:** sin backups nuevos (el job de las 00:00 fallará mientras esté así), Home Assistant sin escritura, AdGuard viejo caído (reemplazado por el de [`pinode01`](../hardware/network.md)), y `core01`/`lab01` con el DNS principal apuntando a ese AdGuard caído (ver [DNS](../red/dns-adguard.md#adguard-home-en-pinode01-2026-09-21)).
 
 ## Backups — parcialmente resuelto
 

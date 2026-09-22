@@ -5,7 +5,7 @@ sidebar_position: 4
 
 # DNS con AdGuard Home
 
-**Estado:** LXC 100 **caído desde 2026-09-21** (falla del disco `sda`); DNS activo en [`pinode01`](../hardware/pinode01.md) — sección más abajo. Histórico: corriendo como LXC (`vmid 100`, tag `adblock;community-script`) en `oscar-core`, instalado vía el script comunitario de [community-scripts.github.io/ProxmoxVE](https://community-scripts.github.io/ProxmoxVE/). Sano y disponible, pero **ya NO es el DNS de toda la LAN** — se activó por DHCP el 2026-09-18 y se revirtió ese mismo día tras una recurrencia del hang de NIC del Dell (ver [rollback](#rollback-el-dhcp-wide-se-revirtió-2026-09-18) más abajo). El router (TP-Link Archer) reparte `8.8.8.8`/`8.8.4.4` (Google) por defecto hoy; AdGuard sigue usable apuntándolo a mano por dispositivo.
+**Estado:** LXC 100 **caído desde 2026-09-21** (falla del disco `sda`); DNS activo en [`pinode01`](../hardware/network.md) — sección más abajo. Histórico: corriendo como LXC (`vmid 100`, tag `adblock;community-script`) en `oscar-core`, instalado vía el script comunitario de [community-scripts.github.io/ProxmoxVE](https://community-scripts.github.io/ProxmoxVE/). Sano y disponible, pero **ya NO es el DNS de toda la LAN** — se activó por DHCP el 2026-09-18 y se revirtió ese mismo día tras una recurrencia del hang de NIC del Dell (ver [rollback](#rollback-el-dhcp-wide-se-revirtió-2026-09-18) más abajo). El router (TP-Link Archer) reparte `8.8.8.8`/`8.8.4.4` (Google) por defecto hoy; AdGuard sigue usable apuntándolo a mano por dispositivo.
 
 Reemplaza a Pi-hole en el rol de DNS/adblock de O.S.C.A.R. — cubre lo mismo (bloqueo por DNS, resolución de nombres locales, visibilidad de consultas) con una UI que a algunos les resulta más cómoda y con DNS-over-HTTPS/TLS nativo si se necesita salir cifrado hacia el resolver upstream. La elección fue simplemente cuál instaló el script comunitario primero — no hay una razón técnica fuerte para preferir uno sobre otro a esta escala; si en algún momento se quiere volver a Pi-hole, el rol y el diseño de abajo aplican igual.
 
@@ -121,7 +121,7 @@ La activación de más arriba duró el mismo día. A las 20:32 el [hang recurren
 
 ## AdGuard Home en `pinode01` (2026-09-21)
 
-El AdGuard del Dell (LXC 100) **está caído desde el 2026-09-21 03:32**: su disco vive en el storage `Backups` (SSD SATA `sda`), que dejó de responder — ver [estado actual](../arquitectura/estado-actual.md). Como su config no se pudo leer, se instaló uno **nuevo** en [`pinode01`](../hardware/pinode01.md) con la configuración documentada arriba.
+El AdGuard del Dell (LXC 100) **está caído desde el 2026-09-21 03:32**: su disco vive en el storage `Backups` (SSD SATA `sda`), que dejó de responder — ver [estado actual](../arquitectura/estado-actual.md). Como su config no se pudo leer, se instaló uno **nuevo** en [`pinode01`](../hardware/network.md) con la configuración documentada arriba.
 
 | Dato | Valor |
 |---|---|

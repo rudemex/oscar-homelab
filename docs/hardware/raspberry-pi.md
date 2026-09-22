@@ -9,7 +9,7 @@ Las Raspberry Pi no compiten con el Dell: complementan la arquitectura.
 
 ## Raspberry Pi 3
 
-Una de las dos ya está en producción como [`pinode01`](./pinode01.md) (nodo de red y observabilidad, desde 2026-09-21).
+Una de las dos ya está en producción como [`pinode01`](./network.md) (nodo de red y observabilidad, desde 2026-09-21).
 
 Casos de uso ideales:
 
