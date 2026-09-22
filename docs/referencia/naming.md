@@ -5,27 +5,53 @@ sidebar_position: 1
 
 # Naming convention
 
+**Actualizado 2026-09-22:** convención revisada como parte de la reorganización del rack. Ver `REORGANIZACION_RACK.md`
+(raíz del repo, fuera de `docs/`) para el detalle completo y el estado de la migración — mientras dura, convive
+documentación con los nombres viejos (`pinode01`, `core01`, etc.) y nueva.
+
 ## Hosts
 
+Se elimina el sufijo `01` cuando existe una única instancia real de ese rol. La numeración se reserva para cuando
+existe más de una instancia real (no "por si acaso").
+
 ```text
-oscar-core
-core01
-devops01
-k3s01
-pi-dns01
-pi-probe01
-dvr01
-sw01
-fw01
+core
+network
+monitor
+devops
+automation
+k3s
+services
+apps
+games
+lab
 ```
 
-Minúscula, sin guion bajo, `<rol><número de dos dígitos>`. Este es el nombre DNS/Proxmox/lógico — el que se usa en toda la documentación técnica, inventario y comandos.
+Ejemplo de cuándo sí numerar (todavía no aplica, es ilustrativo):
 
-`oscar-core` es la excepción real a este patrón: es el hostname que quedó puesto al instalar Proxmox, antes de que existiera esta convención por escrito. No se renombra retroactivamente (requiere reinstalar o regenerar certificados) — el resto de los hosts nuevos sí sigue el patrón `<rol><número>` desde acá en adelante.
+```text
+k3s-control
+k3s-worker01
+k3s-worker02
+
+n8n-worker01
+n8n-worker02
+```
+
+Minúscula, sin guion bajo. Este es el nombre DNS/Proxmox/lógico — el que se usa en toda la documentación técnica,
+inventario y comandos.
+
+`oscar-core` (el hostname del propio Proxmox) es la excepción real a este patrón: quedó puesto al instalar Proxmox,
+antes de que existiera esta convención por escrito, y no se renombra retroactivamente (requiere reinstalar o
+regenerar certificados).
 
 ## Etiquetas físicas de cableado
 
-Las etiquetas impresas en patch panel y cables (ver [cableado y patch panel](../red/cableado-patch-panel.md)) usan **mayúscula**, ej. `OSCAR-CORE`, `SW01-01`, `PWR-OSCAR-CORE`. Es una convención deliberadamente distinta a la de hostnames: una etiqueta física se lee rápido sobre una impresora de cinta y en poca luz, mientras que el hostname es lo que se escribe en terminal. No mezclar los dos formatos dentro de un mismo contexto (no escribir `OSCAR-CORE` en un comando `ssh`, no imprimir `oscar-core` en una etiqueta si el resto del rack usa mayúscula). No agregar prefijos de fabricante (`Dell-`, etc.): el rol+número ya identifica el equipo sin ambigüedad.
+Las etiquetas impresas en patch panel y cables (ver [cableado y patch panel](../red/cableado-patch-panel.md)) usan
+**mayúscula**, ej. `OSCAR-CORE`, `SW01-01`, `PWR-OSCAR-CORE`. Es una convención deliberadamente distinta a la de
+hostnames: una etiqueta física se lee rápido sobre una impresora de cinta y en poca luz, mientras que el hostname es
+lo que se escribe en terminal. No mezclar los dos formatos dentro de un mismo contexto. No agregar prefijos de
+fabricante (`Dell-`, etc.): el rol ya identifica el equipo sin ambigüedad.
 
 ## Servicios
 
@@ -39,3 +65,20 @@ argocd.oscar.home
 ```
 
 El dominio interno final es una decisión de arquitectura; `oscar.home` se usa en la guía como ejemplo legible.
+
+## Áreas conceptuales
+
+Cada host pertenece a una de estas cuatro áreas (ver `REORGANIZACION_RACK.md` para el detalle de qué va en cada
+una y por qué):
+
+```text
+INFRASTRUCTURE  → core, network, monitor
+PLATFORM        → devops, automation, k3s
+WORKLOADS       → services, apps
+SPECIAL PURPOSE → games, lab
+```
+
+Regla de decisión rápida para un componente nuevo: ¿es infraestructura transversal? → `core`. ¿Red/DNS/acceso
+remoto? → `network`. ¿Mide o alerta? → `monitor`. ¿Toolchain de CI/CD? → `devops`. ¿Workflows/automatización? →
+`automation`. ¿Plataforma Kubernetes en sí? → `k3s`. ¿App de terceros que instalamos? → `services`. ¿Software que
+desarrollamos nosotros? → `apps`. ¿Servidor de juego? → `games`. ¿Todavía no se sabe si se adopta? → `lab`.

@@ -1,181 +1,325 @@
-# Reorganización del rack — borrador de trabajo
+# Reorganización del rack
 
-**Estado:** propuesta en discusión, nada de esto está aplicado todavía. **Fecha:** 2026-09-22 **Por qué existe:** con
-meses de sesiones agregando cosas de a una, terminamos con herramientas repetidas (tres o cuatro midiendo lo mismo) y al
-menos un servicio en el lugar que no le corresponde (Minecraft mezclado con la infra core en vez de con los juegos).
-Esto ordena qué hay, dónde debería vivir, y qué falta decidir.
+**Estado:** arquitectura objetivo definida y aprobada (2026-09-22). Nada de la parte nueva (VMs/LXC nuevas,
+migraciones de servicios) está ejecutado todavía — sí está hecho el stack de observabilidad en `pinode02`, y el
+renombrado real de las Pi sigue pendiente de aplicar.
 
-## Hardware disponible
+**Por qué existe:** meses de sesiones agregando cosas de a una dejaron herramientas repetidas midiendo lo mismo,
+`core01` como cajón de sastre (borde de red + apps de usuario + automatización + monitoreo, todo junto), y un
+servicio en el lugar que no corresponde (Minecraft mezclado con infra en vez de con los juegos).
 
-| Nodo físico                 | Qué es                                                                     | RAM   | Disco                                                                     | Estado                   |
-|-----------------------------|----------------------------------------------------------------------------|-------|---------------------------------------------------------------------------|--------------------------|
-| `oscar-core`                | Dell OptiPlex 7060 Micro, Proxmox VE — el más potente, con margen de sobra | 32 GB | NVMe 1 TB (sano) + SSD SATA (muerto, esperando reemplazo y cables nuevos) | En línea                 |
-| Raspberry Pi 3 (`pinode01`) | Standalone, no virtualizada                                                | 1 GB  | microSD 64 GB                                                             | En línea, ~54% RAM usada |
-| Raspberry Pi 3 (`pinode02`) | Standalone, no virtualizada                                                | 1 GB  | microSD 64 GB                                                             | En línea, ~48% RAM usada |
+## Objetivo
 
-**Sobre el SSD SATA:** en pausa hasta que lleguen el disco y los cables nuevos. Cuando estén, se prueba el disco viejo
-en un adaptador USB-SATA para saber si es recuperable, y aparte se decide qué backend de storage usa el reemplazo.
+Que cada host tenga una responsabilidad clara, evitando: servicios duplicados, hosts "cajón de sastre", mezclar
+infraestructura con aplicaciones, mezclar software propio con software de terceros, mezclar experimentación con
+servicios estables, y dependencias innecesarias entre componentes.
 
-**Sobre las Pi:** no son "espacio libre" — cada una ya tiene un rol con la mitad de su RAM comprometida. Sumarles algo
-nuevo compite en serio por memoria; no cualquier app liviana entra gratis.
+## Convención de nombres
 
-## Inventario real (relevado en vivo, 2026-09-22)
+Se elimina el sufijo `01` de los hosts cuando existe una única instancia real del rol (detalle y ejemplos en
+[`docs/referencia/naming.md`](docs/referencia/naming.md)). La numeración se usa solo cuando existen múltiples
+instancias reales (ej. `k3s-worker01`, `k3s-worker02` — no aplica todavía).
 
-### `oscar-core` (Proxmox, 192.168.0.233)
+## Las cuatro áreas
 
-| Servicio            | Acceso                                                                                             | Nota                                                                            |
-|---------------------|----------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------|
-| Proxmox VE (web UI) | https://192.168.0.233:8006, LAN                                                                    | gestión del hipervisor                                                          |
-| ProxMenux Monitor   | http://192.168.0.233:8008 LAN, https://monitor.oscarlab.com.ar remoto (Cloudflare Tunnel + Access) | dashboard del propio Proxmox — redundante con Beszel/Glances/Grafana, ver abajo |
+```text
+O.S.C.A.R.
+│
+├── INFRASTRUCTURE   → core, network, monitor
+├── PLATFORM         → devops, automation, k3s
+├── WORKLOADS        → services, apps
+└── SPECIAL PURPOSE  → games, lab
+```
 
-### VM core01 (192.168.0.156, 8 GB RAM, ~1,5 GB usada) — apps generales
+## Arquitectura objetivo (hosts y servicios)
 
-| Servicio                      | DNS / URL                                                          | Acceso                                                                                 |
-|-------------------------------|--------------------------------------------------------------------|----------------------------------------------------------------------------------------|
-| Homepage                      | http://192.168.0.156:3005 LAN, https://home.oscarlab.com.ar remoto | Cloudflare Access                                                                      |
-| Nginx Proxy Manager           | http://192.168.0.156:81                                            | LAN                                                                                    |
-| Cloudflare Tunnel (principal) | —                                                                  | 7 hostnames públicos: home, vault, n8n, beszel, monitor, ha, led                       |
-| Portainer (servidor)          | http://192.168.0.156:9000 (puerto a confirmar)                     | LAN                                                                                    |
-| Vaultwarden                   | https://vault.oscarlab.com.ar                                      | Cloudflare Access                                                                      |
-| n8n + Postgres                | https://n8n.oscarlab.com.ar                                        | Cloudflare Access                                                                      |
-| SMTP relay                    | interno (Postfix)                                                  | sin acceso directo                                                                     |
-| Beszel (servidor) + agente    | https://beszel.oscarlab.com.ar                                     | Cloudflare Access — redundante, ver abajo                                              |
-| Glances                       | http://192.168.0.156:61208                                         | LAN — redundante, ver abajo                                                            |
-| MySpeed                       | http://192.168.0.156:5216 (puerto a confirmar)                     | LAN — redundante con el Speedtest exporter propuesto, ver abajo                        |
-| Minecraft                     | — (apagado)                                                        | mal ubicado: es un juego, mezclado acá con infra core en vez de estar con CS2 en lab01 |
+```text
+O.S.C.A.R.
+│
+├── INFRASTRUCTURE
+│   ├── core                        [VM, Dell]
+│   │   ├── Homepage
+│   │   ├── Nginx Proxy Manager
+│   │   └── SMTP Relay
+│   │
+│   ├── network                     [Raspberry Pi]
+│   │   ├── AdGuard
+│   │   ├── Tailscale
+│   │   └── cloudflared (tunneles centralizados)
+│   │
+│   └── monitor                     [Raspberry Pi]
+│       ├── Prometheus
+│       ├── Grafana
+│       ├── Blackbox Exporter
+│       └── Uptime Kuma
+│
+├── PLATFORM
+│   ├── devops                      [VM, Dell]
+│   │   ├── Forgejo
+│   │   ├── Nexus
+│   │   └── Infisical
+│   │
+│   ├── automation                  [VM nueva, Dell]
+│   │   ├── n8n main
+│   │   ├── PostgreSQL
+│   │   ├── Redis
+│   │   └── n8n workers (arranca con 0-1)
+│   │
+│   └── k3s                         [VM, Dell]
+│       ├── Argo CD
+│       ├── Traefik
+│       ├── Headlamp
+│       ├── Infisical Operator
+│       └── (por ahora) ci-demo, oscar-led-controller — ver nota "apps" más abajo
+│
+├── WORKLOADS
+│   ├── services                    [LXC nueva unprivileged, Dell]
+│   │   ├── Vaultwarden
+│   │   ├── SearXNG
+│   │   └── DocuSeal
+│   │
+│   └── apps                        [diferido — ver Fase 2, será VM/worker de k3s]
+│       └── (futuro) ci-demo, oscar-led-controller, como worker del cluster k3s
+│
+└── SPECIAL PURPOSE
+    ├── games                       [VM nueva, Dell — apagada salvo cuando se usa]
+    │   ├── Minecraft
+    │   └── CS2
+    │
+    └── lab                         [VM, Dell — ex lab01, reutilizada]
+        └── experimentos y pruebas (incluye Docker/K8s/acceso a kernel sin restricciones)
+```
 
-### VM devops01 (192.168.0.151, 12 GB RAM, ~4,3 GB usada) — DevOps/CI
+**Fuera de esta lista, sin cambios de fondo:** VM 106 (Home Assistant / HAOS) — es un appliance, no un stack Docker
+propio; no encaja limpio en ninguna de las 4 áreas (es "software de terceros" pero corre su propio SO, no
+contenedores nuestros). Se deja como host independiente, sin renombrar por ahora.
 
-| Servicio                            | DNS / URL                                         | Acceso                              |
-|-------------------------------------|---------------------------------------------------|-------------------------------------|
-| Forgejo (git + CI runner)           | http://git.oscar.home:3000                        | LAN                                 |
-| Nexus (registry Docker + proxy npm) | http://nexus.oscar.home:8081 (UI), :8082 (Docker) | LAN                                 |
-| Infisical (backend + DB + Redis)    | http://infisical.oscar.home                       | LAN                                 |
-| Portainer-agent                     | —                                                 | interno, lo usa Portainer de core01 |
-| Beszel-agent                        | —                                                 | interno, lo usa Beszel de core01    |
+## VM vs LXC — criterio, no regla general
 
-### VM k3s01 (192.168.0.150, 8 GB RAM, ~2 GB usada) — Kubernetes / GitOps
+Decisión explícita: **no** se adopta LXC como regla general solo para ahorrar RAM. Se usa LXC únicamente cuando el
+servicio es liviano, estable, y no necesita aislamiento ni capacidades especiales del kernel. Por host:
 
-| Servicio                               | DNS / URL                                                     | Acceso                          |
-|----------------------------------------|---------------------------------------------------------------|---------------------------------|
-| Argo CD                                | http://argocd.oscar.home                                      | LAN                             |
-| Traefik (Ingress)                      | *.oscar.home apunta a esta IP                                 | resuelve todo lo de abajo       |
-| Headlamp                               | http://headlamp.oscar.home                                    | LAN                             |
-| SearXNG                                | http://searxng.oscar.home                                     | LAN                             |
-| ci-demo                                | http://ci-demo.oscar.home                                     | LAN, app de prueba del pipeline |
-| oscar-led-controller                   | http://led.oscar.home LAN, https://led.oscarlab.com.ar remoto | Cloudflare Access               |
-| infisical-operator                     | —                                                             | interno, sincroniza secrets     |
-| claude-code-poc (namespace hermes-poc) | —                                                             | PoC descartable, sin URL        |
+| Host | Tipo | Por qué |
+|---|---|---|
+| `core`, `devops`, `k3s` | VM (sin cambios) | ya son VM, sin motivo para migrarlas |
+| `automation` | **VM** | tiene estado real (Postgres+Redis), es un componente importante de OSCAR y va a crecer (workers) — se prioriza aislamiento y kernel propio sobre ahorro de RAM |
+| `services` | **LXC unprivileged** | Vaultwarden/SearXNG/DocuSeal son livianos y estables, sin necesidad de capacidades especiales de kernel — Docker/Compose adentro del LXC si no complica la config |
+| `games` | **VM** | máximo aislamiento y compatibilidad; se enciende/apaga entera bajo demanda sin afectar a nadie más |
+| `lab` | **VM** (ya lo era) | tiene que permitir experimentar libremente, incluso con Docker, Kubernetes o configuraciones que requieran acceso al kernel |
+| `apps` (Fase 2) | VM | worker de k3s, necesita cgroups prolijos |
 
-### VM lab01 (192.168.0.152, 6 GB RAM, ~466 MB usada) — juegos
+Los LXC que se creen van **unprivileged** siempre que sea posible.
 
-| Servicio | DNS / URL                 | Acceso                  |
-|----------|---------------------------|-------------------------|
-| CS2      | puerto de juego (apagado) | directo por IP, sin DNS |
+## MySpeed / medición de velocidad — corregido respecto al diseño original
 
-Hoy casi vacía: solo CS2, apagado. Candidata a absorber Minecraft (que hoy está mal puesto en core01), o a
-achicarse/fusionarse si el uso real de los servidores de juego sigue siendo esporádico.
+El diseño inicial ponía MySpeed en `monitor` (la Raspberry Pi). **Se corrige**: la Pi 3 tiene Ethernet limitado a
+~100Mbps (comparte bus con USB 2.0) — si el internet real de OSCAR supera eso, medir velocidad desde ahí reporta un
+techo falso. MySpeed (y más adelante el Speedtest exporter) se queda en `core` (Dell, NIC gigabit), igual que ya
+decía el rol `monitoring_stack` de Ansible (`speedtest_exporter_target` apuntando a `core01`). `monitor` solo
+grafica el dato remoto.
 
-### pinode01 — red (192.168.0.213)
+## `apps` como worker de k3s — Fase 2, diferida
 
-| Servicio                  | DNS / URL                                                                         | Acceso                                                                    |
-|---------------------------|-----------------------------------------------------------------------------------|---------------------------------------------------------------------------|
-| AdGuard Home              | http://192.168.0.213:3000                                                         | LAN — es el DNS primario de core01, lab01, el propio Proxmox y las dos Pi |
-| Tailscale (subnet router) | —                                                                                 | acceso remoto a toda la LAN; respaldo mutuo con el de core01              |
-| Uptime Kuma               | http://192.168.0.213:3001 LAN, https://kuma.oscarlab.com.ar remoto (túnel propio) | Cloudflare Access                                                         |
-| cloudflared (dedicado)    | —                                                                                 | solo enruta kuma.oscarlab.com.ar, para que sobreviva a una caída del Dell |
-| node_exporter             | :9100                                                                             | scrapeado por Prometheus                                                  |
+El diseño a futuro separa `k3s` (control plane: Argo CD, Traefik, Headlamp, operators) de `apps` (worker: los pods
+de las aplicaciones propias). Hoy no existe ese segundo nodo. **Para esta pasada**, `ci-demo` y
+`oscar-led-controller` se quedan corriendo en el cluster `k3s` tal cual están (Argo CD los sigue desplegando sin
+cambios). Crear el VM `apps`, unirlo al cluster como worker, y taintear `k3s` para que no reciba pods de
+aplicación, queda como una fase separada y posterior — no bloquea el resto de esta reorganización.
 
-### pinode02 — observabilidad (192.168.0.214)
+## Portainer — se elimina
 
-| Servicio          | DNS / URL                 | Acceso             |
-|-------------------|---------------------------|--------------------|
-| Prometheus        | http://192.168.0.214:9090 | LAN                |
-| Grafana           | http://192.168.0.214:3006 | LAN                |
-| Blackbox Exporter | http://192.168.0.214:9115 | LAN, sin UI propia |
-| node_exporter     | :9100                     | métricas propias   |
+Portainer Server y Portainer Agent se dan de baja de todos los hosts. La administración pasa a: Docker Compose +
+Ansible (hosts sueltos), Git + Argo CD (Kubernetes).
 
-## Redundancias encontradas — necesitan más información antes de decidir
+## Uptime Kuma — una sola instancia, se muda a `monitor`
 
-Como pediste: no se elimina nada todavía. La idea es dejar correr Grafana un tiempo real y comparar contra lo que ya
-existe, y recién ahí decidir si se puede sacar algo o si conviene que convivan.
+Hoy vive en `pinode01` (futuro `network`). Se muda a `monitor` (futuro `pinode02`) junto con el resto de la
+observabilidad. Implica migrar su base SQLite y actualizar el `cloudflared` dedicado que hoy solo enruta
+`kuma.oscarlab.com.ar` (el túnel se centraliza en `network`, pero puede seguir apuntando a Kuma donde sea que viva,
+no tiene que ser local). Separación infra vs apps vs juegos dentro de Kuma se hace con grupos/tags, no con
+instancias separadas.
 
-| Función                                     | Herramientas que la cubren hoy                                     | Qué falta saber                                                                                                                                                                                |
-|---------------------------------------------|--------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| CPU/RAM/disco por host                      | Beszel, Glances, ProxMenux Monitor, y ahora Prometheus+Grafana     | ¿Grafana da el mismo detalle día a día? ¿Alguna de las otras tiene algo que Grafana no (por ejemplo, Glances ve procesos individuales; Beszel es la que alimenta el header de Homepage)?       |
-| Velocidad de Internet                       | MySpeed (ya corriendo)                                             | El Speedtest exporter que se propuso para pinode02 sigue sin desplegarse — no se agrega hasta decidir si reemplaza a MySpeed o si conviene dejar los dos (distinta frecuencia, distinta vista) |
-| Disponibilidad de servicios (¿está arriba?) | Uptime Kuma (21 monitores) y ahora Blackbox Exporter (5 objetivos) | Se solapan poco todavía (Blackbox es nuevo y chico); podrían quedar los dos — Kuma para notificaciones y una status page, Blackbox como la fuente de series históricas de Grafana              |
+## Observabilidad — sigue la política ya acordada: nada se apaga todavía
 
-## Propuesta de renombrado
+La cadena oficial es `node_exporter → Prometheus → Grafana`. Beszel, Glances, ProxMenux Monitor y MySpeed **no se
+apagan en esta pasada** — se espera a tener datos reales corriendo en paralelo un tiempo antes de decidir, función
+por función, qué se retira. Uptime Kuma no es redundante con Prometheus/Grafana: responde "¿está arriba?" (Kuma) vs
+"¿cómo está funcionando?" (Prometheus/Grafana), son objetivos distintos y ambos se quedan.
 
-### Las VM del Dell: no tocarlas
+## Presupuesto de recursos (Dell, `oscar-core`)
 
-Ya están nombradas por función (core01, devops01, k3s01, lab01) y son fáciles de entender. Renombrarlas implica tocar
-DNS (AdGuard), el inventario de Ansible, referencias en Argo CD/GitOps y la documentación entera, para ganar poco.
-Recomendación: dejarlas como están.
+Host: 31GB RAM físicos, 6 núcleos / 12 hilos. Estado actual (2026-09-22, sin balloon configurado en ninguna VM):
 
-### Las Raspberry Pi: sí tiene sentido
+| VM/host | RAM configurada hoy | Uso real observado | Propuesta nueva | Tipo |
+|---|---|---|---|---|
+| core01 → **core** | 8GB | ~1,5GB | **4GB** | VM (existente) |
+| devops01 → **devops** | 12GB | ~4,3GB | **6GB** | VM (existente) |
+| k3s01 → **k3s** | 8GB | ~2GB | **4GB** | VM (existente) |
+| lab01 → **lab** | 6GB | ~466MB | **2GB** | VM (existente, reutilizada) |
+| — → **automation** | — | — | **4GB** | VM nueva |
+| — → **services** | — | — | **2GB** | LXC unprivileged nueva |
+| — → **games** | — | — | **6GB** (apagada salvo uso) | VM nueva |
+| VM106 (HA) | 4GB | — | 4GB (sin cambios) | VM (existente) |
 
-Se llaman pinode01/pinode02 por el orden en que se instalaron, no por su función. El plan original de infraestructura
-(OSCAR_FINAL_INFRASTRUCTURE.md) ya las nombraba por rol: network01 y monitor01. Propuesta:
+Total con todo prendido salvo `games` (que se enciende solo para jugar): **26GB de 31GB**, deja ~5GB de margen
+para el propio host. Con `games` prendida sube a 32GB — al límite, por eso se recomienda mantenerla apagada salvo
+uso activo (ya es el patrón actual con `lab01`).
 
-| Nombre actual | Nombre propuesto | Motivo                                                                              |
-|---------------|------------------|-------------------------------------------------------------------------------------|
-| pinode01      | network01        | Coincide con el plan original; es lo que hace (DNS, VPN, monitor de disponibilidad) |
-| pinode02      | monitor01        | Ídem; ya se lo venía llamando así en la doc                                         |
+**Recomendación adicional:** activar memory ballooning (`balloon: <min>`) en las VMs del Dell — hoy ninguna lo
+tiene, así que Proxmox no puede reclamar RAM no usada de una VM para dársela a otra bajo presión.
 
-Esto es más manejable que renombrar el Dell: son 2 hosts, con pocas referencias (hostname de la Pi, inventario de
-Ansible, AdGuard, Homepage, Kuma, Grafana, la doc de docs/hardware/). Si se confirma, se hace en un solo paso y se
-actualiza todo junto.
+## Migraciones necesarias
 
-## Cosas fuera de lugar, para mover
+```text
+core01
+├── Homepage             → core (sin cambios funcionales)
+├── NPM                  → core (sin cambios funcionales)
+├── SMTP Relay           → core (sin cambios funcionales)
+├── Vaultwarden          → services (nueva LXC) — migrar datos
+├── n8n + Postgres       → automation (nueva VM) — migrar datos
+├── Minecraft             → games (nueva VM)
+├── Cloudflare Tunnel      → network (centralizar ahí, hoy vive en core01)
+├── Portainer Server      → ELIMINAR
+├── Beszel Server         → se queda (política de monitoreo: esperar datos)
+├── Glances                → se queda (ídem)
+└── MySpeed                → se queda en core (corrección respecto al diseño original)
 
-- Minecraft: está en core01 (apps generales), debería estar en lab01 (junto con CS2, es la VM de juegos).
+devops01
+├── Forgejo / Nexus / Infisical → devops (sin cambios funcionales, solo rename)
+├── Portainer Agent              → ELIMINAR
+└── Beszel Agent                  → se queda (política de monitoreo)
 
-## Preguntas abiertas antes de tocar nada
+k3s01
+├── Argo CD / Traefik / Headlamp / Infisical Operator → k3s (sin cambios funcionales, solo rename)
+├── ci-demo / oscar-led-controller                      → se quedan en k3s (Fase 2 los mueve a `apps`)
+└── SearXNG                                               → services (nueva LXC) — hoy corre en k3s01 vía Argo CD,
+                                                             evaluar si migra a k8s-manifest en `services` o se
+                                                             redeploya como contenedor Docker suelto
 
-1. ¿Se confirma el renombrado pinode01→network01 / pinode02→monitor01?
-2. ¿Se mueve Minecraft a lab01 ahora, o se deja para cuando se vuelva a usar (sigue sin resolverse el usuario real de
-   Java)?
-3. Para las redundancias de monitoreo: ¿dejamos correr Grafana un tiempo (¿cuánto?) antes de decidir qué sacar, o se
-   compara ya mismo función por función?
-4. ¿Se sigue con el Speedtest exporter en core01 (quedó pausado) o se pospone hasta resolver el tema MySpeed?
+lab01
+├── CS2         → games (nueva VM)
+└── VM en sí    → se reutiliza como lab (rename, se vacía)
+
+pinode01 → network
+├── hostname, AdGuard, Tailscale, cloudflared → sin cambios funcionales, solo rename
+
+pinode02 → monitor
+├── hostname, Prometheus, Grafana, Blackbox   → sin cambios funcionales, solo rename
+└── + Uptime Kuma (migra desde network)
+```
+
+## Documentación a actualizar — cuándo, no todo junto
+
+Hay ~80 páginas en `docs/` que mencionan nombres/servicios afectados. Actualizarlas todas ahora describiría un
+estado que todavía no existe. Se actualiza en el momento en que cada migración se ejecuta de verdad, no antes:
+
+- **Ya actualizado (2026-09-22):** este archivo, `docs/referencia/naming.md`.
+- **Al renombrar las Pi:** `docs/hardware/pinode01.md`→`network.md`, `pinode02.md`→`monitor.md`, y grep de
+  referencias cruzadas (`docs/red/dns-adguard.md`, `docs/arquitectura/estado-actual.md`, etc.).
+- **Al crear `automation`:** `docs/automatizacion/*.md` (instalacion-n8n.md, n8n-arquitectura.md,
+  workflow-salud.md), `docs/backup-dr/backup-n8n.md`.
+- **Al crear `services` y migrar Vaultwarden:** `docs/servicios/vaultwarden.md`.
+- **Al migrar SearXNG:** referencias en `docs/kubernetes/` si las tiene.
+- **Al eliminar Portainer:** `docs/servicios/portainer.md` (marcar como retirado, no borrar el archivo — dejar el
+  historial de por qué se usó y por qué se sacó).
+- **Al crear `games` y mover Minecraft/CS2:** `docs/juegos/minecraft.md`, `docs/juegos/vision-general.md`.
+- **Al renombrar `core01`/`devops01`/`k3s01`/`lab01`:** `docs/hardware/dell-7060.md`,
+  `docs/proxmox/crear-vm-core01.md` (posible rename de archivo), `docs/arquitectura/vision-general.md`,
+  `docs/arquitectura/stack.md`, `docs/arquitectura/decisiones-arquitectonicas.md`, `docs/despliegues/indice.md`,
+  y el resto que aparece en el grep de `core01|devops01|k3s01|lab01` sobre `docs/`.
+
+## Pasos de ejecución (orden)
+
+1. Renombrar las Pi: `pinode01`→`network`, `pinode02`→`monitor` (hostname + `/etc/hosts`, con permiso explícito
+   antes de tocar la microSD). Actualizar `oscar-gitops/ansible/inventory/hosts.yml`.
+2. Migrar Uptime Kuma de `network` a `monitor` (exportar/importar SQLite, actualizar el `cloudflared` dedicado).
+3. Right-sizing de RAM en `core01`/`devops01`/`k3s01`/`lab01` según la tabla de arriba, antes de crear hosts nuevos.
+4. Crear `automation` (VM), migrar n8n+Postgres desde `core01` con sus datos.
+5. Crear `services` (LXC unprivileged), migrar Vaultwarden desde `core01` con sus datos; evaluar SearXNG y sumar
+   DocuSeal.
+6. Crear `games` (VM, apagada por defecto), mover Minecraft desde `core01` y CS2 desde `lab01`.
+7. Renombrar `core01`→`core`, `devops01`→`devops`, `k3s01`→`k3s`, `lab01`→`lab` (vaciada de CS2).
+8. Eliminar Portainer Server/Agent de todos los hosts.
+9. Centralizar `cloudflared` en `network` (hoy hay instancias en `core01` y una dedicada en `pinode01`).
+10. Actualizar documentación según la tabla de arriba, commit + push en `oscar-homelab` y `oscar-gitops`.
+11. Actualizar este archivo marcando cada paso como resuelto.
+12. **Fase 2 (separada, sin fecha):** crear el VM `apps` como worker de `k3s`, mover `ci-demo` y
+    `oscar-led-controller` ahí, taintear `k3s` para que no reciba pods de aplicación.
+
+## Fuera de alcance, a propósito
+
+- Apagar Beszel, Glances, ProxMenux Monitor o MySpeed — se decide más adelante con datos reales.
+- La Fase 2 de `apps` (worker de k3s) — separada, no bloquea el resto.
+- Reparación/reemplazo del tercer SSD SATA del Dell — pendiente de que el usuario lo conecte.
+- VLANs / re-direccionamiento IP (`docs/red/plan-direccionamiento.md` es un ejemplo futuro, no aplica todavía) —
+  los hosts nuevos usan una IP libre del mismo `192.168.0.0/24` plano de hoy, con reservation DHCP.
+
+## Verificación
+
+- `hostname` en cada Pi devuelve el nombre nuevo; `ansible -i inventory/hosts.yml all -m ping` sin errores contra
+  los nombres nuevos.
+- Uptime Kuma sigue notificando y su status page pública sigue funcionando tras la migración.
+- Vaultwarden y n8n responden igual que antes tras migrar (login, workflows corriendo) desde su nuevo host.
+- `pvesm`/`df` confirman que ningún host quedó sin espacio tras el right-sizing.
+- Argo CD sigue con sus aplicaciones `Synced`/`Healthy` (el rename de `k3s01`→`k3s` no debería tocar nada del
+  cluster en sí, pero se verifica).
+- `yarn build` sin errores tras renombrar/crear páginas de doc.
 
 ## Estado al momento de escribir esto (2026-09-22)
 
-Las 4 preguntas de arriba ya están respondidas (ver el resto del documento y el plan aprobado más abajo). Lo que sigue es **ejecución**, no más decisiones de diseño, salvo que aparezca algo imprevisto.
-
-- Se aprobó un plan detallado de ejecución con Claude Code, guardado en `/Users/maximilianodelgado/.claude/plans/quizzical-discovering-lerdorf.md` (en esta misma Mac — si no es accesible desde donde corra Codex, el contenido relevante está resumido en el prompt de abajo).
-- OSCAR está encendido y sano: 5 VMs en el Dell, Argo CD con sus aplicaciones `Synced`/`Healthy`, las 2 Pi arriba.
-- El SSD SATA de `Backups` volvió (era el conector, no el disco) y está reactivado en producción — no es parte de esta reorganización, ver `docs/arquitectura/estado-actual.md`.
-- `oscar-gitops` (Forgejo, `mdelgado/oscar-gitops`, rama `main`) ya tiene subido: el control node de Ansible completo (`ansible/`, roles `common`/`node_exporter`/`docker`/`monitoring_stack`), con el stack de `monitor01` (Prometheus, Grafana, Blackbox HTTP+ICMP) **ya desplegado y funcionando** en `pinode02` (192.168.0.214), y el Speedtest exporter **preparado en el código pero sin desplegar todavía**.
-- Las dos contraseñas nuevas (sudo de las Pi, admin de Grafana) están cifradas con `ansible-vault` en `ansible/group_vars/{pis,monitor01}/vault.yml`, y la contraseña del vault de Ansible en sí ya está guardada en Vaultwarden (ítem "Ansible Vault (oscar-gitops)") — no está en ningún archivo del repo.
+- OSCAR está encendido y sano.
+- El SSD SATA de `Backups` del Dell se resolvió esta misma sesión: `sda` (WD Green, interno SATA) es ahora
+  `Backups`, `sdb` (el disco que venía fallando, ahora externo USB) es `Documentos` — ver
+  `docs/arquitectura/estado-actual.md`. Falta conectar un tercer SSD SATA de repuesto (todavía no llegó/no está
+  conectado).
+- `oscar-gitops` (Forgejo, `mdelgado/oscar-gitops`, rama `main`) tiene: el control node de Ansible completo
+  (`ansible/`), con el stack de observabilidad **ya desplegado y funcionando** en `pinode02` (Prometheus, Grafana,
+  Blackbox HTTP), y el Speedtest exporter + Blackbox ICMP **preparados en el código pero sin desplegar**.
+- Nada de la arquitectura nueva de este documento (VMs/LXC nuevas, migraciones, renombrado real de las Pi) está
+  ejecutado todavía — es el próximo trabajo, siguiendo el orden de "Pasos de ejecución" de arriba.
 
 ## Prompt para Codex (continuar la ejecución)
 
 Copiar y pegar tal cual como prompt inicial:
 
-> Segui el plan de reorganizacion de la infraestructura homelab "O.S.C.A.R." documentado en `REORGANIZACION_RACK.md` (raiz de este repo, `oscar-homelab`). Ese archivo tiene el inventario completo relevado en vivo, las decisiones ya tomadas con el usuario, y las 4 preguntas abiertas ya respondidas en la seccion "Estado al momento de escribir esto". No vuelvas a proponer alternativas a esas decisiones salvo que encuentres algo que las contradiga en la practica.
+> Segui el plan de reorganizacion de la infraestructura homelab "O.S.C.A.R." documentado en
+> `REORGANIZACION_RACK.md` (raiz de este repo, `oscar-homelab`). Ese archivo tiene la arquitectura objetivo completa
+> (4 areas: INFRASTRUCTURE/PLATFORM/WORKLOADS/SPECIAL PURPOSE), el criterio VM vs LXC por host, el presupuesto de
+> recursos del Dell, la tabla de migraciones, y el orden de ejecucion en la seccion "Pasos de ejecucion". No
+> propongas alternativas a esa arquitectura salvo que encuentres algo que la contradiga en la practica — ya fue
+> discutida y aprobada con el usuario.
 >
 > Contexto que necesitas saber antes de tocar nada:
 > - Todo el proyecto se documenta y se conversa en **español**.
-> - Hay un repo hermano `oscar-gitops` en Forgejo (`http://git.oscar.home/mdelgado/oscar-gitops`, rama `main`) con el control node de Ansible (`ansible/`) y los charts de Argo CD (`apps/`, `infra/`). Cloná ese repo tambien; las credenciales de Forgejo estan en Vaultwarden ("O.S.C.A.R." token), no las pidas por otro lado.
-> - La contraseña que descifra `ansible/group_vars/{pis,monitor01}/vault.yml` esta en Vaultwarden, item "Ansible Vault (oscar-gitops)". Sin eso no podes correr el playbook contra las Pi ni tocar la config de Grafana.
-> - **No rotes ninguna credencial** (contraseña de `pi`, tokens, etc.) aunque las veas en texto plano en algun lado — es una decision explicita del usuario, es una red domestica que considera segura. Ver la memoria/nota al respecto si tu entorno la tiene disponible, o preguntale al usuario si no estas seguro.
-> - Antes de escribir en cualquier microSD o tocar `/etc/hosts`/`cmdline.txt` de una Raspberry Pi, pedile permiso explicito al usuario — una vez se corrompio una tarjeta por sacarla sin expulsarla primero.
-> - Homepage (`core01`, `services.yaml`) esta detras de Cloudflare Tunnel en `home.oscarlab.com.ar` — las paginas se renderizan dinamicamente (no son un asset estatico cacheado), asi que normalmente NO hace falta purgar la cache de Cloudflare al editar `services.yaml`; si en cambio tocas `custom.css`/`custom.js`, si hace falta purgar (son estaticos y Cloudflare los cachea en el borde).
-> - Cualquier edicion a `services.yaml` de Homepage: nunca con `sed -i` dentro del contenedor. Traer el archivo, editar local, validar YAML, subir por `base64 | ssh ... | base64 -d`, reiniciar el contenedor, y dejar un backup del archivo anterior en el propio host.
-> - El widget nativo `prometheusmetric` de Homepage soporta PromQL arbitrario (confirmado contra `gethomepage.dev`) — es el camino para reemplazar las tarjetas de Beszel/Glances el dia que se decida retirarlas, pero **no las retires todavia** sin comparar con datos reales en Grafana primero.
+> - Hay un repo hermano `oscar-gitops` en Forgejo (`http://git.oscar.home/mdelgado/oscar-gitops`, rama `main`) con
+>   el control node de Ansible (`ansible/`) y los charts de Argo CD (`apps/`, `infra/`). Cloná ese repo tambien; las
+>   credenciales de Forgejo estan en Vaultwarden ("O.S.C.A.R." token), no las pidas por otro lado.
+> - La contraseña que descifra `ansible/group_vars/*/vault.yml` esta en Vaultwarden, item "Ansible Vault
+>   (oscar-gitops)".
+> - **No rotes ninguna credencial** aunque las veas en texto plano en algun lado — decision explicita del usuario,
+>   entorno domestico que considera seguro.
+> - Antes de escribir en cualquier microSD o tocar `/etc/hosts`/`cmdline.txt` de una Raspberry Pi, pedile permiso
+>   explicito al usuario — una vez se corrompio una tarjeta por sacarla sin expulsarla primero.
+> - Antes de crear una VM/LXC nueva, migrar datos de un servicio con estado (Vaultwarden, n8n+Postgres, Uptime
+>   Kuma), o apagar/reiniciar algo en produccion, avisa antes y explica que se va a interrumpir.
+> - Los LXC nuevos van **unprivileged** siempre que sea posible; VM vs LXC por host ya esta decidido, no lo
+>   re-evalues (ver tabla "VM vs LXC" en `REORGANIZACION_RACK.md`).
+> - Homepage (`core`, `services.yaml`) esta detras de Cloudflare Tunnel en `home.oscarlab.com.ar` — se renderiza
+>   dinamicamente, no hace falta purgar cache al editar `services.yaml`; si tocas `custom.css`/`custom.js` si hace
+>   falta purgar.
+> - Cualquier edicion a `services.yaml` de Homepage: nunca con `sed -i` dentro del contenedor. Traer el archivo,
+>   editar local, validar YAML, subir por `base64 | ssh ... | base64 -d`, reiniciar el contenedor, dejar backup del
+>   archivo anterior en el propio host.
+> - **No apagues las herramientas de monitoreo redundantes** (Beszel, Glances, ProxMenux Monitor, MySpeed) — la
+>   politica acordada es esperar datos reales en Grafana antes de decidir, funcion por funcion.
+> - La Fase 2 (VM `apps` como worker de k3s) es un trabajo aparte, no la empieces salvo que el usuario lo pida
+>   explicitamente — por ahora `ci-demo` y `oscar-led-controller` se quedan en el cluster `k3s` tal cual estan.
+> - La seccion "Documentacion a actualizar" de `REORGANIZACION_RACK.md` dice exactamente que pagina de `docs/`
+>   tocar en cada paso — no reescribas las ~80 paginas que mencionan nombres viejos de una sola vez, solo las que
+>   correspondan al paso que estas ejecutando en ese momento (la documentacion debe describir lo que ya paso, no lo
+>   que todavia no).
 >
-> Pasos concretos, en orden (el detalle completo de cada uno esta en `REORGANIZACION_RACK.md`, seccion "Pasos de ejecucion"):
-> 1. Verificar que OSCAR este arriba y sano (5 VMs del Dell, Argo CD con sus 8 aplicaciones `Synced`/`Healthy`, las 2 Raspberry Pi respondiendo).
-> 2. Renombrar las Pi: `pinode01`→`network01` (192.168.0.213), `pinode02`→`monitor01` (192.168.0.214) — hostname + `/etc/hosts` en cada una, y actualizar `ansible/inventory/hosts.yml` en `oscar-gitops`.
-> 3. Agregar al rol `monitoring_stack` de Ansible un exporter de Proxmox (`prometheus-pve-exporter`, instalado en `oscar-core` via `pip`/`pipx` ya que Proxmox no corre Docker) y sumarlo como target de Prometheus.
-> 4. Correr el playbook (`ansible-playbook site.yml --limit monitor01:speedtest_host`) para desplegar lo que ya esta en el codigo: el monitor de Internet (Blackbox ICMP), el Speedtest exporter en `core01`, y el exporter de Proxmox nuevo.
-> 5. Verificar en Grafana (`http://192.168.0.214:3006`, va a pasar a `192.168.0.214` con nombre `monitor01` si el paso 2 ya se hizo) que las series nuevas (`pve_*`, `speedtest_*`, `probe_success{job="blackbox_icmp"}`) muestran datos reales.
-> 6. Renombrar la documentacion: `docs/hardware/pinode01.md`→`network01.md`, `pinode02.md`→`monitor01.md`, actualizar el sidebar y grep todo `docs/` por referencias cruzadas a los nombres viejos.
-> 7. Commit + push de `oscar-gitops` y de `oscar-homelab` (con `yarn build` antes de commitear docs), siguiendo el estilo de mensajes de commit ya usado en el historial de ambos repos (en español, explicando el porque, no solo el que).
-> 8. Actualizar `REORGANIZACION_RACK.md` marcando resuelto lo que se fue completando.
-> 9. Recien al final, y solo si el usuario lo confirma en el momento: migrar Minecraft de `core01` a `lab01` (no es bloqueante, puede quedar para despues).
->
-> No apagues ni reinicies ninguna VM o servicio en produccion sin avisar antes y explicar que se va a interrumpir. No tomes decisiones de "que herramienta de monitoreo sacar" — eso queda para cuando el usuario compare los dashboards nuevos con las herramientas viejas, con datos reales, en persona.
+> Segui el orden de "Pasos de ejecucion" de `REORGANIZACION_RACK.md`, empezando por el paso 1 (renombrar las Pi).
+> Commiteá con mensajes en español explicando el porqué, no solo el qué, siguiendo el estilo ya usado en el
+> historial de `oscar-homelab` y `oscar-gitops`. Actualizá este archivo marcando cada paso como resuelto a medida
+> que lo completes.
