@@ -283,8 +283,12 @@ estado que todavía no existe. Se actualiza en el momento en que cada migración
 
 ## Pasos de ejecución (orden)
 
-1. Renombrar las Pi: `pinode01`→`network`, `pinode02`→`monitor` (hostname + `/etc/hosts`, con permiso explícito
-   antes de tocar la microSD). Actualizar `oscar-gitops/ansible/inventory/hosts.yml`.
+1. ✅ **Hecho (2026-09-22).** Renombrar las Pi: `pinode01`→`network`, `pinode02`→`monitor` (hostname + `/etc/hosts`
+   + `preserve_hostname: true` en cloud-init en las dos — `monitor` no la tenía, se agregó). Actualizado
+   `oscar-gitops/ansible/inventory/hosts.yml` (commit `969feb8`, **pendiente de `git push`**, ver nota abajo) y
+   `docs/hardware/pinode01.md`→`network.md`, `pinode02.md`→`monitor.md` en `oscar-homelab` (commit `87e8557`).
+   Verificado: `ansible -m ping` contra los 5 hosts responde `pong` con los nombres nuevos; Prometheus/Grafana/
+   AdGuard siguen respondiendo tras el rename.
 2. Migrar Uptime Kuma de `network` a `monitor` (exportar/importar SQLite, actualizar el `cloudflared` dedicado).
 3. Right-sizing de RAM en `core01`/`devops01`/`k3s01`/`lab01` según la tabla de arriba, antes de crear hosts nuevos.
 4. Crear `automation` (VM), migrar n8n+Postgres desde `core01` con sus datos.
@@ -328,8 +332,13 @@ estado que todavía no existe. Se actualiza en el momento en que cada migración
 - `oscar-gitops` (Forgejo, `mdelgado/oscar-gitops`, rama `main`) tiene: el control node de Ansible completo
   (`ansible/`), con el stack de observabilidad **ya desplegado y funcionando** en `pinode02` (Prometheus, Grafana,
   Blackbox HTTP), y el Speedtest exporter + Blackbox ICMP **preparados en el código pero sin desplegar**.
-- Nada de la arquitectura nueva de este documento (VMs/LXC nuevas, migraciones, renombrado real de las Pi) está
-  ejecutado todavía — es el próximo trabajo, siguiendo el orden de "Pasos de ejecución" de arriba.
+- **Paso 1 hecho (2026-09-22):** las Pi ya se llaman `network`/`monitor` a nivel de SO, `hosts.yml` de Ansible y la
+  doc de `oscar-homelab` están al día. **Pendiente:** `git push` del commit `969feb8` en `oscar-gitops` — el clon
+  de trabajo vive en un scratchpad fuera de este repo, y el push desde ahí quedó bloqueado por el clasificador de
+  Claude Code ("Out-of-Place Publication"). Hay que pushearlo desde un checkout normal de `oscar-gitops`, o el
+  usuario lo autoriza explícitamente.
+- El resto de la arquitectura nueva de este documento (VMs/LXC nuevas, migraciones, right-sizing, rename de
+  `core01`/`devops01`/`k3s01`/`lab01`) no está ejecutado todavía — sigue el orden de "Pasos de ejecución" de arriba.
 
 ## Prompt para Codex (continuar la ejecución)
 
