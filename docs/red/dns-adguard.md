@@ -97,19 +97,19 @@ Con la causa raíz corregida, se activó — dejó de ser una decisión pendient
 
 Mientras se sigue de cerca la primera semana de uso real (rollout gradual — cada dispositivo lo toma recién al renovar su lease DHCP, no todos de golpe), cada dispositivo que necesite `*.oscar.home` puntualmente sigue teniendo dos formas de resolverlo sin depender de que el DNS de red esté sano:
 
-## Incidente menor: `systemd-resolved` de `core01` no volvía a usar AdGuard (2026-09-18)
+## Incidente menor: `systemd-resolved` de `core` no volvía a usar AdGuard (2026-09-18)
 
-Tras los varios `systemctl restart AdGuardHome` del diagnóstico del `ratelimit` (arriba), `resolvectl status eth0` en `core01` mostraba `Current DNS Server: 1.1.1.1` aunque la config seguía teniendo `192.168.0.93` primero en la lista (`DNS Servers: 192.168.0.93 1.1.1.1`). `systemd-resolved` había marcado a AdGuard como no disponible durante uno de esos reinicios y no volvió a probarlo solo — quedó pegado en el fallback indefinidamente.
+Tras los varios `systemctl restart AdGuardHome` del diagnóstico del `ratelimit` (arriba), `resolvectl status eth0` en `core` mostraba `Current DNS Server: 1.1.1.1` aunque la config seguía teniendo `192.168.0.93` primero en la lista (`DNS Servers: 192.168.0.93 1.1.1.1`). `systemd-resolved` había marcado a AdGuard como no disponible durante uno de esos reinicios y no volvió a probarlo solo — quedó pegado en el fallback indefinidamente.
 
-**Síntoma real:** el contenedor de Homepage (que usa el DNS del host `core01` vía Docker embedded DNS, `127.0.0.11` → host) no podía resolver `portainer.oscar.home` (`Error: queryAaaa ENOTFOUND`), aunque AdGuard respondía perfecto si se lo consultaba directo (`dig +short portainer.oscar.home @192.168.0.93` → `192.168.0.156`). El problema nunca fue AdGuard ni la config — fue la selección en vivo de `systemd-resolved` en el host.
+**Síntoma real:** el contenedor de Homepage (que usa el DNS del host `core` vía Docker embedded DNS, `127.0.0.11` → host) no podía resolver `portainer.oscar.home` (`Error: queryAaaa ENOTFOUND`), aunque AdGuard respondía perfecto si se lo consultaba directo (`dig +short portainer.oscar.home @192.168.0.93` → `192.168.0.156`). El problema nunca fue AdGuard ni la config — fue la selección en vivo de `systemd-resolved` en el host.
 
-**Fix:** `sudo systemctl restart systemd-resolved` en `core01` — fuerza a reevaluar los servidores configurados desde cero. Volvió a `Current DNS Server: 192.168.0.93` de inmediato, `portainer.oscar.home` resolvió tanto en el host como dentro del contenedor de Homepage sin más cambios.
+**Fix:** `sudo systemctl restart systemd-resolved` en `core` — fuerza a reevaluar los servidores configurados desde cero. Volvió a `Current DNS Server: 192.168.0.93` de inmediato, `portainer.oscar.home` resolvió tanto en el host como dentro del contenedor de Homepage sin más cambios.
 
 Si vuelve a pasar tras un reinicio de AdGuard: mismo fix, un `systemctl restart systemd-resolved` en el host afectado (no hace falta reiniciar Docker ni los contenedores).
 
 ## Rollback: el DHCP-wide se revirtió (2026-09-18)
 
-La activación de más arriba duró el mismo día. A las 20:32 el [hang recurrente de la NIC física del Dell](../arquitectura/estado-actual.md#incidente-real-2026-09-18-hang-de-la-nic-física-caída-de-core01-y-adguard) volvió a pasar — con toda la LAN dependiendo de `192.168.0.93` como DNS primario, la intermitencia de la NIC se sintió como "internet no anda" en cualquier dispositivo de la casa (caso real: `drive.tresdoce.com.ar` inaccesible en pleno uso). AdGuard en sí nunca estuvo mal configurado ni caído por su cuenta — la NIC del host le tapaba el camino.
+La activación de más arriba duró el mismo día. A las 20:32 el [hang recurrente de la NIC física del Dell](../arquitectura/estado-actual.md#incidente-real-2026-09-18-hang-de-la-nic-física-caída-de-core-y-adguard) volvió a pasar — con toda la LAN dependiendo de `192.168.0.93` como DNS primario, la intermitencia de la NIC se sintió como "internet no anda" en cualquier dispositivo de la casa (caso real: `drive.tresdoce.com.ar` inaccesible en pleno uso). AdGuard en sí nunca estuvo mal configurado ni caído por su cuenta — la NIC del host le tapaba el camino.
 
 **Decisión:** mientras la NIC siga siendo poco confiable (es la segunda vez en la semana), no debería ser el DNS del que depende toda la casa. Rollback del que ya existía backup:
 
@@ -139,7 +139,7 @@ El AdGuard del Dell (LXC 100) **está caído desde el 2026-09-21 03:32**: su dis
 
 **No se cambió el DHCP del router**: sigue repartiendo `8.8.8.8`/`8.8.4.4`. La condición para activar DNS de red completa (mitigar el cuelgue de la NIC del Dell) sigue en pie; ver el [rollback](#rollback-el-dhcp-wide-se-revirtió-2026-09-18). Para un dispositivo puntual, alcanza con apuntarle el DNS a `192.168.0.213`.
 
-**Efecto colateral (resuelto el 2026-09-21):** `core01` y `lab01` tenían `192.168.0.93` como DNS principal (y `1.1.1.1` de respaldo). Con el LXC caído resolvían por `1.1.1.1`, que no conoce `*.oscar.home`, y el contenedor de Homepage no resolvía `portainer.oscar.home` ni `git.oscar.home`. Se apuntaron a `192.168.0.213` (con `1.1.1.1` de respaldo): en `/etc/netplan/50-cloud-init.yaml` de cada VM (backup `50-cloud-init.yaml.bak-dns-pinode`, aplicado con `netplan apply`, sin cambio de IP) y, para `lab01`, también `nameserver` en la cloud-init de Proxmox (`qm set 105 --nameserver "192.168.0.213 1.1.1.1"`) para que un regenerado no revierta. `k3s01` y `devops01` usan `8.8.8.8` y no dependían del AdGuard. La tarjeta de AdGuard en Homepage también se repuntó a `http://192.168.0.213:3000` (monitor y widget verificados; backup del archivo: `services.yaml.bak-adguard-pinode` en `core01`).
+**Efecto colateral (resuelto el 2026-09-21):** `core` y `lab` tenían `192.168.0.93` como DNS principal (y `1.1.1.1` de respaldo). Con el LXC caído resolvían por `1.1.1.1`, que no conoce `*.oscar.home`, y el contenedor de Homepage no resolvía `portainer.oscar.home` ni `git.oscar.home`. Se apuntaron a `192.168.0.213` (con `1.1.1.1` de respaldo): en `/etc/netplan/50-cloud-init.yaml` de cada VM (backup `50-cloud-init.yaml.bak-dns-pinode`, aplicado con `netplan apply`, sin cambio de IP) y, para `lab`, también `nameserver` en la cloud-init de Proxmox (`qm set 105 --nameserver "192.168.0.213 1.1.1.1"`) para que un regenerado no revierta. `k3s` y `devops` usan `8.8.8.8` y no dependían del AdGuard. La tarjeta de AdGuard en Homepage también se repuntó a `http://192.168.0.213:3000` (monitor y widget verificados; backup del archivo: `services.yaml.bak-adguard-pinode` en `core`).
 
 ## Wildcard `*.oscar.home` para apps de k3s (2026-09-15)
 
@@ -148,7 +148,7 @@ Los rewrites de AdGuard pasaron de una entrada por hostname a esto:
 ```yaml
 rewrites:
   - domain: git.oscar.home
-    answer: 192.168.0.156      # NPM (core01) — apps en Docker Compose
+    answer: 192.168.0.156      # NPM (core) — apps en Docker Compose
     enabled: true
   - domain: nexus.oscar.home
     answer: 192.168.0.156
@@ -166,19 +166,19 @@ rewrites:
     answer: 192.168.0.156
     enabled: true
   - domain: '*.oscar.home'
-    answer: 192.168.0.150      # Traefik (k3s01) — todo lo que corre en k3s
+    answer: 192.168.0.150      # Traefik (k3s) — todo lo que corre en k3s
     enabled: true
 ```
 
-Motivo: cada app nueva desplegada vía Argo CD (`led`, `argocd`, `ci-demo`, y las que vengan) ya trae su propio `Ingress` en Traefik — el único paso manual que faltaba era agregar el rewrite en AdGuard cada vez. Con el wildcard, cualquier `Ingress` nuevo con host `<lo-que-sea>.oscar.home` resuelve solo, sin tocar AdGuard de nuevo. Los dominios explícitos (que van a `192.168.0.156`, no a k3s01) siguen ganando por especificidad — confirmado con `dig`, no es una suposición sobre cómo prioriza AdGuard. Cada vez que una app sale de k3s hacia Docker Compose (como pasó con SearXNG), hay que agregar su rewrite explícito a mano — si no, el wildcard la sigue mandando a Traefik, donde ya no existe.
+Motivo: cada app nueva desplegada vía Argo CD (`led`, `argocd`, `ci-demo`, y las que vengan) ya trae su propio `Ingress` en Traefik — el único paso manual que faltaba era agregar el rewrite en AdGuard cada vez. Con el wildcard, cualquier `Ingress` nuevo con host `<lo-que-sea>.oscar.home` resuelve solo, sin tocar AdGuard de nuevo. Los dominios explícitos (que van a `192.168.0.156`, no a k3s) siguen ganando por especificidad — confirmado con `dig`, no es una suposición sobre cómo prioriza AdGuard. Cada vez que una app sale de k3s hacia Docker Compose (como pasó con SearXNG), hay que agregar su rewrite explícito a mano — si no, el wildcard la sigue mandando a Traefik, donde ya no existe.
 
-Deliberadamente **no** se unificó bajo NPM (ej. `*.oscar.home` → NPM → Traefik): Traefik ya es un reverse proxy completo con routing por host nativo de k3s, meter NPM en el medio sería un proxy delante de otro resolviendo lo mismo, y ataría la disponibilidad de las apps de k3s a que `core01`/NPM esté arriba — hoy son capas independientes (Docker y k3s), a propósito.
+Deliberadamente **no** se unificó bajo NPM (ej. `*.oscar.home` → NPM → Traefik): Traefik ya es un reverse proxy completo con routing por host nativo de k3s, meter NPM en el medio sería un proxy delante de otro resolviendo lo mismo, y ataría la disponibilidad de las apps de k3s a que `core`/NPM esté arriba — hoy son capas independientes (Docker y k3s), a propósito.
 
 ## Cómo resuelven hoy los dispositivos
 
 **Wildcard + DNS del dispositivo apuntado a `192.168.0.93`** (+ fallback `1.1.1.1`) es ahora la opción más práctica para cualquier app de k3s — con el wildcard de arriba, resuelve *cualquier* `*.oscar.home` sin mantener una lista a mano y sin tocar nada de nuevo cuando se agrega una app. Sigue dependiendo de que AdGuard esté arriba y manda todo el tráfico DNS del dispositivo por él.
 
-**`/etc/hosts` por hostname puntual** sigue siendo válido para `git.oscar.home`/`nexus.oscar.home`/`portainer.oscar.home` (no cubiertos por el wildcard) o si no se quiere depender de AdGuard en absoluto — apuntan a `192.168.0.156` (NPM en `core01`), no a `devops01` directo, desde que se migraron detrás de NPM:
+**`/etc/hosts` por hostname puntual** sigue siendo válido para `git.oscar.home`/`nexus.oscar.home`/`portainer.oscar.home` (no cubiertos por el wildcard) o si no se quiere depender de AdGuard en absoluto — apuntan a `192.168.0.156` (NPM en `core`), no a `devops` directo, desde que se migraron detrás de NPM:
 
 ```text
 192.168.0.156 git.oscar.home

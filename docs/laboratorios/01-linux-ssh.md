@@ -18,7 +18,7 @@ Crear una VM Linux desde el template Cloud-Init, acceder por clave SSH sin passw
 - Un par de claves SSH propio (o generarlo en el paso 2).
 - Acceso de red a la VLAN/segmento de administración donde vive `oscar-core`.
 
-Recursos mínimos para la VM del lab (deliberadamente más chica que `core01`, que usa 2 vCPU/4 GB — ver [crear-vm-core01.md](../proxmox/crear-vm-core01.md)):
+Recursos mínimos para la VM del lab (deliberadamente más chica que `core`, que usa 2 vCPU/4 GB — ver [crear-vm-core.md](../proxmox/crear-vm-core.md)):
 
 ```text
 vCPU: 1
@@ -50,7 +50,7 @@ Si no existe template todavía, instalar Ubuntu/Debian Server mínimo por ISO en
 ### 2. Generar (o reutilizar) el par de claves SSH en el cliente
 
 ```bash
-ssh-keygen -t ed25519 -C "lab01-oscar" -f ~/.ssh/oscar_lab01_ed25519
+ssh-keygen -t ed25519 -C "lab-oscar" -f ~/.ssh/oscar_lab01_ed25519
 ```
 
 ### 3. Inyectar la clave pública y confirmar acceso
@@ -101,7 +101,7 @@ El primer comando debe devolver `labadmin` y una lista de privilegios sudo sin p
 
 ## Qué aprendimos
 
-Esta es la mecánica exacta detrás de cada VM real de O.S.C.A.R. (`core01`, `devops01`, `k3s01`): template → clon → clave → hardening. Practicarla en una VM descartable, sin miedo a romper nada, es lo que permite tratar después a las VMs reales como reproducibles en vez de como mascotas que nadie quiere tocar. También es la base concreta de la que depende [hardening-linux.md](../seguridad/hardening-linux.md) para el resto del homelab: si el drop-in de SSH se rompe acá, mejor descubrirlo en una VM que se destruye en cinco minutos que en `core01` un sábado a la noche.
+Esta es la mecánica exacta detrás de cada VM real de O.S.C.A.R. (`core`, `devops`, `k3s`): template → clon → clave → hardening. Practicarla en una VM descartable, sin miedo a romper nada, es lo que permite tratar después a las VMs reales como reproducibles en vez de como mascotas que nadie quiere tocar. También es la base concreta de la que depende [hardening-linux.md](../seguridad/hardening-linux.md) para el resto del homelab: si el drop-in de SSH se rompe acá, mejor descubrirlo en una VM que se destruye en cinco minutos que en `core` un sábado a la noche.
 
 ## Cleanup
 

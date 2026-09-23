@@ -49,7 +49,7 @@ Esta sección es la fuente de verdad de la arquitectura de OSCAR AI — `OSCAR_F
 
 ### Nivel 0 · Consulta
 
-“¿Qué corre en core01?”
+“¿Qué corre en core?”
 
 Solo lectura sobre inventario/documentación.
 

@@ -5,7 +5,7 @@ sidebar_position: 22
 
 # Beszel
 
-**Estado:** Actual — hub en `core01`, agentes en **3 hosts** (`core01`, `devops01`, `k3s01`), los tres `up` y reportando CPU/RAM/disco en tiempo real
+**Estado:** Actual — hub en `core`, agentes en **3 hosts** (`core`, `devops`, `k3s`), los tres `up` y reportando CPU/RAM/disco en tiempo real
 **Dónde corre:** hub en Docker Core (`/srv/oscar/apps/beszel/`); agentes en `/srv/oscar/apps/beszel-agent/` en cada host adicional
 **Sizing inicial:** ~50 MB hub + ~30 MB por agente
 **Red/puertos:** `8090` (hub, UI/API), cada agente en modo `network_mode: host` puerto `45876`
@@ -15,11 +15,11 @@ sidebar_position: 22
 
 | Host | IP | Por qué |
 |---|---|---|
-| `core01` | `192.168.0.156` | co-instalado con el hub desde el arranque |
-| `devops01` | `192.168.0.151` | corre [Forgejo](./forgejo.md) y va a sumar Nexus/CI Runner — sin esto, cero visibilidad de recursos ahí (mismo blind spot que ya pasó con `core01` llegando al 91% de RAM sin que nadie lo viera venir) |
-| `k3s01` | `192.168.0.150` | corre Argo CD y `oscar-led-controller`, mismo problema de visibilidad cero |
+| `core` | `192.168.0.156` | co-instalado con el hub desde el arranque |
+| `devops` | `192.168.0.151` | corre [Forgejo](./forgejo.md) y va a sumar Nexus/CI Runner — sin esto, cero visibilidad de recursos ahí (mismo blind spot que ya pasó con `core` llegando al 91% de RAM sin que nadie lo viera venir) |
+| `k3s` | `192.168.0.150` | corre Argo CD y `oscar-led-controller`, mismo problema de visibilidad cero |
 
-Cada agente nuevo usa la misma `BESZEL_AGENT_KEY` (clave pública del hub) que ya existía en `core01` — no hace falta generar una por host, es la identidad del hub, no del agente. El registro del "System" en el hub (`host`+`port`+`users`) se hizo vía la API REST de PocketBase (`POST /api/collections/systems/records`), mismo mecanismo que documenta [Homepage](./homepage.md#el-bug-de-beszel-overview-en-vez-de-las-métricas-reales) para sacar el `systemId`.
+Cada agente nuevo usa la misma `BESZEL_AGENT_KEY` (clave pública del hub) que ya existía en `core` — no hace falta generar una por host, es la identidad del hub, no del agente. El registro del "System" en el hub (`host`+`port`+`users`) se hizo vía la API REST de PocketBase (`POST /api/collections/systems/records`), mismo mecanismo que documenta [Homepage](./homepage.md#el-bug-de-beszel-overview-en-vez-de-las-métricas-reales) para sacar el `systemId`.
 
 No se agregó agente en `oscar-core` (el hipervisor, ya cubierto por [ProxMenux Monitor](./proxmenux-monitor.md) + el widget de Proxmox en Homepage) ni en el LXC de AdGuard/VM de Home Assistant (más livianos, Uptime Kuma ya da el chequeo básico de arriba/abajo que alcanza a ese tamaño).
 
@@ -69,8 +69,8 @@ docker compose up -d beszel   # el hub primero, solo
 
 ## Primer acceso (obligatorio antes de levantar el agente)
 
-1. Entrar a `http://<IP-de-core01>:8090`, crear el usuario admin del hub.
-2. En la UI, "Add System" → nombre `core01`, **host = IP LAN real de `core01`** (nunca `localhost`: el hub corre en la red bridge por defecto de Docker, no en `network_mode: host`, así que `localhost` apunta al propio contenedor del hub, no al host) → puerto `45876`.
+1. Entrar a `http://<IP-de-core>:8090`, crear el usuario admin del hub.
+2. En la UI, "Add System" → nombre `core`, **host = IP LAN real de `core`** (nunca `localhost`: el hub corre en la red bridge por defecto de Docker, no en `network_mode: host`, así que `localhost` apunta al propio contenedor del hub, no al host) → puerto `45876`.
 3. El hub tiene su propio keypair SSH en `./hub-data/id_ed25519` (se genera solo al primer arranque); su clave pública es la que hay que copiar a `BESZEL_AGENT_KEY` en `.env` para que el agente confíe en ese hub.
 4. Recién ahí: `docker compose up -d beszel-agent`.
 
@@ -91,6 +91,6 @@ Es la propia herramienta de observabilidad — el "quién vigila al vigilante" a
 
 ## Troubleshooting
 
-- **El agente no aparece "conectado" en el hub (status `down`)** → causa más común: el campo `host` del sistema en el hub quedó como `localhost` en vez de la IP LAN real de `core01`. El hub vive en la red bridge por defecto de Docker (no `network_mode: host`), así que `localhost` no llega al agente que escucha en la interfaz real del host — hay que usar la IP LAN. El log del agente (`docker compose logs beszel-agent`) muestra `WARN Error creating WebSocket client err="HUB_URL environment variable not set"` en arranque normal — ese warning es inofensivo (es una vía de conexión alternativa que este setup no usa) y no indica el problema real.
+- **El agente no aparece "conectado" en el hub (status `down`)** → causa más común: el campo `host` del sistema en el hub quedó como `localhost` en vez de la IP LAN real de `core`. El hub vive en la red bridge por defecto de Docker (no `network_mode: host`), así que `localhost` no llega al agente que escucha en la interfaz real del host — hay que usar la IP LAN. El log del agente (`docker compose logs beszel-agent`) muestra `WARN Error creating WebSocket client err="HUB_URL environment variable not set"` en arranque normal — ese warning es inofensivo (es una vía de conexión alternativa que este setup no usa) y no indica el problema real.
 - **`BESZEL_AGENT_KEY` no coincide** → si igual falla con el host correcto, confirmar que la key en `.env` es exactamente la pública derivada de `./hub-data/id_ed25519` (`ssh-keygen -y -f id_ed25519`), no una key vieja o de otro sistema.
 - **No hay datos de red/disco del host real** → el agente no está en `network_mode: host`, quedó en la red por defecto de Compose → confirmar esa línea en `compose.yaml`.

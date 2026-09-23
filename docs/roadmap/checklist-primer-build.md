@@ -23,10 +23,10 @@ sidebar_position: 4
 - [ ] management accesible;
 - [ ] storage sano;
 - [ ] crear template;
-- [ ] crear `core01`;
+- [ ] crear `core`;
 - [ ] instalar Docker;
 - [ ] deploy whoami;
-- [ ] backup de `core01`;
+- [ ] backup de `core`;
 - [ ] restore de prueba.
 
 ## Siguiente sesión

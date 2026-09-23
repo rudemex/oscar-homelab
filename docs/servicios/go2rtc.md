@@ -6,7 +6,7 @@ sidebar_position: 28
 # go2rtc
 
 **Estado:** Retirado — la tarjeta del DVR volvió a ser un link simple con chequeo de estado (ver [Homepage](./homepage.md#dvr-dahua-de-video-en-vivo-a-solo-estado))
-**Dónde corría:** Docker Core (`/srv/oscar/apps/go2rtc/`) — contenedor parado (`docker compose down`), archivos sin borrar en `core01`
+**Dónde corría:** Docker Core (`/srv/oscar/apps/go2rtc/`) — contenedor parado (`docker compose down`), archivos sin borrar en `core`
 **Sizing inicial:** liviano (un solo binario Go, imagen oficial `alexxit/go2rtc:1.9.14`)
 **Red/puertos:** `1984` (ya no en uso)
 **Alcance:** solo LAN — sin dominio público, sin Cloudflare Tunnel ni Access
@@ -21,11 +21,11 @@ Reemplazó a [DVR Proxy](./dvr-proxy.md) para ver las cámaras del [DVR Dahua](.
 
 ### Por qué go2rtc y no Frigate
 
-El pedido original era Frigate (grabación continua + detección de movimiento/objetos con IA). Antes de instalarlo se revisaron los recursos reales de `core01`: **2 vCPUs, sin GPU/`/dev/dri`, 45GB libres de disco compartidos con el resto de los servicios** (Homepage, n8n, Beszel, NPM, etc.). Frigate completo hubiera competido por esas 2 vCPUs con todo lo demás corriendo en la misma VM, y llenado el disco en días con grabación 24/7 de 4 canales. go2rtc es el mismo motor de re-streaming que usa Frigate por debajo, pero **sin detección ni grabación** — solo relayea video, con un consumo de CPU/disco mínimo (confirmado en producción: ~8% de una vCPU y 45MB de RAM con las 4 cámaras en HD conectadas al mismo tiempo). Si en algún momento se suma más CPU dedicada o un acelerador (Coral, iGPU con passthrough) a `core01`, Frigate vuelve a ser una opción real — hoy no lo era.
+El pedido original era Frigate (grabación continua + detección de movimiento/objetos con IA). Antes de instalarlo se revisaron los recursos reales de `core`: **2 vCPUs, sin GPU/`/dev/dri`, 45GB libres de disco compartidos con el resto de los servicios** (Homepage, n8n, Beszel, NPM, etc.). Frigate completo hubiera competido por esas 2 vCPUs con todo lo demás corriendo en la misma VM, y llenado el disco en días con grabación 24/7 de 4 canales. go2rtc es el mismo motor de re-streaming que usa Frigate por debajo, pero **sin detección ni grabación** — solo relayea video, con un consumo de CPU/disco mínimo (confirmado en producción: ~8% de una vCPU y 45MB de RAM con las 4 cámaras en HD conectadas al mismo tiempo). Si en algún momento se suma más CPU dedicada o un acelerador (Coral, iGPU con passthrough) a `core`, Frigate vuelve a ser una opción real — hoy no lo era.
 
 ### Por qué solo LAN
 
-La primera versión de esto se publicó por el Cloudflare Tunnel (`cam.oscarlab.com.ar`) con una app de Access adelante — mismo patrón que el resto de los servicios de esta cuenta, protegido con login. Después de verlo funcionando, la decisión fue sacarlo igual: **cámaras de seguridad son un caso distinto** — tener cualquier puerta hacia internet, aunque esté atrás de autenticación, no daba la tranquilidad que sí da para el resto de los servicios (Homepage, Beszel, etc.). Se dio de baja el hostname público entero — DNS, la app de Access y la regla del Tunnel — y `go2rtc` quedó escuchando solo en la IP LAN de `core01`, sin ninguna puerta de entrada desde afuera. La consecuencia directa: las cámaras (tarjeta y grilla) solo cargan estando conectado a la red de casa; no hay, por ahora, ninguna forma de verlas de lejos (una VPN propia tipo Tailscale/WireGuard sería el camino si en algún momento se quiere eso, sin volver a exponer nada directamente a internet).
+La primera versión de esto se publicó por el Cloudflare Tunnel (`cam.oscarlab.com.ar`) con una app de Access adelante — mismo patrón que el resto de los servicios de esta cuenta, protegido con login. Después de verlo funcionando, la decisión fue sacarlo igual: **cámaras de seguridad son un caso distinto** — tener cualquier puerta hacia internet, aunque esté atrás de autenticación, no daba la tranquilidad que sí da para el resto de los servicios (Homepage, Beszel, etc.). Se dio de baja el hostname público entero — DNS, la app de Access y la regla del Tunnel — y `go2rtc` quedó escuchando solo en la IP LAN de `core`, sin ninguna puerta de entrada desde afuera. La consecuencia directa: las cámaras (tarjeta y grilla) solo cargan estando conectado a la red de casa; no hay, por ahora, ninguna forma de verlas de lejos (una VPN propia tipo Tailscale/WireGuard sería el camino si en algún momento se quiere eso, sin volver a exponer nada directamente a internet).
 
 ## Instalación
 
@@ -92,7 +92,7 @@ Dos modos, según la URL:
 - **`?ch=N`** — una sola cámara, sin título ni grilla, el video llena el 100% del espacio disponible. Es lo que usa el `iframe` de la tarjeta en Homepage.
 - **sin parámetros** — la grilla completa, las 4 cámaras en un grid 2×2 que ocupa toda la pantalla (sin un ancho máximo fijo como en la primera versión) y se reacomoda solo al redimensionar la ventana, con etiqueta de canal y badge "Vivo" — mismo estilo visual que tenía la vieja página de `dvr-proxy`.
 
-`video.mode = "webrtc,mse,hls"` en los dos modos — WebRTC necesita una conexión de medios UDP directa entre el navegador y `core01`, algo que solo existe estando en la misma LAN (por eso no hubiera servido de nada cuando esto pasaba por el Tunnel, ver "Por qué solo LAN" arriba). Ahora que todo es LAN, WebRTC sí conecta perfecto — es la opción de menor latencia, primera en la lista de prioridad, y de hecho es lo que termina usando el navegador en la práctica.
+`video.mode = "webrtc,mse,hls"` en los dos modos — WebRTC necesita una conexión de medios UDP directa entre el navegador y `core`, algo que solo existe estando en la misma LAN (por eso no hubiera servido de nada cuando esto pasaba por el Tunnel, ver "Por qué solo LAN" arriba). Ahora que todo es LAN, WebRTC sí conecta perfecto — es la opción de menor latencia, primera en la lista de prioridad, y de hecho es lo que termina usando el navegador en la práctica.
 
 ### Barras negras, no recortada
 
@@ -139,7 +139,7 @@ El truco en sí funcionaba (la imagen pasaba de vertical a horizontal, llenando 
 
 ## Seguridad (histórica)
 
-- las credenciales RTSP del DVR quedaban solo en `go2rtc.yaml`, en `core01` — nunca en `custom.js`, nunca en git;
+- las credenciales RTSP del DVR quedaban solo en `go2rtc.yaml`, en `core` — nunca en `custom.js`, nunca en git;
 - go2rtc **no tiene autenticación propia** (lo advierte su propia documentación: "passes requests from localhost... without HTTP authorization... it's your responsibility to set up secure external access") — cualquiera en la LAN que supiera la URL podía ver las cámaras sin login. Mismo modelo de riesgo que MySpeed/Glances y, antes, `dvr-proxy`;
 - no había ninguna puerta desde internet — más estricto que el resto de los servicios de esta cuenta (que sí están detrás de Cloudflare Access), a propósito.
 

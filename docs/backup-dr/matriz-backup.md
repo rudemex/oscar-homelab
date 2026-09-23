@@ -9,7 +9,7 @@ Completar a medida que se instalan servicios. El destino "NAS" en esta tabla es 
 
 | Categoría | Servicio/alcance | Estado | RPO | Backup | Destino | Restore probado |
 |---|---|---|---:|---|---|---|
-| VM | core01, devops01, k3s01 | pendiente | 24h | Proxmox VM backup (vzdump) | NAS/offsite (futuro) | ☐ |
+| VM | core, devops, k3s | pendiente | 24h | Proxmox VM backup (vzdump) | NAS/offsite (futuro) | ☐ |
 | LXC | utilidades livianas (DNS, jumpbox) | pendiente | 24h | Proxmox LXC backup (vzdump) | NAS/offsite (futuro) | ☐ |
 | Configuración Proxmox | `/etc/pve`, storage.cfg, red | pendiente | 24h | config/export | NAS/offsite | ☐ |
 | Secrets | `.env` reales, claves SSH, encryption keys | pendiente | al cambiar | copia cifrada separada del backup general | offsite cifrado, acceso restringido | ☐ |

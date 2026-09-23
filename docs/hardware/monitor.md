@@ -43,29 +43,29 @@ Puertos escuchando: `22` (SSH), `9090` (Prometheus), `9100` (`node_exporter`), `
 
 | Job | Objetivos |
 |---|---|
-| `node_exporter` | `network`, `monitor`, `core01`, `devops01`, `k3s01` — CPU, RAM, disco |
+| `node_exporter` | `network`, `monitor`, `core`, `devops`, `k3s` — CPU, RAM, disco |
 | `blackbox_http` | Homepage, Forgejo, Nexus, AdGuard (`network`), el propio `node_exporter` de `monitor` |
 
-Lista corta a propósito: se amplía cuando el primer dashboard esté validado en el uso real. Pendiente de desplegar: `blackbox_icmp` (monitor de Internet, `1.1.1.1`/`8.8.8.8`) y `speedtest` (throughput real, corre en `core01` — no acá, ver nota abajo).
+Lista corta a propósito: se amplía cuando el primer dashboard esté validado en el uso real. Pendiente de desplegar: `blackbox_icmp` (monitor de Internet, `1.1.1.1`/`8.8.8.8`) y `speedtest` (throughput real, corre en `core` — no acá, ver nota abajo).
 
-**Por qué el throughput de Internet no se mide desde esta Pi:** la Pi 3 tiene Ethernet limitado a ~100Mbps (comparte bus con USB 2.0). El internet real de OSCAR es 600Mb simétrico — medir desde acá reportaría un techo falso. El Speedtest exporter corre en `core01` (NIC gigabit); esta Pi solo grafica el dato.
+**Por qué el throughput de Internet no se mide desde esta Pi:** la Pi 3 tiene Ethernet limitado a ~100Mbps (comparte bus con USB 2.0). El internet real de OSCAR es 600Mb simétrico — medir desde acá reportaría un techo falso. El Speedtest exporter corre en `core` (NIC gigabit); esta Pi solo grafica el dato.
 
 ## Decisiones y por qué
 
 - **Ansible como control node (2026-09-21).** No existía en el proyecto. Vive en `oscar-gitops/ansible/`: inventario (`pis`, `docker_hosts`, `k3s`), roles `common`/`node_exporter`/`docker`/`monitoring_stack`, corrido desde esta Mac (no hay un host dedicado todavía). Las contraseñas (`sudo` de las Pi, admin de Grafana) están cifradas con `ansible-vault`, nunca en texto plano en el repo. **Actualizado 2026-09-22:** el grupo de rol `monitor01` (alias de esta Pi) se eliminó del inventario — con el hostname físico ya llamándose `monitor`, la variable de vault pasó de `group_vars/monitor01/` a `host_vars/monitor/`, autocargada sin grupo intermedio.
 - **`docker compose` v2 por binario oficial, no por repo de Docker.** El paquete `docker-compose-plugin` no existe en los repos de Debian trixie (solo Docker.io lo publica en su propio repo, que se evita a propósito en todo el proyecto). Se instala el binario firmado de GitHub como CLI plugin, con checksum verificado en cada corrida.
-- **Puerto 3006 para Grafana**, no el 3000 por defecto, para no confundirlo con Forgejo (que usa 3000 en `devops01`, otra VM, pero mismo rango de puertos "conocidos").
+- **Puerto 3006 para Grafana**, no el 3000 por defecto, para no confundirlo con Forgejo (que usa 3000 en `devops`, otra VM, pero mismo rango de puertos "conocidos").
 - **Gotcha real (2026-09-21): `blackbox-exporter:9115`, no `localhost:9115`.** El primer despliegue de la config de Prometheus decía `replacement: localhost:9115` en el `relabel_config` de Blackbox — dentro de Docker Compose, `localhost` es el propio contenedor de Prometheus, no el de Blackbox. El síntoma fue confuso: el campo `health` de la API de Prometheus decía "up" para esos objetivos (porque medía si el scrape a Blackbox funcionaba, no si el sitio de destino respondía) mientras la métrica real `probe_success` daba `0`. Se corrigió usando el nombre del servicio de Compose.
 - **Retención corta (15 días) y una lista corta de objetivos**, mismo criterio que en el resto del proyecto: no self-hostear de más "por si acaso".
 
 ## Incidente relacionado (no de esta Pi)
 
-El 2026-09-21/22 el Dell (`oscar-core`) tuvo un cuelgue completo de red (no solo la NIC — ni ARP respondía) durante varias horas. **Esta Pi siguió funcionando sin interrupción**: Prometheus, Grafana y Blackbox no dependen del Dell para correr, aunque sus objetivos ahí (`core01`, `devops01`, `k3s01`, Homepage, Forgejo, Nexus) lógicamente aparecieron caídos en los dashboards durante ese lapso — es la prueba en vivo de por qué vale la pena tener observabilidad fuera del Dell.
+El 2026-09-21/22 el Dell (`oscar-core`) tuvo un cuelgue completo de red (no solo la NIC — ni ARP respondía) durante varias horas. **Esta Pi siguió funcionando sin interrupción**: Prometheus, Grafana y Blackbox no dependen del Dell para correr, aunque sus objetivos ahí (`core`, `devops`, `k3s`, Homepage, Forgejo, Nexus) lógicamente aparecieron caídos en los dashboards durante ese lapso — es la prueba en vivo de por qué vale la pena tener observabilidad fuera del Dell.
 
 ## Pendientes
 
 - [ ] Sumar el exporter de Proxmox (`oscar-core`) a Prometheus.
-- [ ] Desplegar el Speedtest exporter en `core01` y Blackbox ICMP acá (ya están en el código de Ansible, falta correr el playbook).
+- [ ] Desplegar el Speedtest exporter en `core` y Blackbox ICMP acá (ya están en el código de Ansible, falta correr el playbook).
 - [x] **Uptime Kuma migrado desde `network`** (2026-09-22).
 - [ ] Dashboards adicionales (Network, Kubernetes, Home, Services) una vez validado el primero en el uso real.
 - [ ] Reserva DHCP en el router para `192.168.0.214` (mismo pendiente que `network`).

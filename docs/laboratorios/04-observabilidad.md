@@ -21,7 +21,7 @@ Agregar un exporter, un dashboard y una alerta al stack de observabilidad, gener
 
 ```mermaid
 flowchart LR
-  NodeExp[node_exporter :9100 en core01] --> Prom[Prometheus :9090]
+  NodeExp[node_exporter :9100 en core] --> Prom[Prometheus :9090]
   Prom --> Rules[reglas de alerta]
   Prom --> Graf[Grafana :3000]
   Graf --> Dash[dashboard CPU/RAM/disco]
@@ -55,7 +55,7 @@ scrape_configs:
   - job_name: node
     static_configs:
       - targets:
-          - 'core01.oscar.home:9100'
+          - 'core.oscar.home:9100'
 ```
 
 ```bash
@@ -103,7 +103,7 @@ Mirar el dashboard de Grafana durante la ventana de `stress-ng` y el estado de l
 ## Validación
 
 ```bash
-curl -s http://core01.oscar.home:9100/metrics | head
+curl -s http://core.oscar.home:9100/metrics | head
 ```
 
 - Prometheus `/targets` muestra el target `node` en estado `UP`.

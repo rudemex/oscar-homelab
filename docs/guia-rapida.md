@@ -54,7 +54,7 @@ En Proxmox, botón `Create VM` arriba a la derecha, y completar el asistente:
 
 | Pestaña | Qué elegir |
 |---|---|
-| General | Nombre: `core01` |
+| General | Nombre: `core` |
 | OS | El ISO de Ubuntu que subiste |
 | System | Dejar los valores por defecto |
 | Disks | 40 GB alcanza para empezar |

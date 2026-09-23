@@ -29,7 +29,7 @@ El backup definitivo no debe vivir únicamente en otro directorio del mismo host
 ```text
 nvme0n1 (M.2, 931.5G, Kingston SNV3S1000G)
 ├── partición EFI + boot
-└── LVM-thin "pve-data" → storage local-lvm (VM disks de core01/k3s01/devops01)
+└── LVM-thin "pve-data" → storage local-lvm (VM disks de core/k3s/devops)
 
 sda (SATA SSD, 953.9G, FTM1TN325H)
 └── partición única, montada en /mnt/pve/Backups → storage "Backups"

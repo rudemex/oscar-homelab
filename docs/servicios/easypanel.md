@@ -6,7 +6,7 @@ sidebar_position: 3
 # EasyPanel
 
 **Estado:** Laboratorio · Plataforma de apps (evaluar redundancia)  
-**Dónde corre:** VM Docker dedicada o `core01` durante la etapa inicial  
+**Dónde corre:** VM Docker dedicada o `core` durante la etapa inicial  
 **Sizing inicial:** 2+ vCPU, 4+ GB RAM recomendados para plataforma + apps  
 **Red/puertos:** HTTP/HTTPS y administración según configuración  
 **Persistencia:** configuración de plataforma, volúmenes de apps y bases de datos

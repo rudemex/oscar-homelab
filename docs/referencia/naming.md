@@ -7,7 +7,7 @@ sidebar_position: 1
 
 **Actualizado 2026-09-22:** convención revisada como parte de la reorganización del rack. Ver `REORGANIZACION_RACK.md`
 (raíz del repo, fuera de `docs/`) para el detalle completo y el estado de la migración — mientras dura, convive
-documentación con los nombres viejos (`pinode01`, `core01`, etc.) y nueva.
+documentación con los nombres viejos (`pinode01`, `core`, etc.) y nueva.
 
 ## Hosts
 

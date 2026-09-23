@@ -133,7 +133,7 @@ En lugar de configurarlo manualmente para siempre, crear provisioning YAML de Gr
 
 ## 7. Node Exporter
 
-Instalar exporter en `core01` y luego en VMs/Pi. Agregar targets a Prometheus en `prometheus.yml`:
+Instalar exporter en `core` y luego en VMs/Pi. Agregar targets a Prometheus en `prometheus.yml`:
 
 ```yaml
 scrape_configs:
@@ -143,9 +143,9 @@ scrape_configs:
   - job_name: node
     static_configs:
       - targets:
-          - 'core01.oscar.home:9100'
-          - 'devops01.oscar.home:9100'
-          - 'k3s01.oscar.home:9100'
+          - 'core.oscar.home:9100'
+          - 'devops.oscar.home:9100'
+          - 'k3s.oscar.home:9100'
 ```
 
 `node_exporter` se corre como binario o contenedor con `--network host` en cada VM (no dentro del stack de observabilidad, sino en cada host a monitorear) y expone el puerto `9100` por defecto.

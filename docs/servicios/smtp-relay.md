@@ -5,7 +5,7 @@ sidebar_position: 27
 
 # Relay SMTP
 
-**Estado:** Actual — `boky/postfix` corriendo en `core01`, relay-only hacia Brevo, validado con envío real (`status=sent`, aceptado por Brevo)
+**Estado:** Actual — `boky/postfix` corriendo en `core`, relay-only hacia Brevo, validado con envío real (`status=sent`, aceptado por Brevo)
 **Dónde corre:** Docker Core (`/srv/oscar/apps/smtp-relay/`)
 **Sizing inicial:** liviano, contenedor postfix minimal
 **Red/puertos:** `25` (SMTP interno, LAN-only — ningún servicio externo debería pegarle directo)
@@ -13,7 +13,7 @@ sidebar_position: 27
 
 ## Rol dentro de O.S.C.A.R.
 
-Punto único de salida de mail para cualquier servicio del homelab (Forgejo, n8n, lo que sea) — cada app le habla a `core01:25` sin autenticación (confía en la LAN), y el relay reenvía autenticado hacia Brevo con TLS. Evita repetir la credencial de Brevo en el `compose.yaml` de cada servicio.
+Punto único de salida de mail para cualquier servicio del homelab (Forgejo, n8n, lo que sea) — cada app le habla a `core:25` sin autenticación (confía en la LAN), y el relay reenvía autenticado hacia Brevo con TLS. Evita repetir la credencial de Brevo en el `compose.yaml` de cada servicio.
 
 Se eligió un relay propio en vez de un servidor de correo completo (recibir+enviar) a propósito — ver la discusión de arquitectura que llevó a esta decisión en el historial del proyecto: un servidor de correo completo en un ISP residencial tiene problemas reales de entregabilidad (puerto 25 saliente bloqueado, rangos de IP residencial blocklisteados de fábrica).
 
@@ -79,7 +79,7 @@ FORGEJO__mailer__FROM=forgejo@oscar.home
 
 - el puerto 25 no tiene autenticación — es intencional (relay LAN-only), pero significa que cualquier dispositivo de la LAN puede mandar mail "como" O.S.C.A.R.; no exponer este puerto más allá de la LAN bajo ningún concepto;
 - `ALLOWED_SENDER_DOMAINS` limita qué dominios de remitente acepta relayear — evita que el relay se use para spoofear remitentes arbitrarios;
-- la SMTP key de Brevo es un secreto — vive solo en `.env` en `core01`, nunca en Git.
+- la SMTP key de Brevo es un secreto — vive solo en `.env` en `core`, nunca en Git.
 
 ## Troubleshooting
 

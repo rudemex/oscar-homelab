@@ -5,7 +5,7 @@ sidebar_position: 3
 
 # Lab 02 · Docker Compose
 
-**Tipo:** mixto. El contenedor `whoami` es un smoke test 100% descartable. Uptime Kuma, en cambio, es un servicio Objetivo real del catálogo ([uptime-kuma.md](../servicios/uptime-kuma.md)): si este lab se hace sobre `core01` real siguiendo la convención de [docker-host-baseline.md](../servicios/docker-host-baseline.md), lo que se despliega en el paso 2 **es** la instalación real de Uptime Kuma para Fase 3, no un experimento a destruir. Si en cambio se practica sobre una VM de laboratorio aislada, todo el stack —Kuma incluido— se destruye al final. La sección Cleanup cubre los dos casos.
+**Tipo:** mixto. El contenedor `whoami` es un smoke test 100% descartable. Uptime Kuma, en cambio, es un servicio Objetivo real del catálogo ([uptime-kuma.md](../servicios/uptime-kuma.md)): si este lab se hace sobre `core` real siguiendo la convención de [docker-host-baseline.md](../servicios/docker-host-baseline.md), lo que se despliega en el paso 2 **es** la instalación real de Uptime Kuma para Fase 3, no un experimento a destruir. Si en cambio se practica sobre una VM de laboratorio aislada, todo el stack —Kuma incluido— se destruye al final. La sección Cleanup cubre los dos casos.
 
 ## Objetivo
 
@@ -14,10 +14,10 @@ Levantar un stack de dos servicios (`whoami` + Uptime Kuma) con Docker Compose s
 ## Prerequisitos
 
 - [Lab 01](./01-linux-ssh.md) completado, o una VM Linux equivalente con acceso SSH por clave.
-- Docker Engine y Docker Compose instalados en el host ([crear-vm-core01.md](../proxmox/crear-vm-core01.md), sección Docker).
+- Docker Engine y Docker Compose instalados en el host ([crear-vm-core.md](../proxmox/crear-vm-core.md), sección Docker).
 - Estructura `/srv/oscar/apps/` creada según [docker-host-baseline.md](../servicios/docker-host-baseline.md).
 
-Recursos: el host reutiliza `core01` (2 vCPU/4 GB) o una VM de laboratorio equivalente a la del Lab 01; los dos contenedores en conjunto piden menos de 300 MB de RAM.
+Recursos: el host reutiliza `core` (2 vCPU/4 GB) o una VM de laboratorio equivalente a la del Lab 01; los dos contenedores en conjunto piden menos de 300 MB de RAM.
 
 ## Arquitectura
 
@@ -113,7 +113,7 @@ docker compose down -v
 rm -rf /srv/oscar/apps/lab02
 ```
 
-**Si se practicó sobre `core01` real y Uptime Kuma queda como servicio Objetivo:**
+**Si se practicó sobre `core` real y Uptime Kuma queda como servicio Objetivo:**
 
 ```bash
 # destruir solo el smoke test

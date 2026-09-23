@@ -29,7 +29,7 @@ Esta página funciona como un índice liviano de ADRs (Architecture Decision Rec
 
 **Context:** con Proxmox como hypervisor (ADR-001), hay que decidir si los contenedores de aplicación corren sobre el propio host Proxmox o dentro de una VM dedicada.
 
-**Decision:** Docker de aplicaciones corre siempre dentro de una VM (`core01`), nunca sobre el host Proxmox.
+**Decision:** Docker de aplicaciones corre siempre dentro de una VM (`core`), nunca sobre el host Proxmox.
 
 **Alternatives considered:**
 - Docker sobre el host Proxmox directamente — más liviano, pero mezcla el ciclo de vida del hypervisor con el de las aplicaciones y complica backups/rollback independientes.
@@ -84,7 +84,7 @@ Ver detalle en [exposición a Internet](../seguridad/exposicion-internet.md).
 
 ## ADR-006 · Cloudflare Tunnel + Access para acceso remoto
 
-**Status:** Aceptado — desplegado. Túnel activo en `core01` con 7 hostnames públicos (`vault`, `n8n`, `kuma`, `home`, `beszel`, `monitor`, `ha` . `oscarlab.com.ar`), cada uno con su propia Access Application. Ver [Cloudflare Tunnel + Access](../servicios/cloudflare-tunnel.md).
+**Status:** Aceptado — desplegado. Túnel activo en `core` con 7 hostnames públicos (`vault`, `n8n`, `kuma`, `home`, `beszel`, `monitor`, `ha` . `oscarlab.com.ar`), cada uno con su propia Access Application. Ver [Cloudflare Tunnel + Access](../servicios/cloudflare-tunnel.md).
 
 **Context:** dado ADR-005 (exposición mínima), se necesita un mecanismo concreto para acceder a paneles internos (Grafana, etc.) desde fuera de la LAN sin abrir puertos en el router.
 
@@ -138,11 +138,11 @@ Antes de sumar muchos servicios se instala una base de métricas y disponibilida
 
 ## ADR-010 · Forgejo (con Forgejo Actions) como plataforma Git local
 
-**Status:** Aceptado — Forgejo 16.0.4 desplegado en `devops01`; falta crear el admin inicial y el CI Runner (Forgejo Actions) sigue sin desplegar (ver [Forgejo / Git local](../servicios/forgejo.md), [CI Runner](../servicios/ci-runner.md)).
+**Status:** Aceptado — Forgejo 16.0.4 desplegado en `devops`; falta crear el admin inicial y el CI Runner (Forgejo Actions) sigue sin desplegar (ver [Forgejo / Git local](../servicios/forgejo.md), [CI Runner](../servicios/ci-runner.md)).
 
 **Context:** con Nexus ya resuelto como registry (ADR-009) y Argo CD como motor de GitOps (ADR-004), falta una plataforma Git self-hosted para repos privados y para ejecutar CI sin acoplar el pipeline a un SaaS externo.
 
-**Decision:** Forgejo self-hosted (VM `devops01` o VM pequeña dedicada) como plataforma Git, con **Forgejo Actions** (sintaxis compatible con GitHub Actions) como motor de CI — cierra en el mismo movimiento la decisión pendiente en [CI Runner](../servicios/ci-runner.md), ya que evita correr un producto de CI separado.
+**Decision:** Forgejo self-hosted (VM `devops` o VM pequeña dedicada) como plataforma Git, con **Forgejo Actions** (sintaxis compatible con GitHub Actions) como motor de CI — cierra en el mismo movimiento la decisión pendiente en [CI Runner](../servicios/ci-runner.md), ya que evita correr un producto de CI separado.
 
 **Alternatives considered:**
 - GitLab self-hosted — descartado por peso: el mínimo oficial son 4 GB RAM y en la práctica pide bastante más (Postgres, Redis, Gitaly, Sidekiq como servicios separados), muy por encima de cualquier otro servicio de O.S.C.A.R. hoy (la mayoría entre 50-300 MB); es una plataforma pensada para equipos, no para un operador único.
@@ -155,11 +155,11 @@ Antes de sumar muchos servicios se instala una base de métricas y disponibilida
 
 ## ADR-011 · Tailscale como VPN de acceso remoto
 
-**Status:** Aceptado — desplegado. `core01` como subnet router advirtiendo `192.168.0.0/24`, aprobado y activo.
+**Status:** Aceptado — desplegado. `core` como subnet router advirtiendo `192.168.0.0/24`, aprobado y activo.
 
 **Context:** ADR-006 ya reservaba "VPN propia (WireGuard/Tailscale)" como el camino preferido para acceso administrativo tipo SSH — faltaba desplegarlo.
 
-**Decision:** Tailscale sobre WireGuard nativo, con `core01` como subnet router de toda la LAN (no un túnel punto a punto a un solo host).
+**Decision:** Tailscale sobre WireGuard nativo, con `core` como subnet router de toda la LAN (no un túnel punto a punto a un solo host).
 
 **Alternatives considered:**
 - WireGuard nativo vía OPNsense — descartado por ahora: OPNsense no está desplegado (decisión de hardware N100 sigue pendiente en el backlog), y no tiene sentido bloquear el acceso remoto a que eso se resuelva.
@@ -186,7 +186,7 @@ Antes de sumar muchos servicios se instala una base de métricas y disponibilida
 **Consequences:**
 - (+) cero dependencia de GitHub para que Argo CD sincronice — `oscar-gitops` vive completamente en la infraestructura propia;
 - (+) la CI de `ci-demo` (Forgejo Actions) pushea el tag actualizado directo al mismo repo que lee Argo CD, sin cruzar a un proveedor externo en el medio;
-- (-) Forgejo (VM `devops01`, SQLite) pasa a ser crítico para el GitOps real, no solo para repos privados — el backup de `forgejo dump` (ver [Forgejo / Git local](../servicios/forgejo.md#backup-y-restore)) es ahora una dependencia dura de Argo CD, no un nice-to-have;
+- (-) Forgejo (VM `devops`, SQLite) pasa a ser crítico para el GitOps real, no solo para repos privados — el backup de `forgejo dump` (ver [Forgejo / Git local](../servicios/forgejo.md#backup-y-restore)) es ahora una dependencia dura de Argo CD, no un nice-to-have;
 - (-) GitHub como copia secundaria se actualiza a mano — si se olvida, deja de ser un espejo confiable de disaster recovery.
 
 ## Próximas ADR

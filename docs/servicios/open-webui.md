@@ -20,7 +20,7 @@ sidebar_position: 17
 
 ## Ejemplo concreto
 
-Crear una colección con la documentación del homelab y consultar “¿qué debo revisar si core01 no resuelve DNS?”.
+Crear una colección con la documentación del homelab y consultar “¿qué debo revisar si core no resuelve DNS?”.
 
 ## Checklist de despliegue
 

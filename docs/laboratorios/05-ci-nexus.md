@@ -13,7 +13,7 @@ Construir una imagen Docker a partir de un pipeline (real o simulado localmente)
 
 ## Prerequisitos
 
-- Nexus desplegado con un repositorio Docker hosted configurado ([instalacion-nexus.md](../devops/instalacion-nexus.md)), corriendo en `devops01` (2-4 vCPU, 4-8 GB RAM según [nexus.md](../servicios/nexus.md)).
+- Nexus desplegado con un repositorio Docker hosted configurado ([instalacion-nexus.md](../devops/instalacion-nexus.md)), corriendo en `devops` (2-4 vCPU, 4-8 GB RAM según [nexus.md](../servicios/nexus.md)).
 - [Lab 02](./02-docker-compose.md) completado como base de manejo de Docker Compose.
 - Un segundo host o VM para probar el `pull` remoto — puede ser la VM del Lab 01 recreada, o cualquier otro host con Docker.
 
@@ -40,28 +40,28 @@ Sin motor de CI decidido todavía, correr las mismas etapas a mano o en un scrip
 #!/usr/bin/env bash
 set -euo pipefail
 
-IMAGE="devops01.oscar.home:8081/lab05-demo"
+IMAGE="devops.oscar.home:8081/lab05-demo"
 TAG="$(git rev-parse --short HEAD)"
 
 npm ci
 npm test
 docker build -t "$IMAGE:$TAG" .
-docker login devops01.oscar.home:8081
+docker login devops.oscar.home:8081
 docker push "$IMAGE:$TAG"
 ```
 
 ### 3. Pull desde otro host
 
 ```bash
-docker login devops01.oscar.home:8081
-docker pull devops01.oscar.home:8081/lab05-demo:<tag>
-docker run --rm devops01.oscar.home:8081/lab05-demo:<tag>
+docker login devops.oscar.home:8081
+docker pull devops.oscar.home:8081/lab05-demo:<tag>
+docker run --rm devops.oscar.home:8081/lab05-demo:<tag>
 ```
 
 ### 4. Falla controlada
 
 ```bash
-docker compose stop nexus   # en devops01
+docker compose stop nexus   # en devops
 ```
 
 En el segundo host, reintentar el `pull` y observar el error de conexión. Levantar Nexus de nuevo y confirmar que el `pull` vuelve a funcionar sin necesidad de reconstruir ni republicar la imagen.
@@ -70,7 +70,7 @@ En el segundo host, reintentar el `pull` y observar el error de conexión. Levan
 
 - La UI de Nexus (Browse → `docker-hosted`) muestra el componente `lab05-demo` con el tag esperado.
 - `docker images --digests` en el segundo host muestra el mismo digest que figura en la UI de Nexus para ese tag — confirma que es el mismo artefacto, no una reconstrucción.
-- `curl -u <user>:<pass> https://devops01.oscar.home:8081/v2/lab05-demo/tags/list` lista el tag pusheado.
+- `curl -u <user>:<pass> https://devops.oscar.home:8081/v2/lab05-demo/tags/list` lista el tag pusheado.
 
 ## Qué aprendimos
 
@@ -79,7 +79,7 @@ Un artefacto versionado y reproducible no depende de qué motor de CI lo produjo
 ## Cleanup
 
 ```bash
-docker rmi devops01.oscar.home:8081/lab05-demo:<tag>   # en ambos hosts
+docker rmi devops.oscar.home:8081/lab05-demo:<tag>   # en ambos hosts
 ```
 
 Borrar el componente de prueba desde la UI de Nexus (Browse → repositorio → seleccionar componente → Delete), o dejar que la política de cleanup configurada en [instalacion-nexus.md](../devops/instalacion-nexus.md) (paso 7) lo purgue automáticamente. Nexus en sí **no se destruye**: sigue siendo el servicio real de Fase 5.

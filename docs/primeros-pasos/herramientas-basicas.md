@@ -20,7 +20,7 @@ Cómo abrir una en tu computadora (no en el homelab — esta es la que usás par
 ## Cómo leer los bloques de comandos de esta guía
 
 ```bash
-qm clone 9000 101 --name core01 --full   # clonar el template 9000 como VM 101
+qm clone 9000 101 --name core --full   # clonar el template 9000 como VM 101
 ```
 
 - Lo que está después de `#` es un comentario, no se ejecuta.

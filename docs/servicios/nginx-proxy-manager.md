@@ -5,7 +5,7 @@ sidebar_position: 26
 
 # Nginx Proxy Manager
 
-**Estado:** Actual · Infraestructura — corriendo en `core01`
+**Estado:** Actual · Infraestructura — corriendo en `core`
 **Dónde corre:** Docker Core (`/srv/oscar/apps/nginx-proxy-manager/`)
 **Sizing inicial:** liviano
 **Red/puertos:** `80` (HTTP), `81` (admin web), `443` (HTTPS)
@@ -56,13 +56,13 @@ El login de fábrica (`admin@example.com`/`changeme`) ya fue cambiado por una cu
 
 | Dominio | Forward a | Nota |
 |---|---|---|
-| `git.oscar.home` | `http://192.168.0.151:3000` ([Forgejo](./forgejo.md), `devops01`) | primer Proxy Host real, creado vía API (`POST /api/nginx/proxy-hosts`) |
-| `nexus.oscar.home` | `http://192.168.0.151:8081` ([Nexus](./nexus.md), `devops01`, UI/API) | segundo Proxy Host — verificado con `curl` devolviendo `200`. El registry Docker (`:8082`) no pasa por acá, se usa directo por IP (ver [Nexus](./nexus.md)) |
-| `portainer.oscar.home` | `https://192.168.0.156:9443` ([Portainer](./portainer.md), `core01`, mismo host que NPM) | tercer Proxy Host, `ssl_forced: false` a propósito — el lado público sigue siendo HTTP puro (`http://portainer.oscar.home`, nunca `https://`), NPM habla HTTPS con Portainer del otro lado. Pedir `https://` desde el cliente rompe con `SSL routines: tlsv1 unrecognized name` porque el puerto 443 de NPM no tiene certificado configurado para ese hostname |
+| `git.oscar.home` | `http://192.168.0.151:3000` ([Forgejo](./forgejo.md), `devops`) | primer Proxy Host real, creado vía API (`POST /api/nginx/proxy-hosts`) |
+| `nexus.oscar.home` | `http://192.168.0.151:8081` ([Nexus](./nexus.md), `devops`, UI/API) | segundo Proxy Host — verificado con `curl` devolviendo `200`. El registry Docker (`:8082`) no pasa por acá, se usa directo por IP (ver [Nexus](./nexus.md)) |
+| `portainer.oscar.home` | `https://192.168.0.156:9443` ([Portainer](./portainer.md), `core`, mismo host que NPM) | tercer Proxy Host, `ssl_forced: false` a propósito — el lado público sigue siendo HTTP puro (`http://portainer.oscar.home`, nunca `https://`), NPM habla HTTPS con Portainer del otro lado. Pedir `https://` desde el cliente rompe con `SSL routines: tlsv1 unrecognized name` porque el puerto 443 de NPM no tiene certificado configurado para ese hostname |
 
-Antes de esto, `git.oscar.home` (rewrite en AdGuard) apuntaba directo a `192.168.0.151` con un nginx standalone corriendo en la propia `devops01` haciendo de reverse proxy por hostname — se migró acá para no mantener dos reverse proxies en paralelo (ver la nota de duplicación que existió en el [backlog](../roadmap/backlog.md)). El rewrite de AdGuard para `git.oscar.home` y `nexus.oscar.home` apunta a `192.168.0.156` (`core01`, donde corre NPM), no a `192.168.0.151` directo — NPM es quien resuelve a qué backend real mandar cada request.
+Antes de esto, `git.oscar.home` (rewrite en AdGuard) apuntaba directo a `192.168.0.151` con un nginx standalone corriendo en la propia `devops` haciendo de reverse proxy por hostname — se migró acá para no mantener dos reverse proxies en paralelo (ver la nota de duplicación que existió en el [backlog](../roadmap/backlog.md)). El rewrite de AdGuard para `git.oscar.home` y `nexus.oscar.home` apunta a `192.168.0.156` (`core`, donde corre NPM), no a `192.168.0.151` directo — NPM es quien resuelve a qué backend real mandar cada request.
 
-Las apps que corren en k3s (`led`, `argocd`, `ci-demo`, ...) **no** pasan por acá — tienen su propio reverse proxy (Traefik, nativo de k3s) y resuelven por un wildcard DNS directo a `k3s01`, a propósito, para no atar su disponibilidad a que `core01`/NPM esté arriba. Ver [DNS con AdGuard Home](../red/dns-adguard.md#wildcard-oscarhome-para-apps-de-k3s-2026-09-15).
+Las apps que corren en k3s (`led`, `argocd`, `ci-demo`, ...) **no** pasan por acá — tienen su propio reverse proxy (Traefik, nativo de k3s) y resuelven por un wildcard DNS directo a `k3s`, a propósito, para no atar su disponibilidad a que `core`/NPM esté arriba. Ver [DNS con AdGuard Home](../red/dns-adguard.md#wildcard-oscarhome-para-apps-de-k3s-2026-09-15).
 
 ## Configuración en Homepage
 
@@ -71,7 +71,7 @@ Hecho — el widget nativo ya está sumado (quedó documentado acá como "pendie
 ```yaml
 - Nginx Proxy Manager:
     href: http://192.168.0.156:81
-    description: Reverse proxy interno — enruta git.oscar.home y nexus.oscar.home hacia devops01
+    description: Reverse proxy interno — enruta git.oscar.home y nexus.oscar.home hacia devops
     icon: nginx-proxy-manager.png
     siteMonitor: http://192.168.0.156:81
     widget:
@@ -88,7 +88,7 @@ Comillas recomendadas en `username`/`password`, sobre todo si el email tiene `@`
 
 - login de fábrica ya cambiado (ver arriba) — no exponer estas credenciales reales en Git bajo ningún concepto;
 - no está publicado por el Tunnel — solo alcanzable dentro de la LAN;
-- los puertos 80/443 quedan abiertos en `core01` para lo que NPM enrute — repasar qué termina pasando por ahí a medida que se usa.
+- los puertos 80/443 quedan abiertos en `core` para lo que NPM enrute — repasar qué termina pasando por ahí a medida que se usa.
 
 ## Backup y restore
 
@@ -101,7 +101,7 @@ Pendiente sumar un chequeo en Uptime Kuma sobre el puerto 81.
 ## Troubleshooting
 
 - **El widget de Homepage no autentica** → confirmar que el usuario/contraseña son los reales y que el email va entre comillas en el YAML.
-- **Un Proxy Host devuelve 502/504** → el backend (`forward_host`/`forward_port`) no responde — confirmar que el servicio de destino está `Up` y alcanzable desde `core01` antes de sospechar de NPM.
+- **Un Proxy Host devuelve 502/504** → el backend (`forward_host`/`forward_port`) no responde — confirmar que el servicio de destino está `Up` y alcanzable desde `core` antes de sospechar de NPM.
 
 ## Documentación oficial
 

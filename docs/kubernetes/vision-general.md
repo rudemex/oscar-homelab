@@ -25,7 +25,7 @@ k3s reduce componentes y consumo respecto de una distribución Kubernetes comple
 ### Etapa 1: un nodo
 
 ```text
-k3s01 (VM)
+k3s (VM)
 ├── control plane
 └── worker
 ```
@@ -37,7 +37,7 @@ Sirve para aprender y desplegar aplicaciones no críticas.
 Cuando exista RAM/hardware suficiente:
 
 ```text
-k3s01
+k3s
 k3s02
 k3s03
 ```

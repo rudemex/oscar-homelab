@@ -1,12 +1,11 @@
 # Reorganización del rack
 
-**Estado:** arquitectura objetivo definida y aprobada (2026-09-22). Pasos 1-3 ejecutados (rename de las Pi,
-migración de Uptime Kuma, right-sizing de RAM de las 4 VM del Dell) — ver "Estado al momento de escribir esto"
-abajo para el detalle. Los hosts nuevos (`automation`, `services`, `games`) y el resto de las migraciones siguen
-sin ejecutar.
+**Estado:** ✅ **Reorganización completa (2026-09-23).** Los 7 pasos de "Pasos de ejecución" están hechos — ver
+"Estado al momento de escribir esto" abajo para el detalle de cada uno. Queda solo la Fase 2 (diferida, sin fecha:
+VM `apps` como worker de `k3s`) y las decisiones explícitamente fuera de alcance (ver esa sección).
 
 **Por qué existe:** meses de sesiones agregando cosas de a una dejaron herramientas repetidas midiendo lo mismo,
-`core01` como cajón de sastre (borde de red + apps de usuario + automatización + monitoreo, todo junto), y un
+`core` como cajón de sastre (borde de red + apps de usuario + automatización + monitoreo, todo junto), y un
 servicio en el lugar que no corresponde (Minecraft mezclado con infra en vez de con los juegos).
 
 ## Objetivo
@@ -78,7 +77,7 @@ O.S.C.A.R.
 │
 ├── WORKLOADS
 │   ├── services                    [✅ LXC 108 unprivileged, Dell, 192.168.0.154 — desde 2026-09-23]
-│   │   ├── Vaultwarden       (migrado de core01)
+│   │   ├── Vaultwarden       (migrado de core)
 │   │   ├── SearXNG           (migrado de k3s)
 │   │   └── DocuSeal          (nuevo, falta setup inicial)
 │   │
@@ -87,10 +86,10 @@ O.S.C.A.R.
 │
 └── SPECIAL PURPOSE
     ├── games                       [✅ VM 109, Dell, 192.168.0.155 — desde 2026-09-23, uso activo]
-    │   ├── Minecraft   (migrado de core01)
-    │   └── CS2         (migrado de lab01)
+    │   ├── Minecraft   (migrado de core)
+    │   └── CS2         (migrado de lab)
     │
-    └── lab                         [VM, Dell — ex lab01, reutilizada]
+    └── lab                         [VM, Dell — ex lab, reutilizada]
         └── experimentos y pruebas (incluye Docker/K8s/acceso a kernel sin restricciones)
 ```
 
@@ -206,10 +205,10 @@ Host: 31GB RAM físicos, 6 núcleos / 12 hilos. Estado actual (2026-09-22, sin b
 
 | VM/host | RAM configurada hoy | Uso real observado | Propuesta nueva | Tipo |
 |---|---|---|---|---|
-| core01 → **core** | 8GB | ~1,5GB | **4GB** | VM (existente) |
-| devops01 → **devops** | 12GB | ~4,3GB | **6GB** | VM (existente) |
-| k3s01 → **k3s** | 8GB | ~2GB | **4GB** | VM (existente) |
-| lab01 → **lab** | 6GB | ~466MB | **2GB** | VM (existente, reutilizada) |
+| `core01` → **core** (✅ renombrado) | 8GB | ~1,5GB | **4GB** | VM (existente) |
+| `devops01` → **devops** (✅ renombrado) | 12GB | ~4,3GB | **6GB** | VM (existente) |
+| `k3s01` → **k3s** (✅ renombrado) | 8GB | ~2GB | **4GB** | VM (existente) |
+| `lab01` → **lab** (✅ renombrado) | 6GB | ~466MB | **2GB** | VM (existente, reutilizada) |
 | — → **automation** | — | — | **4GB** | VM nueva |
 | — → **services** | — | — | **2GB** | LXC unprivileged nueva |
 | — → **games** | — | — | **6GB** (apagada salvo uso) | VM nueva |
@@ -217,7 +216,7 @@ Host: 31GB RAM físicos, 6 núcleos / 12 hilos. Estado actual (2026-09-22, sin b
 
 Total con todo prendido salvo `games` (que se enciende solo para jugar): **26GB de 31GB**, deja ~5GB de margen
 para el propio host. Con `games` prendida sube a 32GB — al límite, por eso se recomienda mantenerla apagada salvo
-uso activo (ya es el patrón actual con `lab01`).
+uso activo (ya es el patrón actual con `lab`).
 
 **Recomendación adicional:** activar memory ballooning (`balloon: <min>`) en las VMs del Dell — hoy ninguna lo
 tiene, así que Proxmox no puede reclamar RAM no usada de una VM para dársela a otra bajo presión.
@@ -225,31 +224,31 @@ tiene, así que Proxmox no puede reclamar RAM no usada de una VM para dársela a
 ## Migraciones necesarias
 
 ```text
-core01
+core
 ├── Homepage             → core (sin cambios funcionales)
 ├── NPM                  → core (sin cambios funcionales)
 ├── SMTP Relay           → core (sin cambios funcionales)
 ├── Vaultwarden          → services (nueva LXC) — ✅ hecho (2026-09-23)
 ├── n8n + Postgres       → automation (nueva VM) — ✅ hecho (2026-09-23)
 ├── Minecraft             → games (nueva VM) — ✅ hecho (2026-09-23)
-├── Cloudflare Tunnel      → network (centralizar ahí, hoy vive en core01)
+├── Cloudflare Tunnel      → network (centralizar ahí, hoy vive en core)
 ├── Portainer Server      → ELIMINAR
 ├── Beszel Server         → se queda (política de monitoreo: esperar datos)
 ├── Glances                → se queda (ídem)
 └── MySpeed                → se queda en core (corrección respecto al diseño original)
 
-devops01
+devops
 ├── Forgejo / Nexus / Infisical → devops (sin cambios funcionales, solo rename)
 ├── Portainer Agent              → ELIMINAR
 └── Beszel Agent                  → se queda (política de monitoreo)
 
-k3s01
+k3s
 ├── Argo CD / Traefik / Headlamp / Infisical Operator → k3s (sin cambios funcionales, solo rename)
 ├── ci-demo / oscar-led-controller                      → se quedan en k3s (Fase 2 los mueve a `apps`)
 └── SearXNG                                               → services (nueva LXC) — ✅ hecho (2026-09-23), como
                                                              contenedor Docker suelto
 
-lab01
+lab
 ├── CS2         → games (nueva VM) — ✅ hecho (2026-09-23)
 └── VM en sí    → se reutiliza como lab (rename, se vacía)
 
@@ -276,10 +275,10 @@ estado que todavía no existe. Se actualiza en el momento en que cada migración
 - **Al eliminar Portainer:** `docs/servicios/portainer.md` (marcar como retirado, no borrar el archivo — dejar el
   historial de por qué se usó y por qué se sacó).
 - **Al crear `games` y mover Minecraft/CS2:** `docs/juegos/minecraft.md`, `docs/juegos/vision-general.md`.
-- **Al renombrar `core01`/`devops01`/`k3s01`/`lab01`:** `docs/hardware/dell-7060.md`,
-  `docs/proxmox/crear-vm-core01.md` (posible rename de archivo), `docs/arquitectura/vision-general.md`,
+- **Al renombrar `core`/`devops`/`k3s`/`lab`:** `docs/hardware/dell-7060.md`,
+  `docs/proxmox/crear-vm-core.md` (posible rename de archivo), `docs/arquitectura/vision-general.md`,
   `docs/arquitectura/stack.md`, `docs/arquitectura/decisiones-arquitectonicas.md`, `docs/despliegues/indice.md`,
-  y el resto que aparece en el grep de `core01|devops01|k3s01|lab01` sobre `docs/`.
+  y el resto que aparece en el grep de `core|devops|k3s|lab` sobre `docs/`.
 
 ## Pasos de ejecución (orden)
 
@@ -294,31 +293,31 @@ estado que todavía no existe. Se actualiza en el momento en que cada migración
    `docs/servicios/uptime-kuma.md#migración-a-monitor-2026-09-22`.
    **Hallazgo en el camino:** el túnel dedicado `pinode01` de Cloudflare (pensado para que `kuma.oscarlab.com.ar`
    sobreviva a una caída del Dell) nunca enrutó nada en la práctica — el DNS real siempre apuntó al túnel de
-   `core01`, que proxea por LAN hacia la Pi. Pendiente decidir en el paso 9 si se le da uso real al túnel
+   `core`, que proxea por LAN hacia la Pi. Pendiente decidir en el paso 9 si se le da uso real al túnel
    `pinode01` o se da de baja.
-3. ✅ **Hecho (2026-09-23).** Right-sizing de RAM en `core01`/`devops01`/`k3s01`/`lab01` según la tabla de arriba.
+3. ✅ **Hecho (2026-09-23).** Right-sizing de RAM en `core`/`devops`/`k3s`/`lab` según la tabla de arriba.
    Aplicado con reboot uno por uno (sin hotplug/balloon configurado, el cambio de memoria no toma efecto en
    caliente), verificando servicios sanos antes de seguir con el siguiente:
-   - ✅ `lab01`: 6→2GB, reiniciada, sana.
-   - ✅ `core01`: 8→4GB, reiniciada, Homepage/NPM verificados, ~1,3GB en uso real de 3,8GB disponibles.
-   - ✅ `devops01`: sin jobs de CI corriendo verificado antes de reiniciar; 12→6GB, reiniciada, Forgejo verificado,
+   - ✅ `lab`: 6→2GB, reiniciada, sana.
+   - ✅ `core`: 8→4GB, reiniciada, Homepage/NPM verificados, ~1,3GB en uso real de 3,8GB disponibles.
+   - ✅ `devops`: sin jobs de CI corriendo verificado antes de reiniciar; 12→6GB, reiniciada, Forgejo verificado,
      todos los contenedores (Nexus, Infisical, forgejo-runner, Beszel-agent) arriba.
-   - ✅ `k3s01`: Argo CD verificado con sus 8 aplicaciones `Synced`/`Healthy` antes de tocarla; 8→4GB, reiniciada,
+   - ✅ `k3s`: Argo CD verificado con sus 8 aplicaciones `Synced`/`Healthy` antes de tocarla; 8→4GB, reiniciada,
      nodo `Ready`, las 8 aplicaciones siguen `Synced`/`Healthy`, Headlamp/SearXNG/ci-demo/oscar-led-controller
      responden `200` vía Traefik. 2GB en uso real de 3,8GB — más ajustado que las otras (overhead propio de k3s),
      pero con margen.
 4. ✅ **Hecho (2026-09-23).** Creado `automation` (VM 107, `192.168.0.153/24`, 2 vCPU/4GB/60GB, mismo patrón de
-   clon que las demás). n8n+Postgres migrados desde `core01`: contenedores parados, volúmenes empaquetados con
+   clon que las demás). n8n+Postgres migrados desde `core`: contenedores parados, volúmenes empaquetados con
    checksum SHA-256 verificado en origen/Mac/destino, recreados y levantados en `automation`. Repuntados: Homepage
    (siteMonitor), el ingress rule de Cloudflare (`n8n.oscarlab.com.ar` → `192.168.0.153:5678`), y el monitor de
-   Kuma. `n8n` en `core01` queda detenido (no borrado) como respaldo. Detalle en
+   Kuma. `n8n` en `core` queda detenido (no borrado) como respaldo. Detalle en
    `docs/arquitectura/estado-actual.md`.
-   **Gotcha real, corregido en `docs/proxmox/crear-vm-core01.md`:** el clon del template no hereda el tamaño de
+   **Gotcha real, corregido en `docs/proxmox/crear-vm-core.md`:** el clon del template no hereda el tamaño de
    disco de la tabla de sizing, solo el tamaño original del template (~3.5GB) — faltaba un `qm resize` que no
    estaba en la receta. Se agregó el paso.
 5. ✅ **Hecho (2026-09-23).** Creado `services` (LXC 108 unprivileged, `192.168.0.154/24`, Debian 13, `nesting=1,
    keyctl=1`, 2vCPU/2GB/16GB — Docker probado real con `docker run hello-world`, no asumido). Migrado Vaultwarden
-   desde `core01` (checksum verificado, ingress de Cloudflare repuntado). **Decisión del usuario: migrar SearXNG
+   desde `core` (checksum verificado, ingress de Cloudflare repuntado). **Decisión del usuario: migrar SearXNG
    también** (no solo evaluar) — sacado de k3s/Argo CD, recreado en Compose con su config y secret intactos, app y
    recursos viejos borrados de k3s y de `oscar-gitops`. **Decisión del usuario: sumar DocuSeal ahora** — instalado
    en modo standalone (SQLite embebida, sin Postgres separado), falta que el usuario haga el setup inicial (cuenta
@@ -328,16 +327,16 @@ estado que todavía no existe. Se actualiza en el momento en que cada migración
    (`adguard`, viejo) — ya no hacían falta, sus rescates de datos siguen en
    `/var/lib/vz/rescate-ssd-2026-09-22/`.
 6. ✅ **Hecho (2026-09-23).** Creada `games` (VM 109, `192.168.0.155/24`, 4 vCPU/6GB/100GB). Minecraft migrado desde
-   `core01` (382MB, checksum verificado) y CS2 desde `lab01` (67GB, ver detalle de la migración abajo). Homepage
+   `core` (382MB, checksum verificado) y CS2 desde `lab` (67GB, ver detalle de la migración abajo). Homepage
    repuntado a las IPs nuevas. **No quedó apagada por defecto** como decía el plan original — el usuario la usa
    activamente, se deja encendida; se puede apagar manualmente cuando no se use.
    **Gotcha real (CPU):** la VM se creó sin `cpu: host` (quedó en el default `kvm64`, sin SSE4.2) — CS2 fallaba al
-   arrancar con `"A CPU that supports the SSE4.2 processor feature is required"`. `lab01` (el host original de
+   arrancar con `"A CPU that supports the SSE4.2 processor feature is required"`. `lab` (el host original de
    CS2) ya tenía `cpu: host` seteado a propósito y no se replicó al crear `games`. Corregido con `qm set 109 --cpu
    host` + reboot. **Cualquier VM que corra juegos necesita `cpu: host` desde el vamos.**
    **Incidente real durante la migración de CS2:** la primera transferencia (73GB) se hizo con
    `docker run --rm alpine tar` en pipe — extremadamente lento (~1MB/s vía relay por la Mac, ~17MB/s directo por la
-   falta de esto), y en el medio `lab01` se quedó sin espacio en disco (el tar local de prueba llenó los 35GB
+   falta de esto), y en el medio `lab` se quedó sin espacio en disco (el tar local de prueba llenó los 35GB
    libres). Se resolvió usando `rsync` **directo sobre el path del volumen en el host** (`/var/lib/docker/volumes/
    .../_data`), sin pasar por el wrapper de `docker run` — ahí sí a ~150MB/s reales de LAN, terminó en 7 minutos.
    **Lección: para volúmenes grandes, `rsync` directo sobre el filesystem del host, nunca `docker run --rm alpine
@@ -346,9 +345,21 @@ estado que todavía no existe. Se actualiza en el momento en que cada migración
    (el mismo incidente recurrente ya documentado, ver `docs/arquitectura/estado-actual.md`) que cortó la descarga
    a mitad de camino; tras el reinicio físico, SteamCMD retomó solo desde donde había quedado, sin perder todo el
    progreso.
-7. Renombrar `core01`→`core`, `devops01`→`devops`, `k3s01`→`k3s`, `lab01`→`lab` (vaciada de CS2).
+7. ✅ **Hecho (2026-09-23).** Renombrado `core01`→`core`, `devops01`→`devops`, `k3s01`→`k3s`, `lab01`→`lab`
+   (vaciada de CS2, que ya está en `games`). Hostname + `/etc/hosts` + `preserve_hostname: true` en cloud-init en
+   las 4 VMs (mismo patrón que las Pi). Inventario de Ansible actualizado y pusheado. Homepage repuntado (categoría
+   "Kubernetes", tarjetas de Beszel, descripciones). **Barrido completo de documentación**: renombrado en bloque
+   con un script Python (regex con límites de palabra, no `sed` — BSD `sed` en macOS no soporta `\b`) en 66
+   archivos de `docs/` + este archivo; `docs/proxmox/crear-vm-core01.md` renombrado a `crear-vm-core.md` (sin
+   links entrantes que corregir). Verificado: `yarn build` limpio, `grep` confirma cero referencias viejas
+   restantes en toda la documentación.
+   **Caso especial: `k3s`.** Es el node de un cluster Kubernetes de un solo nodo — se fijó `node-name: k3s01` en
+   `/etc/rancher/k3s/config.yaml` **antes** de tocar el hostname del SO, para que el objeto `Node` de Kubernetes no
+   dependa del hostname y no genere un nodo duplicado si el servicio de `k3s` se reinicia alguna vez (`kubectl get
+   nodes` sigue mostrando `k3s01` a propósito, es interno y estable). El grupo de Ansible `k3s` y el host `k3s`
+   ahora comparten nombre (warning no fatal de Ansible), se aceptó en vez de reestructurar el grupo.
 8. Eliminar Portainer Server/Agent de todos los hosts.
-9. Centralizar `cloudflared` en `network` (hoy hay instancias en `core01` y una dedicada en `pinode01`).
+9. Centralizar `cloudflared` en `network` (hoy hay instancias en `core` y una dedicada en `pinode01`).
 10. Actualizar documentación según la tabla de arriba, commit + push en `oscar-homelab` y `oscar-gitops`.
 11. Actualizar este archivo marcando cada paso como resuelto.
 12. **Fase 2 (separada, sin fecha):** crear el VM `apps` como worker de `k3s`, mover `ci-demo` y
@@ -394,12 +405,12 @@ estado que todavía no existe. Se actualiza en el momento en que cada migración
   usuario lo autoriza explícitamente.
 - **Paso 2 hecho (2026-09-22):** Uptime Kuma migrado de `network` a `monitor`, con el ingress rule de Cloudflare
   corregido — ver detalle en el paso 2 de "Pasos de ejecución" y en `docs/servicios/uptime-kuma.md`.
-- **Paso 3 hecho (2026-09-23):** right-sizing de RAM en las 4 VMs (`core01`=4GB, `devops01`=6GB, `k3s01`=4GB,
-  `lab01`=2GB), todas reiniciadas y verificadas sanas.
-- **Paso 4 hecho (2026-09-23):** VM `automation` creada (192.168.0.153) y n8n+Postgres migrados desde `core01`,
-  con Homepage/Cloudflare/Kuma repuntados. `core01` conserva los contenedores viejos detenidos como respaldo. n8n
+- **Paso 3 hecho (2026-09-23):** right-sizing de RAM en las 4 VMs (`core`=4GB, `devops`=6GB, `k3s`=4GB,
+  `lab`=2GB), todas reiniciadas y verificadas sanas.
+- **Paso 4 hecho (2026-09-23):** VM `automation` creada (192.168.0.153) y n8n+Postgres migrados desde `core`,
+  con Homepage/Cloudflare/Kuma repuntados. `core` conserva los contenedores viejos detenidos como respaldo. n8n
   además pasó a modo *queue* (Redis + worker) el mismo día, a pedido del usuario.
-- **Paso 5 hecho (2026-09-23):** LXC `services` (192.168.0.154) creado y Vaultwarden migrado desde `core01`.
+- **Paso 5 hecho (2026-09-23):** LXC `services` (192.168.0.154) creado y Vaultwarden migrado desde `core`.
   SearXNG migrado de k3s (no solo evaluado) y DocuSeal sumado — ambas decisiones del usuario, más allá de lo
   mínimo que pedía el paso. De paso: VM 101 y LXC 100 (viejos, sin uso) se borraron.
 - **Paso 6 hecho (2026-09-23):** VM `games` (192.168.0.155) creada, Minecraft y CS2 migrados. Encontrado y
@@ -407,8 +418,12 @@ estado que todavía no existe. Se actualiza en el momento en que cada migración
   (incidente recurrente ya documentado) interrumpió la descarga de reverificación de CS2 a mitad de camino; tras
   el reinicio físico, todo volvió sano solo (autostart de las VMs, Argo CD necesitó un refresh manual) y CS2
   retomó la descarga sin perder el progreso previo.
-- Falta solo el paso 7 (rename final de `core01`/`devops01`/`k3s01`/`lab01`) para completar toda la
-  reorganización.
+- **Paso 7 hecho (2026-09-23):** `core01`→`core`, `devops01`→`devops`, `k3s01`→`k3s`, `lab01`→`lab` renombrados a
+  nivel de SO, inventario de Ansible pusheado, Homepage repuntado, y barrido completo de los 66 archivos de
+  `docs/` que mencionaban los nombres viejos (más este archivo). `yarn build` limpio, sin referencias viejas
+  restantes.
+- **Con esto, los 7 pasos de la reorganización del rack están completos.** Lo único que queda es la Fase 2
+  (diferida, VM `apps`) y lo explícitamente fuera de alcance (ver esa sección más arriba).
 
 ## Prompt para Codex (continuar la ejecución)
 

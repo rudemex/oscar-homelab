@@ -5,7 +5,7 @@ sidebar_position: 21
 
 # Homepage
 
-**Estado:** Actual · Dashboard — corriendo en `core01`
+**Estado:** Actual · Dashboard — corriendo en `core`
 **Dónde corre:** Docker Core (`/srv/oscar/apps/homepage/`)
 **Sizing inicial:** ~100 MB RAM
 **Red/puertos:** `3005` HTTP interno — acceso real vía [Cloudflare Tunnel](./cloudflare-tunnel.md) en `home.oscarlab.com.ar`
@@ -24,10 +24,10 @@ mkdir -p /srv/oscar/apps/homepage/config
 `config/services.yaml` (un grupo por sección, servicios reales con su URL). **Reorganizado (2026-09-18)** — ver el porqué en ["Grupo Monitoreo: por qué existe"](#grupo-monitoreo-por-qué-existe) más abajo; acá va la forma actual, con un par de tarjetas representativas por grupo (la real tiene ~19):
 
 ```yaml
-- Kubernetes (k3s01 / Argo CD):
+- Kubernetes (k3s / Argo CD):
     - Argo CD:
         href: http://argocd.oscar.home
-        description: GitOps del cluster k3s01 — sincroniza desde Forgejo (git.oscar.home)
+        description: GitOps del cluster k3s — sincroniza desde Forgejo (git.oscar.home)
         icon: argo-cd.png
         siteMonitor: http://argocd.oscar.home
         widget:
@@ -56,13 +56,13 @@ mkdir -p /srv/oscar/apps/homepage/config
           tunnelid: <secret, fuera de Git>
           key: <secret, fuera de Git>
     - Nginx Proxy Manager:
-        href: http://<IP-de-core01>:81
-        description: Reverse proxy interno — enruta git.oscar.home y nexus.oscar.home hacia devops01
+        href: http://<IP-de-core>:81
+        description: Reverse proxy interno — enruta git.oscar.home y nexus.oscar.home hacia devops
         icon: nginx-proxy-manager.png
-        siteMonitor: http://<IP-de-core01>:81
+        siteMonitor: http://<IP-de-core>:81
         widget:
           type: npm
-          url: http://<IP-de-core01>:81
+          url: http://<IP-de-core>:81
           username: <secret, fuera de Git>
           password: <secret, fuera de Git>
 - Monitoreo (CPU · RAM · Disco):
@@ -83,48 +83,48 @@ mkdir -p /srv/oscar/apps/homepage/config
         icon: proxmox.png
         siteMonitor: http://<IP-de-oscar-core>:8008
     - Glances:
-        href: http://<IP-de-core01>:61208
-        description: Solo core01 en detalle (procesos, red, contenedores) — esta es la fuente del header de arriba de la página
+        href: http://<IP-de-core>:61208
+        description: Solo core en detalle (procesos, red, contenedores) — esta es la fuente del header de arriba de la página
         icon: glances.png
-        siteMonitor: http://<IP-de-core01>:61208
+        siteMonitor: http://<IP-de-core>:61208
         widget:
           type: glances
-          url: http://<IP-de-core01>:61208
+          url: http://<IP-de-core>:61208
           version: 4
           metric: info
           chart: false
-    - Beszel core01:
+    - Beszel core:
         href: https://beszel.oscarlab.com.ar
-        description: Solo core01 — mismo alcance que Glances, agente distinto
+        description: Solo core — mismo alcance que Glances, agente distinto
         icon: beszel.png
-        siteMonitor: http://<IP-de-core01>:8090
+        siteMonitor: http://<IP-de-core>:8090
         widget:
           type: beszel
-          url: http://<IP-de-core01>:8090
+          url: http://<IP-de-core>:8090
           username: <secret, fuera de Git>
           password: <secret, fuera de Git>
           version: 2
-          systemId: <id de core01 en Beszel>
+          systemId: <id de core en Beszel>
           fields: ["cpu", "memory", "disk", "network"]
-    - Beszel devops01:
-        # mismo widget que arriba, systemId de devops01 — sin equivalente en Glances/Proxmox
-    - Beszel k3s01:
-        # mismo widget, systemId de k3s01 — sin equivalente en Glances/Proxmox
+    - Beszel devops:
+        # mismo widget que arriba, systemId de devops — sin equivalente en Glances/Proxmox
+    - Beszel k3s:
+        # mismo widget, systemId de k3s — sin equivalente en Glances/Proxmox
 - Servicios:
     - Uptime Kuma:
         href: https://kuma.oscarlab.com.ar
         description: Estado de disponibilidad de todo O.S.C.A.R.
         icon: uptime-kuma.png
-        siteMonitor: http://<IP-de-core01>:3001
+        siteMonitor: http://<IP-de-core>:3001
         widget:
           type: uptimekuma
-          url: http://<IP-de-core01>:3001
+          url: http://<IP-de-core>:3001
           slug: oscar
     - n8n:
         href: https://n8n.oscarlab.com.ar
         description: Automatización de workflows
         icon: n8n.png
-        siteMonitor: http://<IP-de-core01>:5678/healthz
+        siteMonitor: http://<IP-de-core>:5678/healthz
     - Vaultwarden:
         href: https://vault.oscarlab.com.ar
         description: Gestor de contraseñas propio, compatible con Bitwarden
@@ -134,25 +134,25 @@ mkdir -p /srv/oscar/apps/homepage/config
         href: http://git.oscar.home
         description: Git self-hosted — repos privados; origen real de oscar-gitops (Argo CD lee de acá)
         icon: forgejo.png
-        siteMonitor: http://<IP-de-devops01>:3000/api/healthz
+        siteMonitor: http://<IP-de-devops>:3000/api/healthz
     - Nexus:
         href: http://nexus.oscar.home
         description: Registry de artefactos — npm proxy y Docker registry privado
         icon: nexus.png
-        siteMonitor: http://<IP-de-devops01>:8081/service/rest/v1/status
+        siteMonitor: http://<IP-de-devops>:8081/service/rest/v1/status
     - Portainer:
         href: http://portainer.oscar.home
-        description: Contenedores y logs de core01/devops01 en un panel - solo lectura/estado, no reemplaza a Git como fuente de la config
+        description: Contenedores y logs de core/devops en un panel - solo lectura/estado, no reemplaza a Git como fuente de la config
         icon: portainer.png
         siteMonitor: http://portainer.oscar.home
     - MySpeed:
-        href: http://<IP-de-core01>:5216
+        href: http://<IP-de-core>:5216
         description: Historial de velocidad de internet, tests automáticos cada tanto — no es CPU/RAM/disco, es ancho de banda
         icon: myspeed.png
-        siteMonitor: http://<IP-de-core01>:5216
+        siteMonitor: http://<IP-de-core>:5216
         widget:
           type: myspeed
-          url: http://<IP-de-core01>:5216
+          url: http://<IP-de-core>:5216
           fields: ["ping", "download", "upload"]
 - Hogar:
     - Home Assistant:
@@ -166,7 +166,7 @@ mkdir -p /srv/oscar/apps/homepage/config
         icon: dahua.png
 ```
 
-El nombre de cada grupo describe el contenido en criollo, no el hostname técnico de lo que corre adentro (segundo grupo se llama "Servicios", no "core01"; el grupo nuevo se llama "Monitoreo (CPU · RAM · Disco)", no "Beszel" ni "observabilidad").
+El nombre de cada grupo describe el contenido en criollo, no el hostname técnico de lo que corre adentro (segundo grupo se llama "Servicios", no "core"; el grupo nuevo se llama "Monitoreo (CPU · RAM · Disco)", no "Beszel" ni "observabilidad").
 
 ### Grupo Monitoreo: por qué existe
 
@@ -176,8 +176,8 @@ Antes de esta reorganización, las tarjetas de recursos (Proxmox, ProxMenux, Gla
 |---|---|---|
 | Proxmox (oscar-core) | El hipervisor completo — CPU/RAM/disco de las 4 VMs/LXC sumadas | ProxMenux (mismo dato, otra UI) |
 | ProxMenux Monitor | Exactamente lo mismo que Proxmox de arriba, herramienta distinta | Proxmox |
-| Glances | Solo `core01`, en detalle (también alimenta el header de arriba de la página) | Beszel core01 (mismo alcance, agente distinto) |
-| Beszel core01/devops01/k3s01 | Una tarjeta por VM, agente propio — `devops01` y `k3s01` no tienen equivalente en Glances ni en Proxmox/ProxMenux | Beszel core01 duplica a Glances; los otros dos no duplican nada |
+| Glances | Solo `core`, en detalle (también alimenta el header de arriba de la página) | Beszel core (mismo alcance, agente distinto) |
+| Beszel core/devops/k3s | Una tarjeta por VM, agente propio — `devops` y `k3s` no tienen equivalente en Glances ni en Proxmox/ProxMenux | Beszel core duplica a Glances; los otros dos no duplican nada |
 
 La solución no fue borrar tarjetas (ProxMenux sigue siendo redundante con Proxmox, pero sacarla es una decisión de la [Fase 9 del plan de reorganización](../roadmap/roadmap-general.md), no de esta reorganización visual) — fue agruparlas todas bajo un único nombre que dice qué son ("Monitoreo") y ponerle a cada tarjeta una `description` que aclara su alcance real (qué mide, y con qué otra tarjeta se superpone), para que la superposición sea visible en vez de confusa.
 
@@ -220,7 +220,7 @@ Cada widget necesitó su propia credencial, todas de solo lectura donde el servi
 # Uptime Kuma — lee de una status page, no de la lista de monitores directo
 widget:
   type: uptimekuma
-  url: http://<IP-de-core01>:3001
+  url: http://<IP-de-core>:3001
   slug: oscar   # la status page se crea aparte en Kuma, con todos los monitores reales dentro
 
 # Proxmox — requiere un token de API dedicado, de solo lectura (rol PVEAuditor)
@@ -250,7 +250,7 @@ widget:
 # Beszel — pide un superusuario (no alcanza con la cuenta normal); se creó uno dedicado
 widget:
   type: beszel
-  url: http://<IP-de-core01>:8090
+  url: http://<IP-de-core>:8090
   username: homepage@oscar.home
   password: <secret, fuera de Git>
   version: 2   # Beszel >= 0.9.0
@@ -267,14 +267,14 @@ widget:
 # MySpeed — "ping" primero en la lista, por eso es el número que se ve arriba de todo en la tarjeta
 widget:
   type: myspeed
-  url: http://<IP-de-core01>:5216
+  url: http://<IP-de-core>:5216
   fields: ["ping", "download", "upload"]
 
 # Uptime Kuma — se le sumó "uptime" e "incident" al default (up/down) para ver el % real
 # y cuánto hace que empezó el último incidente activo, si hay uno
 widget:
   type: uptimekuma
-  url: http://<IP-de-core01>:3001
+  url: http://<IP-de-core>:3001
   slug: oscar
   fields: ["up", "down", "uptime", "incident"]
 ```
@@ -287,7 +287,7 @@ Todos los widgets de la lista de arriba comparten los mismos dos componentes int
 # Glances — sin username/password porque no tiene auth habilitada en este setup
 widget:
   type: glances
-  url: http://<IP-de-core01>:61208
+  url: http://<IP-de-core>:61208
   version: 4
   metric: info
   chart: false
@@ -308,9 +308,9 @@ Sin `widget:` ni `siteMonitor` — el click en la tarjeta lleva directo a la int
 
 ### El bug de Beszel: "overview" en vez de las métricas reales
 
-El widget de Beszel llevaba semanas configurado sin `systemId` — sin ese dato, Homepage lo pone en modo "overview" (`fields` disponibles: `systems`, `up` — solo cuenta cuántos sistemas hay conectados y cuántos están arriba), en vez de modo "sistema puntual" (`fields`: `name`, `status`, `updated`, `cpu`, `memory`, `disk`, `network` — las métricas reales de `core01`). La tarjeta nunca mostró un error, simplemente mostraba información **real pero irrelevante** ("1 sistema, 1 arriba" en vez de "CPU 4.6%, RAM 19%, disco 21%") — el tipo de bug que no salta a la vista si no se sabe qué buscar.
+El widget de Beszel llevaba semanas configurado sin `systemId` — sin ese dato, Homepage lo pone en modo "overview" (`fields` disponibles: `systems`, `up` — solo cuenta cuántos sistemas hay conectados y cuántos están arriba), en vez de modo "sistema puntual" (`fields`: `name`, `status`, `updated`, `cpu`, `memory`, `disk`, `network` — las métricas reales de `core`). La tarjeta nunca mostró un error, simplemente mostraba información **real pero irrelevante** ("1 sistema, 1 arriba" en vez de "CPU 4.6%, RAM 19%, disco 21%") — el tipo de bug que no salta a la vista si no se sabe qué buscar.
 
-El `systemId` de `core01` se sacó de la propia base de Beszel (es PocketBase por debajo, con su API REST estándar):
+El `systemId` de `core` se sacó de la propia base de Beszel (es PocketBase por debajo, con su API REST estándar):
 
 ```bash
 # autenticar como superusuario
@@ -322,7 +322,7 @@ curl 'http://<host-beszel>:8090/api/collections/systems/records' \
   -H 'Authorization: <token>'
 ```
 
-El `id` del sistema `core01` en esa respuesta es el `systemId` que hace falta en `services.yaml`. Nota al margen: el endpoint de auth es `_superusers` (con guion bajo, PocketBase reciente) — `admins` (el nombre viejo) da `404 Missing or invalid collection context`.
+El `id` del sistema `core` en esa respuesta es el `systemId` que hace falta en `services.yaml`. Nota al margen: el endpoint de auth es `_superusers` (con guion bajo, PocketBase reciente) — `admins` (el nombre viejo) da `404 Missing or invalid collection context`.
 
 ### Verificar qué está pidiendo un widget, sin adivinar
 
@@ -644,7 +644,7 @@ function resourceItemHtml(key, pct, name, detailText) {
 }
 ```
 
-El color base es distinto por recurso (cian CPU, verde-agua RAM, violeta disco — la misma paleta del brillo del título) tanto en el ícono como en el relleno de la barra, pero por encima de 75% pasa a ámbar y por encima de 90% a rojo, sin importar cuál sea. El criterio de esos dos umbrales salió directo de lo que pasó con la RAM: llegar al 91% real fue lo que forzó [subir `core01` de 4 a 8 GB](../proxmox/crear-vm-core01.md#sizing-inicial) — la idea es que la próxima vez que algún recurso se acerque a ese punto, se note en el dashboard sin tener que ir a mirar Glances aparte.
+El color base es distinto por recurso (cian CPU, verde-agua RAM, violeta disco — la misma paleta del brillo del título) tanto en el ícono como en el relleno de la barra, pero por encima de 75% pasa a ámbar y por encima de 90% a rojo, sin importar cuál sea. El criterio de esos dos umbrales salió directo de lo que pasó con la RAM: llegar al 91% real fue lo que forzó [subir `core` de 4 a 8 GB](../proxmox/crear-vm-core.md#sizing-inicial) — la idea es que la próxima vez que algún recurso se acerque a ese punto, se note en el dashboard sin tener que ir a mirar Glances aparte.
 
 El ícono se agrandó a propósito (1.8rem, casi el doble del que tenía al lado del nombre en la versión anterior) y quedó **en paralelo** con las 3 líneas de texto, no arriba de ellas — así su alto no se suma al del texto, sino que compite con él por el más alto de los dos. Eso deja a toda la columna de recursos con una altura parecida a la del bloque hora/fecha y al de clima, que son los otros dos bloques de esta misma fila — el objetivo era que las tres columnas se sientan del mismo peso visual, no que una quede visiblemente más chica que las otras dos.
 
@@ -669,11 +669,11 @@ El buscador es más simple todavía — un `<input>` propio que en `Enter` abre 
 
 Homepage tiene un widget de información llamado `greeting` (texto fijo, sin franja horaria, configurable en `widgets.yaml`) — pero vive en la barra de widgets de arriba, que en este header ya no existe (la reemplazó por completo el header custom). En vez de intentar reubicar ese widget nativo (la lección de siempre: no tocar nodos que React maneje), se construyó uno propio: `updateGreeting()` calcula la hora en la misma zona horaria que el reloj (`WEATHER_TZ`) y arma el texto en `<span id="oscarGreeting">`, insertado como elemento central de `.oscar-row-bottom`, entre el buscador y los recursos.
 
-La primera versión tenía una sola frase fija por franja horaria ("Buenos días"/"Buenas tardes"/"Buenas noches"). El pedido fue que variaran y tuvieran que ver con el homelab — se armó un pool de 4 frases por franja (madrugada/mañana/tarde/noche), todas relacionadas a O.S.C.A.R./el rack/`core01`, y en cada actualización se elige una al azar dentro de la franja que corresponda:
+La primera versión tenía una sola frase fija por franja horaria ("Buenos días"/"Buenas tardes"/"Buenas noches"). El pedido fue que variaran y tuvieran que ver con el homelab — se armó un pool de 4 frases por franja (madrugada/mañana/tarde/noche), todas relacionadas a O.S.C.A.R./el rack/`core`, y en cada actualización se elige una al azar dentro de la franja que corresponda:
 
 ```js
 var GREETING_PHRASES = {
-  madrugada: ["El rack nunca duerme", "core01 sigue despierto", /* ... */],
+  madrugada: ["El rack nunca duerme", "core sigue despierto", /* ... */],
   mañana: ["Arrancando el día con O.S.C.A.R.", /* ... */],
   tarde: ["La tarde avanza, el rack no para", /* ... */],
   noche: ["O.S.C.A.R. cuidando el homelab mientras descansás", /* ... */]
@@ -701,9 +701,9 @@ Se probó también un brillo cian en el borde + `box-shadow` al enfocar el input
 
 ### Por qué los datos vienen de `glances`, no de `resources`
 
-El widget nativo `resources` de Homepage, sin nada más, mide el **contenedor de Homepage**, no `core01` entero — CPU y RAM son las del propio proceso de Homepage (casi siempre ~0%, porque es una app liviana), no las de la VM completa. El disco tenía el mismo problema (`disk: /` apuntaba al filesystem interno del contenedor). No hay forma de arreglar eso desde adentro del propio contenedor de Homepage — hace falta un agente con visibilidad real del host.
+El widget nativo `resources` de Homepage, sin nada más, mide el **contenedor de Homepage**, no `core` entero — CPU y RAM son las del propio proceso de Homepage (casi siempre ~0%, porque es una app liviana), no las de la VM completa. El disco tenía el mismo problema (`disk: /` apuntaba al filesystem interno del contenedor). No hay forma de arreglar eso desde adentro del propio contenedor de Homepage — hace falta un agente con visibilidad real del host.
 
-Por eso [Glances](./glances.md) corre aparte, con `network_mode: host` + `pid: host` en `core01`, y `widgets.yaml` usa el widget `glances` (no `resources`) para tener esos datos disponibles del lado del servidor:
+Por eso [Glances](./glances.md) corre aparte, con `network_mode: host` + `pid: host` en `core`, y `widgets.yaml` usa el widget `glances` (no `resources`) para tener esos datos disponibles del lado del servidor:
 
 ```yaml
 # widgets.yaml — el único widget nativo que queda; no se muestra en pantalla
@@ -720,14 +720,14 @@ Por eso [Glances](./glances.md) corre aparte, con `network_mode: host` + `pid: h
 
 `expanded: true` no cambia nada en pantalla (el widget nativo está oculto), pero sí afecta qué campos trae la respuesta de `/api/widgets/glances`, que es lo que `custom.js` lee. También se agregó `language: es` en `settings.yaml` — no le pega a esta parte reconstruida a mano, pero sigue siendo relevante para cualquier otro widget nativo de Homepage que se use en el futuro.
 
-Instalar Glances también dejó en evidencia que **`core01` estaba al 91% de RAM** (4 GB asignados, con 9 contenedores reales corriendo) — se subió a 8 GB antes de sumarle uno más. Ver [creación de `core01`](../proxmox/crear-vm-core01.md#sizing-inicial).
+Instalar Glances también dejó en evidencia que **`core` estaba al 91% de RAM** (4 GB asignados, con 9 contenedores reales corriendo) — se subió a 8 GB antes de sumarle uno más. Ver [creación de `core`](../proxmox/crear-vm-core.md#sizing-inicial).
 
 ## Header de 3 columnas: hora/fecha · O.S.C.A.R. · clima (custom.js)
 
 Homepage no tiene ningún lugar nativo para mostrar el nombre del proyecto en grande — el `title` de `settings.yaml` solo va al `<title>` del navegador y al manifest PWA, y el único widget relacionado ("logo") es un ícono de 48×48px, sin texto. La primera versión fue solo el título centrado con `datetime`/`openmeteo` como widgets nativos de Homepage abajo — pero esos widgets traen su propia caja/fondo (`.widget-container`) sin margen real para estilar cada uno suelto. Se reemplazó por un reloj y un clima **construidos desde cero** en `custom.js`, en 3 columnas: hora/fecha a la izquierda, "O.S.C.A.R." al centro, clima a la derecha — texto blanco sin caja, solo con sombra para que resalte contra la foto de fondo:
 
 :::note Snapshot histórico, no el archivo completo actual
-El bloque de abajo es la versión que agregó el reloj/clima por primera vez (con íconos emoji). Después se sumaron los íconos SVG, la fila de CPU/RAM/disco y el buscador (ver "CPU/RAM/disco y buscador" más arriba) al mismo `custom.js` — se deja este fragmento porque explica bien el razonamiento original de las 3 columnas, no porque sea el archivo completo tal cual está hoy en `core01`.
+El bloque de abajo es la versión que agregó el reloj/clima por primera vez (con íconos emoji). Después se sumaron los íconos SVG, la fila de CPU/RAM/disco y el buscador (ver "CPU/RAM/disco y buscador" más arriba) al mismo `custom.js` — se deja este fragmento porque explica bien el razonamiento original de las 3 columnas, no porque sea el archivo completo tal cual está hoy en `core`.
 :::
 
 ```js
@@ -795,7 +795,7 @@ Hora y clima comparten estilo (texto blanco `#f8fafc`, `text-shadow` para separa
 .oscar-title { animation: oscar-aurora-glow 6s ease-in-out infinite; }
 ```
 
-Ver el archivo completo en `core01`, no vale la pena duplicarlo acá.
+Ver el archivo completo en `core`, no vale la pena duplicarlo acá.
 
 ## Sin soporte: páginas con carrusel/slide
 
@@ -812,7 +812,7 @@ services:
       - ./config:/app/config
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
-      HOMEPAGE_ALLOWED_HOSTS: "<IP-de-core01>:3005,home.oscarlab.com.ar"
+      HOMEPAGE_ALLOWED_HOSTS: "<IP-de-core>:3005,home.oscarlab.com.ar"
     ports:
       - "3005:3000"
 ```
@@ -846,13 +846,13 @@ Disponibilidad HTTP del puerto 3005 alcanza — es un dashboard, no un servicio 
 ## Troubleshooting
 
 - **Tarjeta con `500` pero el servicio real anda bien** → dos causas reales encontradas (2026-09-15), ninguna era el servicio en sí:
-  1. **`siteMonitor` apuntando al puerto equivocado.** Pasó con "Beszel devops01" y "Beszel k3s01": el `widget:` (que trae CPU/RAM/disco) estaba bien apuntado al hub (`192.168.0.156:8090`), pero el `siteMonitor` — el puntito de estado — apuntaba al puerto del *agente* (`45876`), que habla el protocolo SSH-like propio de Beszel, no HTTP. El log del contenedor (`docker logs homepage-homepage-1`) lo delata clarísimo: `Error: Parse Error: Expected HTTP/, RTSP/ or ICE/` con el `rawPacket` mostrando un banner `SSH-2.0-beszel_...` en vez de una respuesta HTTP. Fix: `siteMonitor` al mismo host:puerto que ya usa `widget.url` (el hub), nunca al puerto del agente.
+  1. **`siteMonitor` apuntando al puerto equivocado.** Pasó con "Beszel devops" y "Beszel k3s": el `widget:` (que trae CPU/RAM/disco) estaba bien apuntado al hub (`192.168.0.156:8090`), pero el `siteMonitor` — el puntito de estado — apuntaba al puerto del *agente* (`45876`), que habla el protocolo SSH-like propio de Beszel, no HTTP. El log del contenedor (`docker logs homepage-homepage-1`) lo delata clarísimo: `Error: Parse Error: Expected HTTP/, RTSP/ or ICE/` con el `rawPacket` mostrando un banner `SSH-2.0-beszel_...` en vez de una respuesta HTTP. Fix: `siteMonitor` al mismo host:puerto que ya usa `widget.url` (el hub), nunca al puerto del agente.
   2. **Incompatibilidad real entre el parser HTTP de Node y un dispositivo con servidor embebido no estricto.** Pasó con "DVR Dahua" (`https://192.168.0.224`): el DVR responde `200 OK` con `Connection: keep-alive`, pero el cuerpo real no coincide exactamente con el `Content-Length` declarado — al reusar la conexión keep-alive para el siguiente chequeo, el parser de Node (`llhttp`, estricto) arranca a leer basura en medio del stream siguiente y tira el mismo `HPE_INVALID_CONSTANT`. `curl` no lo reproduce porque es mucho más tolerante que `llhttp`. No es arreglable por config — la salida fue sacarle el `siteMonitor` a esa tarjeta (queda solo como link, sin puntito de estado), documentado como límite conocido del dispositivo, no como pendiente.
 - **`400` o `{"error": "Host validation failed"}`** → el host/dominio usado no está en `HOMEPAGE_ALLOWED_HOSTS` — ver nota arriba; hay que agregar cada forma de acceso (IP:puerto, dominio) por separado, no alcanza con una sola.
 - **Un servicio aparece pero el link no funciona** → URL puesta en `services.yaml` no coincide con la IP/puerto real del servicio — confirmar contra el [catálogo de servicios](./catalogo.md).
 - **Los acentos/ñ aparecen como `Ã³`/`Ã±` en `services.yaml`** → dos causas posibles, hay que distinguirlas antes de "arreglar" algo que no está roto:
-  1. **El archivo real está corrupto de verdad** → pasó al editarlo con `sed -i` directo en `core01`: el contenedor no tiene una locale UTF-8, y `sed` reinterpreta *todo el archivo* con la locale por defecto al reescribirlo, no solo la línea que toca. La única forma segura de editar este archivo (o cualquiera con tildes) es reescribirlo completo desde una fuente UTF-8 correcta y subirlo por `base64 -d > archivo` — nunca `sed -i` en el contenedor.
-  2. **El archivo está bien pero la herramienta de diagnóstico lo muestra mal** → si se inspecciona el contenido pasándolo por la respuesta JSON del `exec-status` de la API de Proxmox (usada para ejecutar comandos en `core01` sin SSH) y se imprime directo, esa capa de transporte re-codifica los bytes UTF-8 y se ve el mismo patrón `Ã³`. Para confirmar cuál de los dos es, pedir el archivo en base64 explícito y decodificarlo del lado de quien lo lee, en vez de confiar en el texto plano que devuelve esa API — si ahí se ve bien, el archivo nunca estuvo roto.
+  1. **El archivo real está corrupto de verdad** → pasó al editarlo con `sed -i` directo en `core`: el contenedor no tiene una locale UTF-8, y `sed` reinterpreta *todo el archivo* con la locale por defecto al reescribirlo, no solo la línea que toca. La única forma segura de editar este archivo (o cualquiera con tildes) es reescribirlo completo desde una fuente UTF-8 correcta y subirlo por `base64 -d > archivo` — nunca `sed -i` en el contenedor.
+  2. **El archivo está bien pero la herramienta de diagnóstico lo muestra mal** → si se inspecciona el contenido pasándolo por la respuesta JSON del `exec-status` de la API de Proxmox (usada para ejecutar comandos en `core` sin SSH) y se imprime directo, esa capa de transporte re-codifica los bytes UTF-8 y se ve el mismo patrón `Ã³`. Para confirmar cuál de los dos es, pedir el archivo en base64 explícito y decodificarlo del lado de quien lo lee, en vez de confiar en el texto plano que devuelve esa API — si ahí se ve bien, el archivo nunca estuvo roto.
 - **Un `<div>` con dos clases distintas hereda un `flex-direction` que no le pusiste** → pasó con `#oscarResourcesSlot`: el mismo elemento tiene `class="oscar-col oscar-col-center"` (que define `flex-direction: column`) **e** `id="oscarResourcesSlot"` con su propio `display: flex`. Como nunca se declaró `flex-direction` en la regla del id, CPU/RAM/disco quedaban apiladas verticalmente en vez de en línea — la especificidad del id gana en las propiedades que sí define (`display`, `gap`, etc.), pero una propiedad que un selector no toca simplemente seguía viniendo del otro. Al reutilizar una clase de layout genérica (`.oscar-col`) en un elemento que también tiene su propio id con reglas de layout, conviene repasar cada propiedad que el genérico define y decidir explícitamente si el id la hereda o la pisa — no asumir que "más específico" alcanza para todo.
 - **Un botón gris sin texto ni ícono, que lleva a la IP LAN de un servicio (ej. `192.168.0.156:61208`, Glances)** → un widget nativo oculto solo a medias. Homepage envuelve el widget entero en un `<a class="information-widget-link">` que apunta a la `url` de `widgets.yaml`; si el CSS solo oculta el contenido de adentro (`.information-widget-resource` en este caso) el `<a>` sigue ahí, vacío pero clickeable. Hay que ocultar también `.information-widget-link` — ver la sección de arriba sobre CPU/RAM/disco. Para confirmar qué widget es el culpable antes de tocar CSS a ciegas: `curl -s -H "Host: <lo que use HOMEPAGE_ALLOWED_HOSTS>" http://localhost:3005/ | grep -o '<a href="http://<ip-sospechosa>"[^>]*>'` — la clase del `<a>` dice qué widget es (`information-widget-<nombre>`).
 - **Doble scroll vertical (una barra en el borde de la página, otra más adentro)** → Homepage arma `#page_wrapper`/`#inner_wrapper` con `height: 100%` + `overflow-auto`, pensados como una caja interna del alto del viewport que scrollea sola. `#oscar-header` se inyecta como hijo de `<body>`, *antes* de esa caja — suma su propio alto por encima, el documento entero termina más alto que un viewport, y el navegador le agrega su propio scroll externo además del interno: dos barras.

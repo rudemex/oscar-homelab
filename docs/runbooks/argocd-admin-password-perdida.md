@@ -12,7 +12,7 @@ Recuperar acceso al usuario `admin` de Argo CD sin perder ninguna `Application` 
 ## Cuándo usarlo
 
 - `POST /api/v1/session` (o el login de la UI) devuelve `Invalid username or password` con una password que debería ser la vigente.
-- Pasó después de un cambio de password vía `PUT /api/v1/account/password` que devolvió éxito (`{}`) pero la password nueva tampoco loguea — visto en la instalación real de `k3s01`: la API respondió éxito y una verificación inmediata funcionó, pero minutos después la misma password dejó de validar (causa no confirmada — no se reprodujo un patrón claro; puede ser un problema de sincronización del hash entre réplicas/cache del `argocd-server`, no confirmado).
+- Pasó después de un cambio de password vía `PUT /api/v1/account/password` que devolvió éxito (`{}`) pero la password nueva tampoco loguea — visto en la instalación real de `k3s`: la API respondió éxito y una verificación inmediata funcionó, pero minutos después la misma password dejó de validar (causa no confirmada — no se reprodujo un patrón claro; puede ser un problema de sincronización del hash entre réplicas/cache del `argocd-server`, no confirmado).
 
 ## Procedimiento
 

@@ -5,8 +5,8 @@ sidebar_position: 6
 
 # CI Runner
 
-**Estado:** Actual — `forgejo-runner` v13.1.0 corriendo en `devops01`, **validado con un pipeline real de punta a punta**: checkout → setup Node → install → lint → test → build de imagen Docker → push a Nexus, `status: success`, imagen confirmada en el registry (repo `ci-demo`, queda como referencia permanente — ver abajo)
-**Dónde corre:** VM `devops01`, `/srv/oscar/apps/forgejo-runner/`
+**Estado:** Actual — `forgejo-runner` v13.1.0 corriendo en `devops`, **validado con un pipeline real de punta a punta**: checkout → setup Node → install → lint → test → build de imagen Docker → push a Nexus, `status: success`, imagen confirmada en el registry (repo `ci-demo`, queda como referencia permanente — ver abajo)
+**Dónde corre:** VM `devops`, `/srv/oscar/apps/forgejo-runner/`
 **Sizing real:** comparte la VM con Forgejo (6 vCPU / 12 GB totales tras la ampliación — ver [Forgejo / Git local](./forgejo.md))
 **Red/puertos:** `network_mode: host`, sale por HTTP a la **IP LAN de la VM** (`192.168.0.151:3000`, no `127.0.0.1` — ver "Gotcha: red del contenedor del job" abajo); no requiere panel público
 **Persistencia:** `/srv/oscar/apps/forgejo-runner/data` — credencial de registro (`.runner`) y `config.yaml` (`docker_host: automount`, ver abajo)
@@ -27,7 +27,7 @@ docker exec -u 1000 forgejo forgejo actions generate-runner-token
 RUNNER_VERSION=13.1.0
 FORGEJO_INSTANCE_URL=http://192.168.0.151:3000
 RUNNER_TOKEN=<token generado arriba>
-RUNNER_NAME=devops01-runner
+RUNNER_NAME=devops-runner
 ```
 
 `data/config.yaml` (generado con `forgejo-runner generate-config`, un solo campo cambiado):
@@ -86,12 +86,12 @@ Cada uno costó un ciclo completo de push→esperar→fallar→diagnosticar. Que
 1. **`${{ gitea.sha }}` no es una variable válida** → `Unknown Variable Access gitea` en la validación del schema, falla instantáneo sin llegar al runner. Forgejo Actions valida contra el contexto de **GitHub** Actions (`github.sha`, `github.actor`, etc.), no uno propio de Gitea — coherente con que la promesa del producto es compatibilidad con sintaxis de GitHub Actions.
 2. **ESLint sin `globals` de Node declarados** → `'process' is not defined no-undef` — el flat config (`eslint.config.js`) no asume ningún entorno por default, hay que declarar `process`/`console` a mano en `languageOptions.globals`.
 3. **`node --test` no setea `NODE_ENV=test` solo** — esa es convención de Jest/Mocha, no del test runner nativo de Node. Un `index.js` que arrancaba un servidor HTTP salvo que `NODE_ENV === "test"` seguía arrancándolo igual durante los tests (el `import` desde el test dispara el side-effect), dejando un socket abierto que nunca deja terminar al proceso — el job quedó colgado 5 minutos hasta matarlo a mano. Fix real: separar el módulo testeable (sin side effects) del entrypoint que hace `.listen()`, no tratar de detectar "soy el módulo principal" con una condición frágil.
-4. **La IP de instancia del runner no puede ser `127.0.0.1`** → `Failed to connect to 127.0.0.1 port 3000` al hacer checkout. El runner corre en `network_mode: host` (ve el `127.0.0.1` de `devops01` real), pero el **contenedor del job es otro contenedor separado**, con su propio loopback — para él, `127.0.0.1` es él mismo, no el host. Hace falta la IP LAN real (`192.168.0.151`) en `FORGEJO_INSTANCE_URL`.
-5. **Docker asume HTTPS por defecto en cualquier registry** → `http: server gave HTTP response to HTTPS client` al pushear a Nexus (`8082`, HTTP plano, sin TLS). Hace falta `insecure-registries` en `/etc/docker/daemon.json` del **host** (`devops01`, no del contenedor del job — el `docker` del job habla con el daemon del host vía el socket montado) + `systemctl restart docker`, lo que reinicia brevemente todos los contenedores de esa VM.
+4. **La IP de instancia del runner no puede ser `127.0.0.1`** → `Failed to connect to 127.0.0.1 port 3000` al hacer checkout. El runner corre en `network_mode: host` (ve el `127.0.0.1` de `devops` real), pero el **contenedor del job es otro contenedor separado**, con su propio loopback — para él, `127.0.0.1` es él mismo, no el host. Hace falta la IP LAN real (`192.168.0.151`) en `FORGEJO_INSTANCE_URL`.
+5. **Docker asume HTTPS por defecto en cualquier registry** → `http: server gave HTTP response to HTTPS client` al pushear a Nexus (`8082`, HTTP plano, sin TLS). Hace falta `insecure-registries` en `/etc/docker/daemon.json` del **host** (`devops`, no del contenedor del job — el `docker` del job habla con el daemon del host vía el socket montado) + `systemctl restart docker`, lo que reinicia brevemente todos los contenedores de esa VM.
 6. **Nexus rechaza re-pushear un tag que ya existe** → `cannot be updated as asset already exists and redeploy is not allowed`. El repo `docker-hosted` se creó con `writePolicy: "allow_once"` (cada componente se escribe una sola vez) — funciona para tags inmutables (`:${{ github.sha }}`), pero rompe el patrón normal de sobreescribir `:latest` en cada build. Fix: `writePolicy: "allow"` en la config del repo.
-7. **k3s/containerd tiene el mismo problema de HTTPS que Docker, pero en su propia config** — un pod con `ImagePullBackOff` contra Nexus aunque el `docker push` ya funcionaba. `/etc/rancher/k3s/registries.yaml` en `k3s01` necesita su propio bloque `mirrors`/`configs` con `insecure_skip_verify: true`, y `systemctl restart k3s` para que containerd lo relea — el fix de Docker en `devops01` no le sirve de nada al nodo de k3s, son daemons de contenedores completamente distintos.
+7. **k3s/containerd tiene el mismo problema de HTTPS que Docker, pero en su propia config** — un pod con `ImagePullBackOff` contra Nexus aunque el `docker push` ya funcionaba. `/etc/rancher/k3s/registries.yaml` en `k3s` necesita su propio bloque `mirrors`/`configs` con `insecure_skip_verify: true`, y `systemctl restart k3s` para que containerd lo relea — el fix de Docker en `devops` no le sirve de nada al nodo de k3s, son daemons de contenedores completamente distintos.
 8. **Nexus exige auth también para el `pull`, no solo el `push`** — con el acceso anónimo deshabilitado (a propósito, ver [Nexus](./nexus.md)), un pod sin `imagePullSecrets` da `pull access denied... no basic auth credentials` aunque la imagen exista y el `docker login` del CI haya sido exitoso. Hace falta un `Secret` tipo `docker-registry` en el namespace destino, referenciado desde `spec.template.spec.imagePullSecrets` en el Deployment.
-9. **El contenedor del job no resuelve hostnames `*.oscar.home`** → `Could not resolve host: git.oscar.home` al clonar `oscar-gitops` desde el propio pipeline. Docker no le pasa el DNS del host a los contenedores por default (menos todavía si el host usa `systemd-resolved`, que apunta a `127.0.0.53`, un stub que solo sirve desde el host mismo) — y `devops01` tampoco tenía a AdGuard como su propio DNS. Fix real, no un parche puntual: `"dns": ["192.168.0.93", "1.1.1.1"]` en `/etc/docker/daemon.json` (junto al `insecure-registries` ya existente) + `systemctl restart docker` — a partir de ahí, **cualquier** contenedor nuevo en `devops01` resuelve `*.oscar.home` solo, no hace falta más `docker run --dns=...` a mano. Ojo: esto es el DNS de **Docker**, no el del sistema operativo de `devops01` — el runner en sí (`network_mode: host`) sigue sin resolver esos hostnames, porque usa el resolver del SO directo, no el de Docker; por eso `FORGEJO_INSTANCE_URL` se queda con la IP.
+9. **El contenedor del job no resuelve hostnames `*.oscar.home`** → `Could not resolve host: git.oscar.home` al clonar `oscar-gitops` desde el propio pipeline. Docker no le pasa el DNS del host a los contenedores por default (menos todavía si el host usa `systemd-resolved`, que apunta a `127.0.0.53`, un stub que solo sirve desde el host mismo) — y `devops` tampoco tenía a AdGuard como su propio DNS. Fix real, no un parche puntual: `"dns": ["192.168.0.93", "1.1.1.1"]` en `/etc/docker/daemon.json` (junto al `insecure-registries` ya existente) + `systemctl restart docker` — a partir de ahí, **cualquier** contenedor nuevo en `devops` resuelve `*.oscar.home` solo, no hace falta más `docker run --dns=...` a mano. Ojo: esto es el DNS de **Docker**, no el del sistema operativo de `devops` — el runner en sí (`network_mode: host`) sigue sin resolver esos hostnames, porque usa el resolver del SO directo, no el de Docker; por eso `FORGEJO_INSTANCE_URL` se queda con la IP.
 10. **`git clone` de un repo privado sin credenciales cuelga con un error engañoso** → `fatal: could not read Username for '...': No such device or address`. No es un problema de red ni de DNS (ese ya se había resuelto) — es que el `clone` intenta pedir usuario/contraseña interactivo, que no existe en un shell no interactivo de CI. El header de auth (`http.extraHeader`) hay que ponerlo en **el `clone` también**, no solo en el `push` — es fácil poner el header solo donde "se escribe" y olvidarse de que leer un repo privado también necesita autenticación.
 
 ## Rol dentro de O.S.C.A.R.
@@ -108,14 +108,14 @@ Pipeline real y funcionando en [`ci-demo`](http://git.oscar.home/mdelgado/ci-dem
 ## Checklist de despliegue
 
 - [x] plataforma Git/CI decidida (ADR-010: Forgejo Actions);
-- [x] hostname y ubicación decididos (`devops01`, mismo host que Forgejo);
+- [x] hostname y ubicación decididos (`devops`, mismo host que Forgejo);
 - [x] imagen/versión fijada, evitando tags flotantes en servicios importantes (`13.1.0`);
 - [x] puertos documentados (`network_mode: host`, sin puertos propios publicados);
 - [x] volumen/persistencia definida (`/srv/oscar/apps/forgejo-runner/data`);
 - [x] `.env.example` sin secretos en Git — no aplica, nada de esto vive en un repo Git, solo en la VM;
 - [ ] credenciales reales fuera de Git — el `RUNNER_TOKEN` vive en `.env` de la VM, no en Git, pero falta confirmarlo en Vaultwarden;
 - [ ] backup definido antes de cargar datos importantes;
-- [x]/[ ] healthcheck o monitor de disponibilidad — parcial: `beszel-agent` ya corre en `devops01` y cubre CPU/RAM/disco del host (tarjeta "Beszel devops01" en Homepage), pero no hay un chequeo específico del proceso del runner ni de la tasa de éxito de los jobs — falta sumarlo a Uptime Kuma si se quiere ese nivel de detalle;
+- [x]/[ ] healthcheck o monitor de disponibilidad — parcial: `beszel-agent` ya corre en `devops` y cubre CPU/RAM/disco del host (tarjeta "Beszel devops" en Homepage), pero no hay un chequeo específico del proceso del runner ni de la tasa de éxito de los jobs — falta sumarlo a Uptime Kuma si se quiere ese nivel de detalle;
 - [ ] métricas/logs incorporados cuando sea razonable;
 - [ ] procedimiento de actualización y rollback documentado.
 

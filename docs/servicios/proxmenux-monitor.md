@@ -15,7 +15,7 @@ sidebar_position: 23
 
 Dashboard web de ProxMenux (toolkit de instalación/administración de Proxmox por menú interactivo) con visibilidad en tiempo real de CPU, RAM, disco y red del hipervisor — sin necesitar terminal. Es un complemento a Beszel/Uptime Kuma, específico del propio Proxmox en vez de los servicios que corren sobre él.
 
-A diferencia del resto del stack de O.S.C.A.R., **no vive en Docker ni en `core01`**: se instaló directo en `oscar-core` como parte del toolkit ProxMenux, corriendo como servicio systemd nativo.
+A diferencia del resto del stack de O.S.C.A.R., **no vive en Docker ni en `core`**: se instaló directo en `oscar-core` como parte del toolkit ProxMenux, corriendo como servicio systemd nativo.
 
 ## Instalación
 
@@ -35,7 +35,7 @@ journalctl -u proxmenux-monitor -n 50
 
 ## Publicación vía Cloudflare Tunnel
 
-`cloudflared` corre en `core01`, no en `oscar-core` — son máquinas distintas en la misma LAN. La regla de ingress del túnel apunta explícitamente a la IP LAN de `oscar-core` (`http://192.168.0.233:8008`), no a `localhost` como el resto de los servicios que sí conviven con `cloudflared` en `core01`. Es el único de los seis hostnames publicados con esa particularidad — ver [Cloudflare Tunnel](./cloudflare-tunnel.md).
+`cloudflared` corre en `core`, no en `oscar-core` — son máquinas distintas en la misma LAN. La regla de ingress del túnel apunta explícitamente a la IP LAN de `oscar-core` (`http://192.168.0.233:8008`), no a `localhost` como el resto de los servicios que sí conviven con `cloudflared` en `core`. Es el único de los seis hostnames publicados con esa particularidad — ver [Cloudflare Tunnel](./cloudflare-tunnel.md).
 
 ## Seguridad
 

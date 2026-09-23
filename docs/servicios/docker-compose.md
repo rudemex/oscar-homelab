@@ -6,7 +6,7 @@ sidebar_position: 2
 # Docker y Docker Compose
 
 **Estado:** Objetivo · Core  
-**Dónde corre:** VM `core01` y, cuando convenga, VMs específicas  
+**Dónde corre:** VM `core` y, cuando convenga, VMs específicas  
 **Sizing inicial:** 2 vCPU, 2–4 GB RAM de base; depende de workloads  
 **Red/puertos:** Docker daemon no debe publicarse; aplicaciones usan sus propios puertos  
 **Persistencia:** bind mounts/volúmenes bajo rutas documentadas

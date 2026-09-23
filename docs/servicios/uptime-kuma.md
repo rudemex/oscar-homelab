@@ -5,7 +5,7 @@ sidebar_position: 11
 
 # Uptime Kuma
 
-**Estado:** Actual · Disponibilidad — única instancia, corriendo en `monitor` desde 2026-09-22 (ver [migración a `monitor`](#migración-a-monitor-2026-09-22)). Historia previa: `core01` → `pinode01` (2026-09-21) → `monitor` (2026-09-22).  
+**Estado:** Actual · Disponibilidad — única instancia, corriendo en `monitor` desde 2026-09-22 (ver [migración a `monitor`](#migración-a-monitor-2026-09-22)). Historia previa: `core` → `pinode01` (2026-09-21) → `monitor` (2026-09-22).  
 **Dónde corre:** Docker Core  
 **Sizing inicial:** 1 vCPU, 512 MB–1 GB RAM  
 **Red/puertos:** 3001 interno  
@@ -13,28 +13,28 @@ sidebar_position: 11
 
 ## Segunda instancia en `pinode01` (2026-09-21)
 
-Se levantó una copia en [`pinode01`](../hardware/network.md) para sacar el monitoreo del Dell (si `oscar-core` cae, Kuma cae con él justo cuando hace falta). **Migración, no recreación:** se sacó una instantánea consistente de la base con `VACUUM INTO` (sin parar el Kuma de `core01`), se verificó el hash al copiarla y se levantó la misma versión `2.5.4`.
+Se levantó una copia en [`pinode01`](../hardware/network.md) para sacar el monitoreo del Dell (si `oscar-core` cae, Kuma cae con él justo cuando hace falta). **Migración, no recreación:** se sacó una instantánea consistente de la base con `VACUUM INTO` (sin parar el Kuma de `core`), se verificó el hash al copiarla y se levantó la misma versión `2.5.4`.
 
 | Dato | Valor |
 |---|---|
 | Ubicación | `pinode01`, `/srv/oscar/apps/uptime-kuma/` (`compose.yaml` + `data/` como bind mount), Docker `26.1.5` |
-| Acceso | `http://192.168.0.213:3001`, mismas credenciales que la instancia de `core01` |
+| Acceso | `http://192.168.0.213:3001`, mismas credenciales que la instancia de `core` |
 | Consumo | ~140 MB de RAM en régimen (los primeros minutos, con los 21 monitores arrancando a la vez, la CPU de la Pi 3 llega al 100 %) |
 | DNS de la Pi | `192.168.0.213` (su propio AdGuard) y `1.1.1.1`, para que los monitores de `*.oscar.home` resuelvan |
 
-**Validado:** 21 monitores en ambas instancias, el **mismo estado** en cada uno (19 arriba, 2 abajo: `AdGuard Home (LXC 100)` y `Home Assistant (VM 101)`, los dos afectados por la falla del SSD `sda`) y el historial conservado (2 183 latidos del monitor #1 en 30 días contra 2 192 en `core01`).
+**Validado:** 21 monitores en ambas instancias, el **mismo estado** en cada uno (19 arriba, 2 abajo: `AdGuard Home (LXC 100)` y `Home Assistant (VM 101)`, los dos afectados por la falla del SSD `sda`) y el historial conservado (2 183 latidos del monitor #1 en 30 días contra 2 192 en `core`).
 
-**Corte hecho (2026-09-21): Kuma vive solo en `pinode01`.** Homepage (widget `uptimekuma` y `siteMonitor`) apunta a `http://192.168.0.213:3001`; el Kuma de `core01` quedó **detenido** (`docker compose stop`, el volumen `uptime-kuma_uptime-kuma-data` se conserva unos días como respaldo antes de borrarlo). El hostname público `kuma.oscarlab.com.ar` (con su política de Cloudflare Access, que va atada al hostname) sigue publicado.
+**Corte hecho (2026-09-21): Kuma vive solo en `pinode01`.** Homepage (widget `uptimekuma` y `siteMonitor`) apunta a `http://192.168.0.213:3001`; el Kuma de `core` quedó **detenido** (`docker compose stop`, el volumen `uptime-kuma_uptime-kuma-data` se conserva unos días como respaldo antes de borrarlo). El hostname público `kuma.oscarlab.com.ar` (con su política de Cloudflare Access, que va atada al hostname) sigue publicado.
 
-**Túnel propio para la Pi, no un segundo conector del de `core01`.** Las rutas de un túnel son compartidas por todos sus conectores: sumar la Pi al túnel de `core01` haría que Cloudflare mandara a la Pi parte del tráfico de `vault`/`n8n`/`home`/`beszel`, que apuntan a `localhost` de `core01` (y Vaultwarden solo escucha en `127.0.0.1:8082`). Por eso la Pi tiene su **propio túnel** (`pinode01`) con su conector y, así, `kuma.oscarlab.com.ar` sobrevive a una caída del Dell. Un hostname pertenece a un solo túnel: la ruta `kuma` se borra del túnel de `core01` y se crea en el de la Pi (`http://localhost:3001`).
+**Túnel propio para la Pi, no un segundo conector del de `core`.** Las rutas de un túnel son compartidas por todos sus conectores: sumar la Pi al túnel de `core` haría que Cloudflare mandara a la Pi parte del tráfico de `vault`/`n8n`/`home`/`beszel`, que apuntan a `localhost` de `core` (y Vaultwarden solo escucha en `127.0.0.1:8082`). Por eso la Pi tiene su **propio túnel** (`pinode01`) con su conector y, así, `kuma.oscarlab.com.ar` sobrevive a una caída del Dell. Un hostname pertenece a un solo túnel: la ruta `kuma` se borra del túnel de `core` y se crea en el de la Pi (`http://localhost:3001`).
 
-Durante la migración, la ruta de `core01` para Kuma estuvo apuntando a `http://192.168.0.213:3001` (no a `localhost:3001`, que era el Kuma detenido).
+Durante la migración, la ruta de `core` para Kuma estuvo apuntando a `http://192.168.0.213:3001` (no a `localhost:3001`, que era el Kuma detenido).
 
-**Corrección (2026-09-22): el "túnel propio" del párrafo de arriba nunca enrutó `kuma.oscarlab.com.ar` en la práctica.** Al revisar la configuración real por la API de Cloudflare para la migración de abajo, se encontró que el registro DNS de `kuma.oscarlab.com.ar` siempre apuntó al túnel de `core01` (`ace28107-...`), con un ingress rule `service: http://192.168.0.213:3001` — es decir, el tráfico público pasó todo este tiempo por el conector de `core01`, proxeando por LAN hacia la Pi, **no** por el túnel dedicado `pinode01` (que existe registrado en Cloudflare pero con `config: null`, sin ingress rules). La resiliencia real ante una caída del Dell para este hostname público **no estaba dada** como se documentó originalmente — sí sigue estando `http://192.168.0.213:3001` (ahora `.214`) accesible directo por LAN/Tailscale si el Dell cae. Corregir esto (mover el ingress rule real al túnel de la Pi, o dar de baja el túnel `pinode01` si no se usa) queda como pendiente del paso 9 de `REORGANIZACION_RACK.md` ("centralizar cloudflared en `network`").
+**Corrección (2026-09-22): el "túnel propio" del párrafo de arriba nunca enrutó `kuma.oscarlab.com.ar` en la práctica.** Al revisar la configuración real por la API de Cloudflare para la migración de abajo, se encontró que el registro DNS de `kuma.oscarlab.com.ar` siempre apuntó al túnel de `core` (`ace28107-...`), con un ingress rule `service: http://192.168.0.213:3001` — es decir, el tráfico público pasó todo este tiempo por el conector de `core`, proxeando por LAN hacia la Pi, **no** por el túnel dedicado `pinode01` (que existe registrado en Cloudflare pero con `config: null`, sin ingress rules). La resiliencia real ante una caída del Dell para este hostname público **no estaba dada** como se documentó originalmente — sí sigue estando `http://192.168.0.213:3001` (ahora `.214`) accesible directo por LAN/Tailscale si el Dell cae. Corregir esto (mover el ingress rule real al túnel de la Pi, o dar de baja el túnel `pinode01` si no se usa) queda como pendiente del paso 9 de `REORGANIZACION_RACK.md` ("centralizar cloudflared en `network`").
 
 ## Migración a `monitor` (2026-09-22)
 
-Segunda migración, mismo patrón que la de `core01`→`pinode01`: parar el contenedor, empaquetar `data/` (`tar.gz`, checksum SHA-256 verificado en origen/Mac/destino), copiar a `monitor` (192.168.0.214), levantar la misma versión `2.5.4`. Motivo: consolidar toda la observabilidad (Prometheus, Grafana, Blackbox, y ahora Kuma) en un solo host, según la arquitectura de `REORGANIZACION_RACK.md` — "una única instancia de Uptime Kuma... vive en `monitor`".
+Segunda migración, mismo patrón que la de `core`→`pinode01`: parar el contenedor, empaquetar `data/` (`tar.gz`, checksum SHA-256 verificado en origen/Mac/destino), copiar a `monitor` (192.168.0.214), levantar la misma versión `2.5.4`. Motivo: consolidar toda la observabilidad (Prometheus, Grafana, Blackbox, y ahora Kuma) en un solo host, según la arquitectura de `REORGANIZACION_RACK.md` — "una única instancia de Uptime Kuma... vive en `monitor`".
 
 | Dato | Valor |
 |---|---|
@@ -44,7 +44,7 @@ Segunda migración, mismo patrón que la de `core01`→`pinode01`: parar el cont
 
 **Actualizado en el mismo movimiento:**
 - Homepage (widget `uptimekuma` y `siteMonitor`): `192.168.0.213:3001` → `192.168.0.214:3001` (`services.yaml`, backup dejado en el host como `services.yaml.bak-kuma-migration-2026-09-22`).
-- El ingress rule real de `kuma.oscarlab.com.ar` en el túnel de `core01` (ver corrección arriba): `http://192.168.0.213:3001` → `http://192.168.0.214:3001`, vía API de Cloudflare.
+- El ingress rule real de `kuma.oscarlab.com.ar` en el túnel de `core` (ver corrección arriba): `http://192.168.0.213:3001` → `http://192.168.0.214:3001`, vía API de Cloudflare.
 
 **`network` (antes `pinode01`) queda detenido, no borrado**: `docker compose stop`, datos conservados en `/srv/oscar/apps/uptime-kuma/data/` unos días como respaldo antes de decidir si se borran.
 
@@ -65,18 +65,18 @@ Segunda migración, mismo patrón que la de `core01`→`pinode01`: parar el cont
 | n8n | `http://192.168.0.153:5678/healthz` | en `automation` (migrado 2026-09-23), endpoint de salud dedicado, más preciso que chequear la UI |
 | Homepage | `http://192.168.0.156:3005` | — |
 | Beszel hub | `http://192.168.0.156:8090` | — |
-| ProxMenux Monitor | `http://192.168.0.233:8008` | en `oscar-core`, no en `core01` |
-| Vaultwarden | `https://vault.oscarlab.com.ar/alive` | endpoint de salud dedicado (liviano, no carga toda la app); en `services` desde el 2026-09-23 (antes `core01`), se sigue midiendo vía el dominio público — necesitó otro bypass de Access (`/alive`, igual patrón que `/identity`/`/api`/`/notifications`/`/icons`) porque si no Cloudflare lo interceptaba antes de llegar |
+| ProxMenux Monitor | `http://192.168.0.233:8008` | en `oscar-core`, no en `core` |
+| Vaultwarden | `https://vault.oscarlab.com.ar/alive` | endpoint de salud dedicado (liviano, no carga toda la app); en `services` desde el 2026-09-23 (antes `core`), se sigue midiendo vía el dominio público — necesitó otro bypass de Access (`/alive`, igual patrón que `/identity`/`/api`/`/notifications`/`/icons`) porque si no Cloudflare lo interceptaba antes de llegar |
 | Proxmox | `https://192.168.0.233:8006` | con `ignoreTls` (certificado self-signed) |
 | AdGuard Home | `http://192.168.0.93:80` | LXC 100 |
 | Home Assistant | `http://192.168.0.195:80` | VM 101 — **no** el 8123 típico de otras instalaciones; esta usa el puerto 80, se descubrió por error al asumir el default |
 | Cloudflare Tunnel | `http://192.168.0.156:20241/ready` | endpoint de salud propio de `cloudflared`, expuesto porque corre en `network_mode: host` |
-| Forgejo | `http://192.168.0.151:3000/api/healthz` | en `devops01`, no en `core01`; medido por IP+puerto igual que el resto, no por `git.oscar.home` |
-| Nexus | `http://192.168.0.151:8081/service/rest/v1/status` | en `devops01`; sin monitor para el CI Runner (`forgejo-runner`) — no expone ningún endpoint HTTP propio sin sumarle config de métricas aparte |
+| Forgejo | `http://192.168.0.151:3000/api/healthz` | en `devops`, no en `core`; medido por IP+puerto igual que el resto, no por `git.oscar.home` |
+| Nexus | `http://192.168.0.151:8081/service/rest/v1/status` | en `devops`; sin monitor para el CI Runner (`forgejo-runner`) — no expone ningún endpoint HTTP propio sin sumarle config de métricas aparte |
 | Portainer | `http://portainer.oscar.home` | vía NPM, como el resto de los `*.oscar.home` |
 | oscar-led-controller | `http://led.oscar.home/health` | en k3s; **fuera de la status page a propósito**: da `503` mientras el ESP32 esté apagado y dejaría un "down" permanente en el widget de Homepage |
 | Argo CD | `http://argocd.oscar.home` | en k3s (Traefik) |
-| Infisical | `http://192.168.0.151:8085/api/status` | en `devops01`, por IP+puerto (2026-09-20) |
+| Infisical | `http://192.168.0.151:8085/api/status` | en `devops`, por IP+puerto (2026-09-20) |
 | Headlamp | `http://headlamp.oscar.home` | en k3s (2026-09-20) |
 | SearXNG | `http://searxng.oscar.home/healthz` | en `services` desde el 2026-09-23 (antes k3s, namespace `oscar-ai`) — misma URL, resuelve distinto (NPM en vez de Traefik) |
 | DocuSeal | `http://docuseal.oscar.home` | en `services` (2026-09-23), instalado sin cuenta admin todavía |

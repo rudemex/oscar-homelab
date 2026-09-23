@@ -14,7 +14,7 @@ Apagar de forma forzada una VM de laboratorio y seguir, sin atajos, la cadena co
 ## Prerequisitos
 
 - [Lab 01](./01-linux-ssh.md) (ciclo de vida de una VM) y [Lab 04](./04-observabilidad.md) (Prometheus + un chequeo de disponibilidad tipo Uptime Kuma monitoreando al menos un host) completados.
-- Una VM de laboratorio real y prescindible bajo monitoreo — **nunca** `core01`, `devops01` o `k3s01` reales. Puede ser una recreación de la VM del Lab 01.
+- Una VM de laboratorio real y prescindible bajo monitoreo — **nunca** `core`, `devops` o `k3s` reales. Puede ser una recreación de la VM del Lab 01.
 - El runbook [vm-caida.md](../runbooks/vm-caida.md), que ya existe en el repo.
 
 ## Arquitectura

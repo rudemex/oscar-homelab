@@ -20,7 +20,7 @@ No vive en `docs/` ni en `inventory/`: es una app propia dentro del monorepo, en
 
 El código del controlador vive en Forgejo: **`http://git.oscar.home/mdelgado/oscar-led-controller`** (repo privado, rama `main`; NestJS + WLED, ~60 archivos, con su propio README). Hasta el 2026-09-21 estaba **solo en el disco local**, sin ningún respaldo; ahora `apps/` está en el `.gitignore` de este repo de documentación para no mezclar las dos cosas.
 
-El despliegue sigue siendo **manual**, sin CI ni registry: se construye la imagen `oscar-led-controller:k3s-pilot` en `core01`, se importa al containerd de `k3s01` y se reinicia el Deployment (los tres pasos están en el `values.yaml` del chart de [`oscar-gitops`](../servicios/argocd.md)). El reinicio hace falta porque el tag no cambia y Argo CD no ve diferencia en el manifiesto. Estado de las pruebas: 74 pasan y 10 fallan de antes de esta sesión (specs desactualizados de `EffectEngine`, `OscarLedController` y `WledProvider`, que esperan colores y estados que el código ya no tiene).
+El despliegue sigue siendo **manual**, sin CI ni registry: se construye la imagen `oscar-led-controller:k3s-pilot` en `core`, se importa al containerd de `k3s` y se reinicia el Deployment (los tres pasos están en el `values.yaml` del chart de [`oscar-gitops`](../servicios/argocd.md)). El reinicio hace falta porque el tag no cambia y Argo CD no ve diferencia en el manifiesto. Estado de las pruebas: 74 pasan y 10 fallan de antes de esta sesión (specs desactualizados de `EffectEngine`, `OscarLedController` y `WledProvider`, que esperan colores y estados que el código ya no tiene).
 
 ## Panel táctil (2026-09-21)
 

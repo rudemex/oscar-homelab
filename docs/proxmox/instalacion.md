@@ -56,9 +56,9 @@ Usar nombres cortos y predecibles:
 
 ```text
 oscar-core      host Proxmox
-core01     VM servicios base
-devops01   VM Git/registry/runners
-k3s01      nodo k3s inicial
+core     VM servicios base
+devops   VM Git/registry/runners
+k3s      nodo k3s inicial
 ```
 
 ## Bridge de red (vmbr0)

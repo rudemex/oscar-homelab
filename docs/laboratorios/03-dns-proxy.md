@@ -22,7 +22,7 @@ Crear un registro DNS interno en AdGuard Home para el `whoami` del [Lab 02](./02
 ```mermaid
 flowchart LR
   Client[cliente] -->|1. consulta whoami.oscar.home| AdGuard[AdGuard Home DNS1]
-  AdGuard -->|2. responde IP de core01| Client
+  AdGuard -->|2. responde IP de core| Client
   Client -->|3. HTTP Host: whoami.oscar.home| Traefik[Traefik :80]
   Traefik -->|4. routing por Host header| Whoami[whoami:80]
 ```
@@ -33,7 +33,7 @@ Cuatro pasos, dos capas distintas: la resolución de nombre (1-2) no sabe nada d
 
 ### 1. Registro DNS en AdGuard Home
 
-En AdGuard Home → Filters → DNS rewrites, crear una entrada `whoami.oscar.home` apuntando a la IP del host que corre `whoami` (`core01` o la VM del Lab 02). Validar antes de tocar el proxy:
+En AdGuard Home → Filters → DNS rewrites, crear una entrada `whoami.oscar.home` apuntando a la IP del host que corre `whoami` (`core` o la VM del Lab 02). Validar antes de tocar el proxy:
 
 ```bash
 nslookup whoami.oscar.home <IP_DNS1>

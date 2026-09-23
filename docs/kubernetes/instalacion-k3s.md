@@ -6,7 +6,7 @@ sidebar_position: 2
 # Instalación de k3s
 
 :::caution Corregido tras la experiencia real
-`k3s01` se creó sobre la red plana real (`192.168.0.0/24`, IP fija `192.168.0.150`), no sobre el esquema de VLANs `192.168.20.0/24` que usan los ejemplos de esta página y de [crear VM core01](../proxmox/crear-vm-core01.md) — la segmentación por VLAN sigue siendo un plan futuro (ver [plan de direccionamiento](../red/plan-direccionamiento.md)), `core01` tampoco la usa todavía. Reemplazar los ejemplos de IP de esta página por `192.168.0.x` hasta que la migración a VLANs sea real.
+`k3s` se creó sobre la red plana real (`192.168.0.0/24`, IP fija `192.168.0.150`), no sobre el esquema de VLANs `192.168.20.0/24` que usan los ejemplos de esta página y de [crear VM core](../proxmox/crear-vm-core.md) — la segmentación por VLAN sigue siendo un plan futuro (ver [plan de direccionamiento](../red/plan-direccionamiento.md)), `core` tampoco la usa todavía. Reemplazar los ejemplos de IP de esta página por `192.168.0.x` hasta que la migración a VLANs sea real.
 :::
 
 ## VM recomendada para laboratorio inicial
@@ -21,7 +21,7 @@ sidebar_position: 2
 
 ## Bootstrap
 
-Dentro de la VM (`k3s01`), el instalador oficial de k3s en un solo comando:
+Dentro de la VM (`k3s`), el instalador oficial de k3s en un solo comando:
 
 ```bash
 curl -sfL https://get.k3s.io | sh -
@@ -47,12 +47,12 @@ sudo kubectl get pods -A
 k3s guarda el kubeconfig en `/etc/rancher/k3s/k3s.yaml`, apuntando a `127.0.0.1` por defecto — hay que copiarlo y cambiar esa IP por la real del nodo:
 
 ```bash
-# en k3s01
+# en k3s
 sudo cat /etc/rancher/k3s/k3s.yaml
 ```
 
 ```bash
-# en tu equipo de administración — IP real de k3s01 en la red plana actual (192.168.0.x, no la VLAN de ejemplo)
+# en tu equipo de administración — IP real de k3s en la red plana actual (192.168.0.x, no la VLAN de ejemplo)
 mkdir -p ~/.kube
 scp oscar@192.168.0.150:/etc/rancher/k3s/k3s.yaml ~/.kube/config
 sed -i '' 's/127.0.0.1/192.168.0.150/' ~/.kube/config   # macOS; en Linux: sed -i 's/127.0.0.1/.../'
@@ -60,7 +60,7 @@ chmod 600 ~/.kube/config
 kubectl get nodes
 ```
 
-En la práctica, en `k3s01` se usa `sudo kubectl` directo en la VM en vez de llevarse el kubeconfig afuera — más simple para un solo nodo administrado por SSH, a costa de depender de SSH para cada `kubectl`. Llevarse el kubeconfig vale la pena si se administra seguido desde el equipo local.
+En la práctica, en `k3s` se usa `sudo kubectl` directo en la VM en vez de llevarse el kubeconfig afuera — más simple para un solo nodo administrado por SSH, a costa de depender de SSH para cada `kubectl`. Llevarse el kubeconfig vale la pena si se administra seguido desde el equipo local.
 
 ## Registry insecure (Nexus) — necesario si vas a pullear imágenes propias
 
@@ -69,11 +69,11 @@ Si algún Deployment va a usar una imagen pusheada al [Docker registry de Nexus]
 ```yaml
 # /etc/rancher/k3s/registries.yaml — crear/editar y reiniciar k3s (systemctl restart k3s) para aplicar
 mirrors:
-  "<ip-devops01>:8082":
+  "<ip-devops>:8082":
     endpoint:
-      - "http://<ip-devops01>:8082"
+      - "http://<ip-devops>:8082"
 configs:
-  "<ip-devops01>:8082":
+  "<ip-devops>:8082":
     tls:
       insecure_skip_verify: true
 ```

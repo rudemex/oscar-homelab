@@ -40,9 +40,9 @@ pvesh get /nodes/oscar-core/status   # CPU/RAM/uptime del nodo vía API local
 
 ## Autostart de VMs (`onboot`)
 
-**Estado:** las 4 VMs (`haos-18.2`, `core01`, `k3s01`, `devops01`) tienen `onboot: 1`.
+**Estado:** las 4 VMs (`haos-18.2`, `core`, `k3s`, `devops`) tienen `onboot: 1`.
 
-Encontrado (2026-09-15): solo `haos-18.2` (Home Assistant) tenía `onboot: 1` seteado. `core01`, `k3s01` y `devops01` no tenían el flag — por default en Proxmox eso es `0` (apagado). Adentro de esas VMs todo estaba bien configurado para autorecuperarse (`docker`/`k3s` habilitados como servicio systemd, contenedores con `restart: unless-stopped`), pero eso no importa si la VM en sí nunca prende: tras un reinicio del host `oscar-core` (corte de luz, reinicio manual, update de kernel), las tres VMs principales se quedaban apagadas hasta encenderlas a mano.
+Encontrado (2026-09-15): solo `haos-18.2` (Home Assistant) tenía `onboot: 1` seteado. `core`, `k3s` y `devops` no tenían el flag — por default en Proxmox eso es `0` (apagado). Adentro de esas VMs todo estaba bien configurado para autorecuperarse (`docker`/`k3s` habilitados como servicio systemd, contenedores con `restart: unless-stopped`), pero eso no importa si la VM en sí nunca prende: tras un reinicio del host `oscar-core` (corte de luz, reinicio manual, update de kernel), las tres VMs principales se quedaban apagadas hasta encenderlas a mano.
 
 Verificar/corregir:
 
@@ -51,7 +51,7 @@ qm config <vmid> | grep onboot    # (unset) = no arranca solo
 qm set <vmid> --onboot 1
 ```
 
-No confundir con el orden de arranque (`qm set <vmid> --startup order=X`) — con 3 VMs en el mismo host y sin dependencia dura de boot entre ellas (k3s no depende de que devops01 esté arriba para *arrancar*, solo para pullear imágenes de Nexus en runtime), no hizo falta definir orden, solo que las tres tengan el flag en `1`.
+No confundir con el orden de arranque (`qm set <vmid> --startup order=X`) — con 3 VMs en el mismo host y sin dependencia dura de boot entre ellas (k3s no depende de que devops esté arriba para *arrancar*, solo para pullear imágenes de Nexus en runtime), no hizo falta definir orden, solo que las tres tengan el flag en `1`.
 
 ## Nunca
 

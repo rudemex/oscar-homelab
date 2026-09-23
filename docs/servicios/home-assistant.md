@@ -72,7 +72,7 @@ Home Assistant rechaza por defecto cualquier request que declare venir de un pro
 
 **Ojo con la versión:** en Home Assistant **2026.8+**, esto ya no se configura en `configuration.yaml` — un bloque `http: trusted_proxies: [...]` ahí se ignora en silencio, sin error, lo que hace parecer que "no hizo nada" (así fue acá: quedó bien escrito, pasó `ha core check`, y el 400 siguió igual). El lugar real es la UI:
 
-**Configuración → Sistema → Red → Servidor HTTP → Proxies de confianza** → agregar `192.168.0.156` (`core01`, donde corre `cloudflared` con `network_mode: host`).
+**Configuración → Sistema → Red → Servidor HTTP → Proxies de confianza** → agregar `192.168.0.156` (`core`, donde corre `cloudflared` con `network_mode: host`).
 
 Si en algún momento se migra a una instalación más vieja que no tenga ese panel en Red, ahí sí correspondería el bloque YAML de arriba — confirmar la versión antes de asumir cuál de los dos caminos aplica.
 

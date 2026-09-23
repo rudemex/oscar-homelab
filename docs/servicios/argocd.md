@@ -5,15 +5,15 @@ sidebar_position: 7
 
 # Argo CD
 
-**Estado:** Actual — desplegado en `k3s01`, 8 Applications reales corriendo (`root-app`, `oscar-led-controller`, `ci-demo`, `searxng`, `infisical-operator`, `headlamp`, `argocd-config`, `coredns-custom`), todas `Synced` contra Forgejo  
-**Dónde corre:** `k3s01` (192.168.0.150), namespace `argocd`  
+**Estado:** Actual — desplegado en `k3s`, 8 Applications reales corriendo (`root-app`, `oscar-led-controller`, `ci-demo`, `searxng`, `infisical-operator`, `headlamp`, `argocd-config`, `coredns-custom`), todas `Synced` contra Forgejo  
+**Dónde corre:** `k3s` (192.168.0.150), namespace `argocd`  
 **Sizing inicial:** ~1–2 GB RAM para instalación pequeña, validar métricas  
 **Red/puertos:** `argocd-server` es `ClusterIP` (80/443, sin `LoadBalancer`/ServiceLB) — se expone vía `Ingress` de Traefik en `http://argocd.oscar.home` (manifiesto en `oscar-gitops/infra/argocd/manifests/ingress.yaml`, gestionado por la Application `argocd-config`), solo alcanzable desde la LAN con DNS apuntado a AdGuard — nunca a internet (ADR-005)  
 **Persistencia:** estado principalmente reconstruible; config declarativa en el repo `oscar-gitops` (origen real en Forgejo desde [ADR-012](../arquitectura/decisiones-arquitectonicas.md#adr-012--forgejo-como-mirror-de-solo-lectura-de-oscar-gitops-no-origen), no GitHub)
 
 ## Token de Homepage (rotado 2026-09-21)
 
-El widget de Argo CD en Homepage usa una cuenta propia de solo lectura, `homepage` (`accounts.homepage: apiKey` en `argocd-cm`), con un token JWT en el campo `key` del `services.yaml` de `core01`. El 2026-09-21 el token anterior quedó expuesto en una salida de consola y se **rotó**: se generó uno nuevo por la API (`POST /api/v1/account/homepage/token`, con la sesión de `admin`), se verificó el widget (lee las 8 aplicaciones) y recién entonces se **revocó el viejo** (`DELETE /api/v1/account/homepage/token/<id>`, comprobado con `401`). El valor vive solo en Vaultwarden y en el `services.yaml`; no está en Git. Para rotarlo de nuevo, el mismo procedimiento; el `id` del token es el `jti` de su JWT.
+El widget de Argo CD en Homepage usa una cuenta propia de solo lectura, `homepage` (`accounts.homepage: apiKey` en `argocd-cm`), con un token JWT en el campo `key` del `services.yaml` de `core`. El 2026-09-21 el token anterior quedó expuesto en una salida de consola y se **rotó**: se generó uno nuevo por la API (`POST /api/v1/account/homepage/token`, con la sesión de `admin`), se verificó el widget (lee las 8 aplicaciones) y recién entonces se **revocó el viejo** (`DELETE /api/v1/account/homepage/token/<id>`, comprobado con `401`). El valor vive solo en Vaultwarden y en el `services.yaml`; no está en Git. Para rotarlo de nuevo, el mismo procedimiento; el `id` del token es el `jti` de su JWT.
 
 ## Applications reales
 
@@ -84,14 +84,14 @@ Cambiar `replicas: 2` en Git; Argo CD detecta el commit y reconcilia el Deployme
 
 ## Checklist de despliegue
 
-- [x] hostname y ubicación decididos (`argocd.oscar.home`, Ingress Traefik en `k3s01`);
+- [x] hostname y ubicación decididos (`argocd.oscar.home`, Ingress Traefik en `k3s`);
 - [x] imagen/versión fijada — manifiesto oficial pineado a una tag concreta al instalar, no `stable`;
 - [x] puertos documentados (`ClusterIP` 80/443 interno, expuesto por `Ingress`, no por `LoadBalancer`);
 - [x] volumen/persistencia definida — reconstruible desde Git + `argocd admin export` para el resto (ver Backup abajo);
 - [ ] `.env.example` sin secretos en Git — no aplica del mismo modo que un Docker Compose; la credencial del repo (`oscar-gitops-forgejo`) es un Secret de k8s, no un `.env`;
 - [x] credenciales reales fuera de Git (Secret `oscar-gitops-forgejo` en el namespace `argocd`, nunca en el repo);
 - [ ] backup definido antes de cargar datos importantes — el mecanismo (`argocd admin export`) está documentado pero no se corrió nunca en la práctica, no hay un backup real guardado todavía;
-- [x] healthcheck o monitor de disponibilidad — monitor `Argo CD (k3s01)` en Uptime Kuma y en la status page (2026-09-20), además del `siteMonitor` de Homepage;
+- [x] healthcheck o monitor de disponibilidad — monitor `Argo CD (k3s)` en Uptime Kuma y en la status page (2026-09-20), además del `siteMonitor` de Homepage;
 - [ ] métricas/logs incorporados cuando sea razonable — sin Prometheus/Grafana desplegado todavía, pendiente del stack de observabilidad;
 - [ ] procedimiento de actualización y rollback documentado — el de password perdida y OutOfSync sí existen (ver Troubleshooting), el de actualizar la versión de Argo CD en sí no.
 

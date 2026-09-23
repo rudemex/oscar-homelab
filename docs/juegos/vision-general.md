@@ -5,7 +5,7 @@ sidebar_position: 1
 
 # Servidores de juegos
 
-**Estado:** Laboratorio. Ninguno de los dos servidores de esta sección es parte de la arquitectura core de O.S.C.A.R. — son un uso divertido y legítimo del homelab, pero no deben competir por recursos con `core01`, `devops01` o `k3s01` cuando importa que esos anden bien.
+**Estado:** Laboratorio. Ninguno de los dos servidores de esta sección es parte de la arquitectura core de O.S.C.A.R. — son un uso divertido y legítimo del homelab, pero no deben competir por recursos con `core`, `devops` o `k3s` cuando importa que esos anden bien.
 
 ## Por qué son distintos al resto de "servicios"
 
@@ -22,11 +22,11 @@ Todo lo demás en [servicios](../servicios/catalogo.md) existe para operar o apr
 | [Minecraft Java](./minecraft.md) | 2 GB | 4 GB+ | crece con mods/plugins y con la distancia de renderizado |
 | [Counter-Strike 2](./counter-strike.md) | 4 GB | 6 GB+ | sensible a CPU además de RAM; tickrate alto pide más núcleo dedicado |
 
-Con los 32 GB actuales del Dell (ver [distribución con 32 GB](../hardware/dell-7060.md#distribución-con-32-gb)) ya repartidos entre Proxmox + `core01` + `devops01` + `k3s01` + observabilidad, queda margen para uno de los dos corriendo de forma más permanente sin apretar — pero **no ambos a la vez, todo el tiempo, además del resto del stack**. La forma más segura de usarlos sigue siendo on-demand (`qm start`/`docker compose up -d` cuando se va a jugar, `down`/`stop` después), reservando "dejarlo prendido siempre" para uno solo de los dos y solo si se valida que no genera presión sobre el resto de servicios.
+Con los 32 GB actuales del Dell (ver [distribución con 32 GB](../hardware/dell-7060.md#distribución-con-32-gb)) ya repartidos entre Proxmox + `core` + `devops` + `k3s` + observabilidad, queda margen para uno de los dos corriendo de forma más permanente sin apretar — pero **no ambos a la vez, todo el tiempo, además del resto del stack**. La forma más segura de usarlos sigue siendo on-demand (`qm start`/`docker compose up -d` cuando se va a jugar, `down`/`stop` después), reservando "dejarlo prendido siempre" para uno solo de los dos y solo si se valida que no genera presión sobre el resto de servicios.
 
 ## Dónde corren
 
-Ambos se documentan como contenedores Docker en una VM — no ameritan una VM dedicada por sí solos. Puede ser `core01` si se van a usar ocasionalmente y coordinar con el resto, o una VM de laboratorio separada y apagada la mayor parte del tiempo si el uso es más frecuente y no se quiere arriesgar a saturar `core01` justo cuando otro servicio lo necesita.
+Ambos se documentan como contenedores Docker en una VM — no ameritan una VM dedicada por sí solos. Puede ser `core` si se van a usar ocasionalmente y coordinar con el resto, o una VM de laboratorio separada y apagada la mayor parte del tiempo si el uso es más frecuente y no se quiere arriesgar a saturar `core` justo cuando otro servicio lo necesita.
 
 ## Exposición a Internet
 

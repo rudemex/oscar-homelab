@@ -5,7 +5,7 @@ sidebar_position: 20
 
 # Vaultwarden
 
-**Estado:** Actual · Seguridad — corriendo en `core01`
+**Estado:** Actual · Seguridad — corriendo en `core`
 **Dónde corre:** Docker Core (`/srv/oscar/apps/vaultwarden/`)
 **Sizing inicial:** ~100 MB RAM, prácticamente sin CPU
 **Red/puertos:** publicado solo en `127.0.0.1:8082` (loopback, no LAN) — el acceso real es vía [Cloudflare Tunnel](./cloudflare-tunnel.md) en `vault.oscarlab.com.ar`, que también resuelve el TLS
@@ -50,7 +50,7 @@ services:
       - "127.0.0.1:8082:80"
 ```
 
-Sin reverse proxy propio (Caddy) ni certificado self-signed: el binding a `127.0.0.1` deja el puerto fuera de la LAN, y [Cloudflare Tunnel](./cloudflare-tunnel.md) —que corre con `network_mode: host` en el mismo `core01`— es el único que lo alcanza, terminando TLS con un certificado real de Cloudflare. Es un caso concreto de por qué [no exponer directo](../seguridad/exposicion-internet.md): antes de esto hubo un intento con Caddy + `tls internal` que nunca terminó de andar bien en el navegador; el dominio real resuelve ese problema de raíz en vez de parchearlo.
+Sin reverse proxy propio (Caddy) ni certificado self-signed: el binding a `127.0.0.1` deja el puerto fuera de la LAN, y [Cloudflare Tunnel](./cloudflare-tunnel.md) —que corre con `network_mode: host` en el mismo `core`— es el único que lo alcanza, terminando TLS con un certificado real de Cloudflare. Es un caso concreto de por qué [no exponer directo](../seguridad/exposicion-internet.md): antes de esto hubo un intento con Caddy + `tls internal` que nunca terminó de andar bien en el navegador; el dominio real resuelve ese problema de raíz en vez de parchearlo.
 
 ```bash
 docker compose up -d

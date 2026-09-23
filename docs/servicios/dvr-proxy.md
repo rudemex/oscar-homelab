@@ -6,7 +6,7 @@ sidebar_position: 27
 # DVR Proxy
 
 **Estado:** Retirado — reemplazado por [go2rtc](./go2rtc.md)
-**Dónde corría:** Docker Core (`/srv/oscar/apps/dvr-proxy/`) — contenedor parado (`docker compose down`), archivos sin borrar en `core01` por si hace falta volver atrás
+**Dónde corría:** Docker Core (`/srv/oscar/apps/dvr-proxy/`) — contenedor parado (`docker compose down`), archivos sin borrar en `core` por si hace falta volver atrás
 **Sizing inicial:** liviano (imagen `python:3.12-slim`, un solo script, sin dependencias externas)
 **Red/puertos:** `8099` (ya no en uso)
 **Persistencia:** ninguna — no guardaba nada, solo reenviaba imágenes del DVR
@@ -23,7 +23,7 @@ Hubo tres vueltas completas antes de retirarlo, las tres documentadas abajo porq
 
 1. **v1, snapshots cada 3s**: la versión más simple, un `<img>` con el `src` reescrito por JS cada tanto.
 2. **v2, MJPEG real**: el firmware Dahua expone un endpoint de **MJPEG** (`/cgi-bin/mjpg/video.cgi`), un stream HTTP `multipart/x-mixed-replace` que los navegadores reproducen nativo en un `<img>` sin ningún JS — video real a ~5-6 fps. Andaba perfecto **en la LAN**, pero se rompió al publicar el proxy por el Tunnel para que la tarjeta de Homepage cargara bien por HTTPS: Cloudflare no sostiene un stream de longitud indefinida (ver más abajo, "Cloudflare Tunnel no sostiene un stream infinito") — el pedido quedaba "pending" para siempre en el navegador, sin importar que el proxy funcionara perfecto.
-3. **v3, snapshots cada 1s**: mismo mecanismo que v1, pero mucho más frecuente — a simple vista se veía casi en vivo, y como cada pedido es una respuesta HTTP normal y acotada (no un stream sin fin), Cloudflare la manejaba sin problema. Funcionó técnicamente, pero el usuario lo probó y no le convenció — "se ve muy trabado". Eso llevó a evaluar Frigate para tener video real; se revisaron los recursos de `core01` (2 vCPUs, sin GPU, 45GB libres compartidos) y Frigate completo (detección + grabación continua) hubiera competido por esos recursos con el resto de los servicios — se optó por **go2rtc**, el mismo motor de re-streaming que usa Frigate por debajo pero sin detección ni grabación, que reemplazó a `dvr-proxy` del todo.
+3. **v3, snapshots cada 1s**: mismo mecanismo que v1, pero mucho más frecuente — a simple vista se veía casi en vivo, y como cada pedido es una respuesta HTTP normal y acotada (no un stream sin fin), Cloudflare la manejaba sin problema. Funcionó técnicamente, pero el usuario lo probó y no le convenció — "se ve muy trabado". Eso llevó a evaluar Frigate para tener video real; se revisaron los recursos de `core` (2 vCPUs, sin GPU, 45GB libres compartidos) y Frigate completo (detección + grabación continua) hubiera competido por esos recursos con el resto de los servicios — se optó por **go2rtc**, el mismo motor de re-streaming que usa Frigate por debajo pero sin detección ni grabación, que reemplazó a `dvr-proxy` del todo.
 
 ## Por qué un proxy y no apuntar directo al DVR
 
@@ -55,7 +55,7 @@ services:
       DVR_PASS: ${DVR_PASS}
 ```
 
-`.env` (no versionado — vive solo en `core01`):
+`.env` (no versionado — vive solo en `core`):
 
 ```bash
 DVR_HOST=192.168.0.224

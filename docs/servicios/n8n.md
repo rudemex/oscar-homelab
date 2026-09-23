@@ -5,9 +5,9 @@ sidebar_position: 12
 
 # n8n
 
-**Estado:** Actual · Automatización — corriendo en `core01`, con PostgreSQL dedicado (no el SQLite por defecto de n8n)
+**Estado:** Actual · Automatización — corriendo en `core`, con PostgreSQL dedicado (no el SQLite por defecto de n8n)
 **Dónde corre:** Docker Core (`/srv/oscar/apps/n8n/`)
-**Sizing real:** compartiendo `core01` con el resto del stack, sin límites de CPU/RAM propios en el compose — medir antes de fijarlos
+**Sizing real:** compartiendo `core` con el resto del stack, sin límites de CPU/RAM propios en el compose — medir antes de fijarlos
 **Red/puertos:** `5678` publicado en toda la LAN (`0.0.0.0:5678`, no solo loopback) — no hay bypass de Cloudflare Access para webhooks todavía, ver "Seguridad" abajo
 **Persistencia:** volumen nombrado `n8n-data` (workflows, encryption key) + volumen `postgres-data` separado (DB real, no el SQLite embebido)
 
@@ -92,14 +92,14 @@ docker compose up -d
 
 ## Checklist de despliegue
 
-- [x] hostname y ubicación decididos (`core01`, `n8n.oscarlab.com.ar` vía Cloudflare Tunnel);
+- [x] hostname y ubicación decididos (`core`, `n8n.oscarlab.com.ar` vía Cloudflare Tunnel);
 - [x] imagen/versión fijada (`2.38.7` n8n, `17` postgres), sin tags flotantes;
 - [x] puertos documentados (`5678`);
 - [x] volumen/persistencia definida (`n8n-data` + `postgres-data`, ambos nombrados);
-- [x] `.env.example` sin secretos en Git — los reales viven solo en `core01`;
+- [x] `.env.example` sin secretos en Git — los reales viven solo en `core`;
 - [x] credenciales reales fuera de Git (Vaultwarden);
 - [ ] backup definido antes de cargar datos importantes — el procedimiento está documentado ([Backup de n8n](../backup-dr/backup-n8n.md)) pero no hay un cron/automatización real corriéndolo todavía;
-- [x] healthcheck o monitor de disponibilidad (Uptime Kuma, "n8n (core01)");
+- [x] healthcheck o monitor de disponibilidad (Uptime Kuma, "n8n (core)");
 - [ ] métricas/logs incorporados — pendiente del stack de observabilidad;
 - [ ] procedimiento de actualización y rollback documentado.
 

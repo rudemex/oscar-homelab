@@ -5,8 +5,8 @@ sidebar_position: 4
 
 # Sonatype Nexus Repository
 
-**Estado:** Actual — Nexus 3.96.1 corriendo en `devops01`, admin real configurado, acceso anónimo deshabilitado, repos npm y Docker creados y verificados
-**Dónde corre:** VM `devops01`, `/srv/oscar/apps/nexus/` (comparte la VM con Forgejo y el CI Runner — ver [sizing real](./forgejo.md) tras la ampliación a 6 vCPU/12 GB)
+**Estado:** Actual — Nexus 3.96.1 corriendo en `devops`, admin real configurado, acceso anónimo deshabilitado, repos npm y Docker creados y verificados
+**Dónde corre:** VM `devops`, `/srv/oscar/apps/nexus/` (comparte la VM con Forgejo y el CI Runner — ver [sizing real](./forgejo.md) tras la ampliación a 6 vCPU/12 GB)
 **Sizing real:** sin overrides de JVM propios, usando los defaults de la imagen — medir antes de ajustar
 **Red/puertos:** `8081` (UI/API, accesible también sin puerto vía `http://nexus.oscar.home` — ver "Reverse proxy" abajo), `8082` (registry Docker — puerto HTTP dedicado, Nexus lo requiere aparte de la UI, siempre por IP directa, nunca por el hostname)
 **Persistencia:** `/srv/oscar/data/nexus` (blob stores, config, metadata — `chown 200:200`, uid con el que corre el proceso dentro del contenedor)
@@ -26,7 +26,7 @@ Todos creados vía la API REST (`POST /service/rest/v1/repositories/<formato>/<t
 
 ## Reverse proxy — Nginx Proxy Manager
 
-`nexus.oscar.home` (sin puerto) tiene un Proxy Host real en [Nginx Proxy Manager](./nginx-proxy-manager.md) (`core01`, `192.168.0.156`) → `forward_host: 192.168.0.151`, `forward_port: 8081` — mismo patrón que `git.oscar.home`, verificado devolviendo el HTML real de la UI de Nexus (`<title>Sonatype Nexus Repository</title>`) a través de NPM, no solo un `200` genérico.
+`nexus.oscar.home` (sin puerto) tiene un Proxy Host real en [Nginx Proxy Manager](./nginx-proxy-manager.md) (`core`, `192.168.0.156`) → `forward_host: 192.168.0.151`, `forward_port: 8081` — mismo patrón que `git.oscar.home`, verificado devolviendo el HTML real de la UI de Nexus (`<title>Sonatype Nexus Repository</title>`) a través de NPM, no solo un `200` genérico.
 
 El registry Docker (`8082`) **no** pasa por NPM — sigue siendo IP directa (`192.168.0.151:8082`) en todos lados donde se lo referencia (`insecure-registries` de Docker, `registries.yaml` de containerd en k3s, `image.repository` en los charts de Helm). Meterlo detrás de un proxy cambiaría el host:puerto que ven Docker/containerd, lo que rompería la config de `insecure-registries` existente en cada host sin ganar nada — el registry no necesita URL linda, lo consumen máquinas, no un navegador.
 
@@ -53,14 +53,14 @@ Laboratorio: configurar npm proxy, apuntar un proyecto Node al registry interno,
 
 ## Checklist de despliegue
 
-- [x] hostname y ubicación decididos (`devops01`, `nexus.oscar.home` para la UI, IP directa para el registry Docker);
+- [x] hostname y ubicación decididos (`devops`, `nexus.oscar.home` para la UI, IP directa para el registry Docker);
 - [x] imagen/versión fijada, evitando tags flotantes en servicios importantes (`3.96.1`);
 - [x] puertos documentados (`8081` UI/API, `8082` Docker registry);
 - [x] volumen/persistencia definida (`/srv/oscar/data/nexus`);
 - [x] `.env.example` sin secretos en Git — no aplica, nada de esto vive en un repo Git, solo en la VM;
 - [x] credenciales reales fuera de Git (admin real creado, en Vaultwarden);
 - [ ] backup definido antes de cargar datos importantes — pendiente, hoy no hay artefactos reales cargados todavía;
-- [x] healthcheck o monitor de disponibilidad — "Nexus (devops01)" en Uptime Kuma, más `beszel-agent` para CPU/RAM/disco del host;
+- [x] healthcheck o monitor de disponibilidad — "Nexus (devops)" en Uptime Kuma, más `beszel-agent` para CPU/RAM/disco del host;
 - [ ] métricas/logs incorporados cuando sea razonable;
 - [ ] procedimiento de actualización y rollback documentado;
 - [x] **cleanup policy del repo Docker** — creada y asignada por UI (bloqueada por API, ver arriba).

@@ -1,11 +1,11 @@
 ---
-title: Crear VM core01
+title: Crear VM core
 sidebar_position: 7
 ---
 
-# VM `core01`
+# VM `core`
 
-`core01` será el primer host Linux de aplicaciones Docker.
+`core` será el primer host Linux de aplicaciones Docker.
 
 ## Sizing inicial
 
@@ -25,26 +25,26 @@ Esta página decía 4 GB y una nota de que "no cambia por tener más RAM disponi
 No asignar toda la RAM física entre VMs; Proxmox y filesystem necesitan margen.
 
 :::caution IP y VMID corregidos tras la experiencia real (2026-09-15)
-Esta página usaba `qm clone 9000 101 ...` y `192.168.20.11/24` (el rango `SERVERS` del [plan de direccionamiento](../red/plan-direccionamiento.md) con VLANs) — ninguno de los dos es lo que terminó pasando. **VLANs y segmentación son objetivo, no están implementadas hoy** (ver [migración a red segmentada](../red/migracion-a-red-segmentada.md), "Estado A: red actual" — sigue siendo un único `192.168.0.0/24` plano, sin VLANs, sobre el router de fábrica). Y el VMID `101` terminó ocupado por `haos-18.2` (Home Assistant), no por `core01`. Los valores de abajo son los reales, verificados con `qm config` contra `oscar-core` — no un ejemplo.
+Esta página usaba `qm clone 9000 101 ...` y `192.168.20.11/24` (el rango `SERVERS` del [plan de direccionamiento](../red/plan-direccionamiento.md) con VLANs) — ninguno de los dos es lo que terminó pasando. **VLANs y segmentación son objetivo, no están implementadas hoy** (ver [migración a red segmentada](../red/migracion-a-red-segmentada.md), "Estado A: red actual" — sigue siendo un único `192.168.0.0/24` plano, sin VLANs, sobre el router de fábrica). Y el VMID `101` terminó ocupado por `haos-18.2` (Home Assistant), no por `core`. Los valores de abajo son los reales, verificados con `qm config` contra `oscar-core` — no un ejemplo.
 :::
 
 ## VMs reales (tabla de referencia)
 
-Las tres VMs de aplicación se crearon con el mismo procedimiento, solo cambia VMID/nombre/IP/sizing. Esta página desarrolla el paso a paso completo con `core01` como ejemplo; para `k3s01`/`devops01` alcanza con repetir los mismos pasos sustituyendo estos valores:
+Las tres VMs de aplicación se crearon con el mismo procedimiento, solo cambia VMID/nombre/IP/sizing. Esta página desarrolla el paso a paso completo con `core` como ejemplo; para `k3s`/`devops` alcanza con repetir los mismos pasos sustituyendo estos valores:
 
 | VM | VMID | IP | vCPU | RAM | Rol |
 |---|---|---|---|---|---|
-| `core01` | 102 | `192.168.0.156/24` | 2 | 4 GB | Docker — servicios base (Homepage, NPM, Beszel hub, Cloudflare Tunnel, MySpeed, Glances) |
-| `k3s01` | 103 | `192.168.0.150/24` | 4 | 4 GB | k3s — Argo CD, apps desplegadas por GitOps. `cpu: host` (AVX, para Hermes/Claude Code) |
-| `devops01` | 104 | `192.168.0.151/24` | 6 | 6 GB | Docker — Forgejo, Nexus, CI Runner |
-| `lab01` | 105 | `192.168.0.152/24` | 4 | 2 GB | Docker — vacía desde que CS2 migró a `games` (2026-09-23), pendiente reutilizar como `lab` |
+| `core` | 102 | `192.168.0.156/24` | 2 | 4 GB | Docker — servicios base (Homepage, NPM, Beszel hub, Cloudflare Tunnel, MySpeed, Glances) |
+| `k3s` | 103 | `192.168.0.150/24` | 4 | 4 GB | k3s — Argo CD, apps desplegadas por GitOps. `cpu: host` (AVX, para Hermes/Claude Code) |
+| `devops` | 104 | `192.168.0.151/24` | 6 | 6 GB | Docker — Forgejo, Nexus, CI Runner |
+| `lab` | 105 | `192.168.0.152/24` | 4 | 2 GB | Docker — vacía desde que CS2 migró a `games` (2026-09-23), pendiente reutilizar como `lab` |
 | `automation` | 107 | `192.168.0.153/24` | 2 | 4 GB | Docker — n8n+PostgreSQL+Redis+worker |
 | `services` | 108 | `192.168.0.154/24` | 2 | 2 GB | **LXC unprivileged**, no VM — Docker con `nesting=1,keyctl=1`. Vaultwarden, SearXNG, DocuSeal |
 | `games` | 109 | `192.168.0.155/24` | 4 | 6 GB | Docker — Minecraft, CS2. `cpu: host` (SSE4.2, para CS2) |
 
-RAM y sizing bajados el 2026-09-23 (right-sizing del paso 3 de la reorganización del rack — ver `REORGANIZACION_RACK.md`, raíz del repo) — los valores de la sección "Sizing inicial" de esta página quedaron como estaban para `core01` a modo de ejemplo histórico del paso a paso; los reales de todos los hosts están en esta tabla.
+RAM y sizing bajados el 2026-09-23 (right-sizing del paso 3 de la reorganización del rack — ver `REORGANIZACION_RACK.md`, raíz del repo) — los valores de la sección "Sizing inicial" de esta página quedaron como estaban para `core` a modo de ejemplo histórico del paso a paso; los reales de todos los hosts están en esta tabla.
 
-Gateway real para las tres: `192.168.0.1`. Ver el detalle de instalación específico de cada una en su propia página de servicio: [Forgejo](../servicios/forgejo.md) documenta la creación de `devops01`, no se repite acá.
+Gateway real para las tres: `192.168.0.1`. Ver el detalle de instalación específico de cada una en su propia página de servicio: [Forgejo](../servicios/forgejo.md) documenta la creación de `devops`, no se repite acá.
 
 ## Desde template
 
@@ -52,13 +52,13 @@ Estos comandos corren **en Proxmox** (por SSH o desde su consola web, Shell del 
 
 ```bash
 # 1. Clonar el template como VM nueva (clon completo, no linked)
-qm clone 9000 102 --name core01 --full
+qm clone 9000 102 --name core --full
 
 # 2. Asignar la IP fija real (red plana hoy, sin VLANs — ver nota arriba)
 qm set 102 --ipconfig0 ip=192.168.0.156/24,gw=192.168.0.1
 
 # 3. DNS — apuntar a AdGuard con fallback, no dejar el default de la imagen
-#    (bug real encontrado el 2026-09-16: core01 se creó con 8.8.8.8 fijo y
+#    (bug real encontrado el 2026-09-16: core se creó con 8.8.8.8 fijo y
 #    nunca se corrigió hasta que Homepage necesitó resolver *.oscar.home por
 #    primera vez, meses después — ningún contenedor del host podía resolver
 #    git.oscar.home/nexus.oscar.home hasta entonces)
@@ -72,8 +72,8 @@ qm set 102 --cores 2 --memory 8192
 
 # 5a. cpu: host — el default de Proxmox (kvm64) es deliberadamente conservador y
 #     no expone instrucciones modernas (AVX, SSE4.2, etc.) al guest. Se descubrió
-#     como gotcha real TRES veces: k3s01 (Hermes/Claude Code necesitaba AVX),
-#     lab01 (CS2 necesita SSE4.2) y games (mismo motivo, se nos olvidó replicarlo
+#     como gotcha real TRES veces: k3s (Hermes/Claude Code necesitaba AVX),
+#     lab (CS2 necesita SSE4.2) y games (mismo motivo, se nos olvidó replicarlo
 #     al crear la VM el 2026-09-23 y CS2 no arrancaba). Regla: cualquier VM que
 #     vaya a correr cargas pesadas/juegos/IA arranca con esto desde el vamos, no
 #     se agrega recién cuando algo falla.
@@ -93,7 +93,7 @@ qm set 102 --onboot 1
 qm start 102
 ```
 
-**Si la VM ya existe** (como pasó con `core01`, creada antes de que este paso existiera en la guía): el `--nameserver` de Cloud-Init solo aplica en el primer boot. Corregir a mano en `/etc/netplan/50-cloud-init.yaml` (`nameservers.addresses`) y `netplan apply` — no alcanza con `qm set` después de que la VM ya arrancó una vez.
+**Si la VM ya existe** (como pasó con `core`, creada antes de que este paso existiera en la guía): el `--nameserver` de Cloud-Init solo aplica en el primer boot. Corregir a mano en `/etc/netplan/50-cloud-init.yaml` (`nameservers.addresses`) y `netplan apply` — no alcanza con `qm set` después de que la VM ya arrancó una vez.
 
 Esperar unos segundos y validar que arrancó y que el guest agent responde:
 
@@ -130,7 +130,7 @@ sudo systemctl enable --now qemu-guest-agent
 
 ## Instalar Docker
 
-Comandos oficiales de Docker para Ubuntu (repositorio real de `download.docker.com`, no un script de terceros) — correr dentro de `core01`:
+Comandos oficiales de Docker para Ubuntu (repositorio real de `download.docker.com`, no un script de terceros) — correr dentro de `core`:
 
 ```bash
 # Agregar la clave GPG oficial de Docker

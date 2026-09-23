@@ -9,13 +9,13 @@ La tabla resume el rol previsto. **Objetivo** no significa “instalar ya”: ca
 
 | Servicio | Estado | Ubicación sugerida | Para qué lo usamos |
 |---|---|---|---|
-| [Docker y Docker Compose](./docker-compose.md) | **Actual** · Core | VM `core01` | dashboards y utilidades (n8n y Uptime Kuma migraron a `automation`/`monitor`, ver `REORGANIZACION_RACK.md`) |
-| [EasyPanel](./easypanel.md) | Laboratorio · Plataforma de apps | VM Docker dedicada o `core01` durante la etapa inicial | comparar un PaaS casero contra el flujo GitOps; redundante con Compose+k3s si no aporta algo distinto |
-| [Sonatype Nexus Repository](./nexus.md) | **Actual** · DevOps | VM `devops01` | proxy/cache de npm y registry Docker privado, usado por el CI real |
-| [Forgejo / Git local](./forgejo.md) | **Actual** · DevOps | VM `devops01` | origen real de `oscar-gitops` (ya no mirror), repos privados del homelab, GitOps completamente local |
-| [CI Runner](./ci-runner.md) | **Actual** · DevOps (Forgejo Actions) | VM `devops01` | pipeline real validado: lint → test → build → push a Nexus → actualiza GitOps → Argo CD despliega |
-| k3s + Traefik | **Actual** · Kubernetes | VM `k3s01` | cluster de un solo nodo, ingress controller para las apps con `*.oscar.home` |
-| [Argo CD](./argocd.md) | **Actual** · GitOps | cluster k3s (`k3s01`) | sincroniza `oscar-gitops` (Forgejo) — `root-app`, `oscar-led-controller`, `ci-demo` |
+| [Docker y Docker Compose](./docker-compose.md) | **Actual** · Core | VM `core` | dashboards y utilidades (n8n y Uptime Kuma migraron a `automation`/`monitor`, ver `REORGANIZACION_RACK.md`) |
+| [EasyPanel](./easypanel.md) | Laboratorio · Plataforma de apps | VM Docker dedicada o `core` durante la etapa inicial | comparar un PaaS casero contra el flujo GitOps; redundante con Compose+k3s si no aporta algo distinto |
+| [Sonatype Nexus Repository](./nexus.md) | **Actual** · DevOps | VM `devops` | proxy/cache de npm y registry Docker privado, usado por el CI real |
+| [Forgejo / Git local](./forgejo.md) | **Actual** · DevOps | VM `devops` | origen real de `oscar-gitops` (ya no mirror), repos privados del homelab, GitOps completamente local |
+| [CI Runner](./ci-runner.md) | **Actual** · DevOps (Forgejo Actions) | VM `devops` | pipeline real validado: lint → test → build → push a Nexus → actualiza GitOps → Argo CD despliega |
+| k3s + Traefik | **Actual** · Kubernetes | VM `k3s` | cluster de un solo nodo, ingress controller para las apps con `*.oscar.home` |
+| [Argo CD](./argocd.md) | **Actual** · GitOps | cluster k3s (`k3s`) | sincroniza `oscar-gitops` (Forgejo) — `root-app`, `oscar-led-controller`, `ci-demo` |
 | [Prometheus](./prometheus.md) | Objetivo · Observabilidad | VM observabilidad o k3s, según fase | métricas de hosts |
 | [Grafana](./grafana.md) | Objetivo · Observabilidad | VM observabilidad o Docker Core | dashboard de rack |
 | [Loki](./loki.md) | Objetivo · Logs | VM observabilidad o k3s | logs de contenedores |
@@ -26,9 +26,9 @@ La tabla resume el rol previsto. **Objetivo** no significa “instalar ya”: ca
 | [Beszel](./beszel.md) | **Actual** · Observabilidad | Docker Core | monitoreo liviano de CPU/RAM/disco, alternativa a Prometheus+Grafana |
 | [Home Assistant](./home-assistant.md) | **Actual** · Hogar | VM dedicada (vmid 101) | automatización doméstica |
 | [ProxMenux Monitor](./proxmenux-monitor.md) | **Actual** · Observabilidad | systemd en `oscar-core` | dashboard de CPU/RAM/disco/red del hipervisor, instalado fuera de Docker |
-| [Glances](./glances.md) | **Actual** · Observabilidad | Docker Core | fuente de datos real de CPU/RAM/disco de `core01` para el header de Homepage, con tarjeta y UI propia (procesos, red, contenedores) |
+| [Glances](./glances.md) | **Actual** · Observabilidad | Docker Core | fuente de datos real de CPU/RAM/disco de `core` para el header de Homepage, con tarjeta y UI propia (procesos, red, contenedores) |
 | [MySpeed](./myspeed.md) | **Actual** · Observabilidad | Docker Core | historial de velocidad de internet, tests automáticos |
-| [Portainer](./portainer.md) | **Actual** · Infraestructura | Docker Core (server) + `devops01` (agente) | consola de contenedores/logs de `core01`+`devops01` — solo lectura/estado, no reemplaza Git como fuente de la config |
+| [Portainer](./portainer.md) | **Actual** · Infraestructura | Docker Core (server) + `devops` (agente) | consola de contenedores/logs de `core`+`devops` — solo lectura/estado, no reemplaza Git como fuente de la config |
 | [Nginx Proxy Manager](./nginx-proxy-manager.md) | **Actual** · Infraestructura | Docker Core | reverse proxy interno para las apps de Docker Compose (Forgejo); las apps de k3s van directo a Traefik, no por acá |
 | [Relay SMTP (Brevo)](./smtp-relay.md) | **Actual** · Infraestructura | Docker Core | `boky/postfix` relay-only, para que otros servicios (ej. Vaultwarden) puedan mandar mail sin exponer credenciales SMTP reales a cada uno |
 | [Cloudflare Tunnel + Access](./cloudflare-tunnel.md) | **Actual** · Acceso remoto | Docker Core | publica Vaultwarden/n8n/Kuma/Homepage/Beszel/ProxMenux Monitor/Home Assistant sin abrir puertos, cada uno con Access delante (7 hostnames reales) |
@@ -137,13 +137,13 @@ De las candidatas en evaluación, `Karakeep` (bookmarking con full-text + búsqu
 | App | Qué hace | Necesidad real / qué reemplazaría | Esfuerzo | Dónde |
 |---|---|---|---|---|
 | ~~[Docuseal](https://www.docuseal.com/)~~ **Actual (2026-09-23)** | Firma electrónica de documentos (PDF/Word), campos drag-and-drop, plantillas, auditoría | Alternativa a DocuSign/HelloSign — firmar sin depender de un tercero | Bajo en la práctica — imagen standalone, un solo contenedor | `services` (LXC, Docker Compose) |
-| [Nextcloud](https://nextcloud.com/) | Sync/share de archivos, calendario, contactos, edición colaborativa | Reemplaza Google Drive/Dropbox — el único candidato de esta lista con volumen de datos real y creciente | Alto — PHP+DB+caché, más pesado que el resto de esta lista junta | Docker Compose, `core01` (o VM propia si crece) |
-| [Garage](https://garagehq.deuxfleurs.fr/) | Storage S3-compatible, pensado para clusters chicos/homelab (Rust, footprint bajo) | Responde lo mismo que MinIO pero sin el peso de MinIO — vale compararlos antes de elegir cuál de los dos, no los dos (ver "Decisiones futuras de plataforma" abajo) | Bajo | Docker Compose, `core01` |
+| [Nextcloud](https://nextcloud.com/) | Sync/share de archivos, calendario, contactos, edición colaborativa | Reemplaza Google Drive/Dropbox — el único candidato de esta lista con volumen de datos real y creciente | Alto — PHP+DB+caché, más pesado que el resto de esta lista junta | Docker Compose, `core` (o VM propia si crece) |
+| [Garage](https://garagehq.deuxfleurs.fr/) | Storage S3-compatible, pensado para clusters chicos/homelab (Rust, footprint bajo) | Responde lo mismo que MinIO pero sin el peso de MinIO — vale compararlos antes de elegir cuál de los dos, no los dos (ver "Decisiones futuras de plataforma" abajo) | Bajo | Docker Compose, `core` |
 | [Firefly III](https://www.firefly-iii.org/) | Finanzas personales — presupuesto, categorización de gastos, reportes | Ninguna herramienta hoy cubre esto | Bajo-medio — app + DB | Docker Compose |
 
 **Criterio de adopción aplicado a las dos más fuertes** (las que el usuario recordaba específicamente):
 
-- **Docuseal** — (1) firmar documentos sin depender de un SaaS de terceros; (2) nada hoy resuelve esto; (3) PDFs/Word originales + metadata de firmas en Postgres — dato real, no recreable si se pierde; (4) sí, backup de Postgres + del volumen de documentos, mismo criterio que cualquier servicio con estado real (ver [estrategia 3-2-1](../backup-dr/estrategia-321.md)); (5) healthcheck HTTP simple; (6) Postgres + Redis nuevos si no se reusan los que ya corren en `core01`/`k3s`; (7) sí, stateless en config — el estado real (documentos firmados) necesita su propio backup, no alcanza con reconstruir desde Git.
+- **Docuseal** — (1) firmar documentos sin depender de un SaaS de terceros; (2) nada hoy resuelve esto; (3) PDFs/Word originales + metadata de firmas en Postgres — dato real, no recreable si se pierde; (4) sí, backup de Postgres + del volumen de documentos, mismo criterio que cualquier servicio con estado real (ver [estrategia 3-2-1](../backup-dr/estrategia-321.md)); (5) healthcheck HTTP simple; (6) Postgres + Redis nuevos si no se reusan los que ya corren en `core`/`k3s`; (7) sí, stateless en config — el estado real (documentos firmados) necesita su propio backup, no alcanza con reconstruir desde Git.
 - **Nextcloud** — (1) sync/share de archivos sin depender de Google/Dropbox; (2) nada hoy resuelve esto — es el hueco más real de la lista; (3) archivos de usuario reales, potencialmente mucho volumen, crece sin techo claro; (4) sí, y es el más importante de toda la lista — perder esto es perder archivos personales reales, no una config reconstruible; (5) healthcheck HTTP + espacio en disco disponible; (6) PHP+DB+caché, la pieza más pesada de mantener actualizada de toda la lista; (7) no del todo — la config sí, los archivos de usuario no, por diseño (son el objetivo del servicio, no un efecto secundario).
 
 Docuseal y Nextcloud son también las únicas dos de esta tabla con datos de usuario genuinos e irreemplazables — a diferencia de casi todo lo demás en este catálogo, que es reconstruible desde Git. Antes de instalar cualquiera de las dos, la estrategia de backup off-site (todavía pendiente, ver [estado actual](../arquitectura/estado-actual.md#backups--parcialmente-resuelto)) deja de ser "sería bueno tenerla" y pasa a ser un requisito real.

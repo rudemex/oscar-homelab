@@ -5,9 +5,9 @@ sidebar_position: 5
 
 # Forgejo / Git local
 
-**Estado:** Actual — Forgejo 16.0.4 corriendo en `devops01`, sano (`/api/healthz` en pass), admin creado
-**Dónde corre:** VM `devops01` (vmid 104), `/srv/oscar/apps/forgejo/`
-**Sizing real de la VM:** 6 vCPU / 12 GB RAM / 60 GB disco — ampliada desde 4 vCPU/8 GB (valores iniciales, ver "Instalación" abajo) cuando se sumaron el CI Runner y Nexus a la misma VM; más grande que el 1-2 GB de ADR-010 a propósito, para dejar margen a los tres servicios que hoy comparten `devops01` (Forgejo, Forgejo Runner, Nexus)
+**Estado:** Actual — Forgejo 16.0.4 corriendo en `devops`, sano (`/api/healthz` en pass), admin creado
+**Dónde corre:** VM `devops` (vmid 104), `/srv/oscar/apps/forgejo/`
+**Sizing real de la VM:** 6 vCPU / 12 GB RAM / 60 GB disco — ampliada desde 4 vCPU/8 GB (valores iniciales, ver "Instalación" abajo) cuando se sumaron el CI Runner y Nexus a la misma VM; más grande que el 1-2 GB de ADR-010 a propósito, para dejar margen a los tres servicios que hoy comparten `devops` (Forgejo, Forgejo Runner, Nexus)
 **Red/puertos:** `http://git.oscar.home` (sin puerto — nginx en `:80` hace de reverse proxy hacia `:3000` interno, ver "Reverse proxy" abajo), `git.oscar.home:2222` SSH (Git) — el 22 del host lo ocupa el sshd de la VM, así que Forgejo escucha SSH en 2222 hacia afuera aunque el contenedor lo sirva en el 22 interno
 **Persistencia:** SQLite + repos + attachments + config, todo en `/srv/oscar/data/forgejo` (bind mount, container corre `/data`)
 **Dependencia real:** todo lo anterior asume que el dispositivo que accede tiene su DNS apuntado a AdGuard (`192.168.0.93`) — ver "Nota sobre AdGuard" más abajo, no es DNS de toda la red hoy.
@@ -24,7 +24,7 @@ sidebar_position: 5
 VM creada por clon del template `9000` (ver [Templates y Cloud-Init](../proxmox/templates-cloud-init.md)):
 
 ```bash
-qm clone 9000 104 --name devops01 --full
+qm clone 9000 104 --name devops --full
 qm resize 104 scsi0 60G
 qm set 104 --cores 4 --memory 8192
 qm set 104 --ipconfig0 ip=192.168.0.151/24,gw=192.168.0.1
@@ -33,7 +33,7 @@ qm start 104
 qm set 104 --cores 6 --memory 12288
 ```
 
-Setup base (paquetes, Docker) igual que [core01](../proxmox/crear-vm-core01.md), sin repetirlo acá.
+Setup base (paquetes, Docker) igual que [core](../proxmox/crear-vm-core.md), sin repetirlo acá.
 
 `.env` (valores reales actuales — ya migrados a NPM como frente, ver "Reverse proxy" más abajo; si se instala de cero, arrancar con `FORGEJO_DOMAIN`/`FORGEJO_ROOT_URL` apuntando a la IP y migrar después, en ese orden, es más fácil de depurar):
 
@@ -91,9 +91,9 @@ Pendiente de validar: clonar un repo de prueba por SSH contra `ssh://git@git.osc
 
 ## Reverse proxy — Nginx Proxy Manager
 
-`http://git.oscar.home:3000` funcionaba, pero con puerto en la URL. Primer intento: un nginx standalone propio en `devops01` (network_mode: host, rutéo por hostname en el puerto 80) — funcionó, pero dejaba dos reverse proxies corriendo en paralelo en el homelab, porque [Nginx Proxy Manager](./nginx-proxy-manager.md) ya existía en `core01` sin usarse (login de fábrica sin cambiar en ese momento). Al confirmar que el login de NPM ya había sido cambiado —quedó desactualizado en su propia página, no en la realidad— se migró: el nginx standalone se bajó (`docker compose down` en `devops01`) y el Proxy Host quedó armado en NPM en su lugar. El detalle del Proxy Host, credenciales y troubleshooting vive en [Nginx Proxy Manager](./nginx-proxy-manager.md#proxy-hosts-reales), no se repite acá.
+`http://git.oscar.home:3000` funcionaba, pero con puerto en la URL. Primer intento: un nginx standalone propio en `devops` (network_mode: host, rutéo por hostname en el puerto 80) — funcionó, pero dejaba dos reverse proxies corriendo en paralelo en el homelab, porque [Nginx Proxy Manager](./nginx-proxy-manager.md) ya existía en `core` sin usarse (login de fábrica sin cambiar en ese momento). Al confirmar que el login de NPM ya había sido cambiado —quedó desactualizado en su propia página, no en la realidad— se migró: el nginx standalone se bajó (`docker compose down` en `devops`) y el Proxy Host quedó armado en NPM en su lugar. El detalle del Proxy Host, credenciales y troubleshooting vive en [Nginx Proxy Manager](./nginx-proxy-manager.md#proxy-hosts-reales), no se repite acá.
 
-Cambio de arquitectura real: `git.oscar.home` (rewrite en AdGuard) ahora apunta a **`192.168.0.156`** (`core01`, donde corre NPM), no a `192.168.0.151` (`devops01`, donde corre Forgejo) — NPM es el frente, Forgejo es el backend (`forward_host: 192.168.0.151`, `forward_port: 3000`). `FORGEJO_ROOT_URL` sigue en `http://git.oscar.home/`, sin cambios — el hostname que ve el usuario es el mismo, solo cambió qué máquina lo atiende primero.
+Cambio de arquitectura real: `git.oscar.home` (rewrite en AdGuard) ahora apunta a **`192.168.0.156`** (`core`, donde corre NPM), no a `192.168.0.151` (`devops`, donde corre Forgejo) — NPM es el frente, Forgejo es el backend (`forward_host: 192.168.0.151`, `forward_port: 3000`). `FORGEJO_ROOT_URL` sigue en `http://git.oscar.home/`, sin cambios — el hostname que ve el usuario es el mismo, solo cambió qué máquina lo atiende primero.
 
 ## Nota sobre AdGuard (dependencia real de `git.oscar.home`)
 
@@ -109,7 +109,7 @@ Se migraron ahí `NEXUS_USER`, `NEXUS_PASSWORD` y `GITOPS_TOKEN` — son iguales
 
 - **CI Runner (Forgejo Actions)** — desplegado, validado con un pipeline completo (lint, test, build, push a Nexus, actualización de GitOps, deploy real en Argo CD). Ver [CI Runner](./ci-runner.md).
 - **`oscar-gitops` en Forgejo**: ya **no es mirror** — es el origen real que lee Argo CD (`root-app` y `oscar-led-controller`), migración hecha y validada (`Synced`/`Healthy` contra la revisión de Forgejo). GitHub queda como copia secundaria, actualizada a mano en cada push. Ver [ADR-012](../arquitectura/decisiones-arquitectonicas.md#adr-012--forgejo-como-mirror-de-solo-lectura-de-oscar-gitops-no-origen) (el título del ADR quedó desactualizado por el mismo motivo que esta línea — la decisión documentada ahí era "mirror primero", y se avanzó a origen real después, en la misma sesión).
-- **Diagnosticar la caída de velocidad de AdGuard** (ver nota arriba) — hasta resolverlo, `git.oscar.home` sigue dependiendo de configurar DNS a mano por dispositivo (o, para contenedores Docker en `devops01`/`core01`, del DNS del daemon Docker — ver [CI Runner](./ci-runner.md#gotchas-reales-encontrados-con-el-pipeline-completo-no-obvios-de-antemano), gotcha 9).
+- **Diagnosticar la caída de velocidad de AdGuard** (ver nota arriba) — hasta resolverlo, `git.oscar.home` sigue dependiendo de configurar DNS a mano por dispositivo (o, para contenedores Docker en `devops`/`core`, del DNS del daemon Docker — ver [CI Runner](./ci-runner.md#gotchas-reales-encontrados-con-el-pipeline-completo-no-obvios-de-antemano), gotcha 9).
 - **Acceso remoto** — hoy Forgejo es LAN-only (`git.oscar.home` solo resuelve dentro de la red), correcto para esta etapa. Si en algún momento hace falta clonar/pushear desde afuera, la vía elegida es VPN (Tailscale, ver [backlog](../roadmap/backlog.md#decisiones-pendientes)) para SSH/administración, no exponer Forgejo directo por Cloudflare Tunnel — y si igual se decide exponer HTTP público, el SSH del puerto 2222 quedaría LAN/VPN-only de todas formas (tunelear TCP crudo es bastante más trabajo que el ingress HTTP simple que ya usan los otros 7 servicios).
 
 ## Ejemplo concreto
@@ -118,14 +118,14 @@ Ejemplo: repo `oscar-gitops` con manifests k3s; Argo CD observa el repo y sincro
 
 ## Checklist de despliegue
 
-- [x] hostname y ubicación decididos (`devops01`, `git.oscar.home` vía AdGuard);
+- [x] hostname y ubicación decididos (`devops`, `git.oscar.home` vía AdGuard);
 - [x] imagen/versión fijada, evitando tags flotantes en servicios importantes (`16.0.4`);
 - [x] puertos documentados (3000 HTTP, 2222 SSH externo → 22 interno);
 - [x] volumen/persistencia definida (`/srv/oscar/data/forgejo`);
 - [x] `.env.example` sin secretos en Git — no aplica todavía: nada de esto vive en un repo Git, solo en la VM;
 - [x] credenciales reales fuera de Git (admin creado, credencial en Vaultwarden, rotada tras pasar por chat);
 - [ ] backup definido antes de cargar datos importantes (`forgejo dump`, ver abajo — no automatizado todavía);
-- [x] healthcheck o monitor de disponibilidad (`/api/healthz` responde `pass`, sumado a Uptime Kuma como "Forgejo (devops01)");
+- [x] healthcheck o monitor de disponibilidad (`/api/healthz` responde `pass`, sumado a Uptime Kuma como "Forgejo (devops)");
 - [ ] métricas/logs incorporados cuando sea razonable;
 - [ ] procedimiento de actualización y rollback documentado.
 

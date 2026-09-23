@@ -35,7 +35,7 @@ Casi toda la resiliencia de O.S.C.A.R. vive en un solo Dell (`oscar-core`): si c
 | `node_exporter` | Activo | métricas en el puerto `9100` (1640 series), listo para que Prometheus las levante |
 | **AdGuard Home** `v0.107.79` | Activo | DNS en `192.168.0.213:53` y UI en `:3000`, ~68 MB de RAM. Config nueva (rate limit 300, rewrites de `*.oscar.home`). Detalle en [DNS con AdGuard Home](../red/dns-adguard.md#adguard-home-en-pinode01-2026-09-21). El router **no** lo reparte por DHCP todavía (decisión firme, ver `REORGANIZACION_RACK.md`) |
 | **Uptime Kuma** `2.5.4` | ⚠️ Detenido (2026-09-22) | migró a [`monitor`](./monitor.md) — ver [migración](../servicios/uptime-kuma.md#migración-a-monitor-2026-09-22). Contenedor parado, datos conservados en `/srv/oscar/apps/uptime-kuma/data/` como respaldo unos días |
-| `cloudflared` `2026.9.1` | ⚠️ Activo pero sin uso real confirmado | conector de un tunnel registrado en Cloudflare (`pinode01`), en Docker con `network_mode: host`; token en `/srv/oscar/apps/cloudflared/.env` (`600`, no está en Git). **Hallazgo 2026-09-22:** el tráfico público de `kuma.oscarlab.com.ar` en realidad siempre pasó por el túnel de `core01` (proxeando por LAN), no por este — ver [Uptime Kuma](../servicios/uptime-kuma.md#migración-a-monitor-2026-09-22). Este túnel tiene `config: null` (sin ingress rules). Pendiente decidir en el paso 9 de `REORGANIZACION_RACK.md` si se le da un uso real o se da de baja |
+| `cloudflared` `2026.9.1` | ⚠️ Activo pero sin uso real confirmado | conector de un tunnel registrado en Cloudflare (`pinode01`), en Docker con `network_mode: host`; token en `/srv/oscar/apps/cloudflared/.env` (`600`, no está en Git). **Hallazgo 2026-09-22:** el tráfico público de `kuma.oscarlab.com.ar` en realidad siempre pasó por el túnel de `core` (proxeando por LAN), no por este — ver [Uptime Kuma](../servicios/uptime-kuma.md#migración-a-monitor-2026-09-22). Este túnel tiene `config: null` (sin ingress rules). Pendiente decidir en el paso 9 de `REORGANIZACION_RACK.md` si se le da un uso real o se da de baja |
 | Docker `26.1.5` + Compose `2.26.1` | Activo | solo para Kuma; usuario `pi` en el grupo `docker` |
 | `avahi-daemon` | Activo | mDNS: `network.local` |
 | `rpcbind` | Activo (sin uso) | puerto `111` abierto sin necesidad real — candidato a deshabilitar |
@@ -46,7 +46,7 @@ RAM con todo corriendo: ~440 MB en uso y ~460 MB disponibles (incluye caché). E
 
 ### Tailscale: rol dentro del acceso remoto
 
-`network` y `core01` anuncian la misma ruta y las dos están aprobadas; Tailscale usa una a la vez y conmuta si la activa cae, **sin volver sola** a la anterior. El respaldo se probó el 2026-09-21 (ver [acceso remoto](../red/acceso-remoto.md)); tras la prueba quedó activa `core01`. Detalle y limitaciones en [acceso remoto](../red/acceso-remoto.md).
+`network` y `core` anuncian la misma ruta y las dos están aprobadas; Tailscale usa una a la vez y conmuta si la activa cae, **sin volver sola** a la anterior. El respaldo se probó el 2026-09-21 (ver [acceso remoto](../red/acceso-remoto.md)); tras la prueba quedó activa `core`. Detalle y limitaciones en [acceso remoto](../red/acceso-remoto.md).
 
 ## Decisiones y por qué
 
@@ -70,12 +70,12 @@ RAM con todo corriendo: ~440 MB en uso y ~460 MB disponibles (incluye caché). E
 - [x] **IP fija** (2026-09-21): `192.168.0.213/24` configurada en la propia Pi con `nmcli` (mismo problema que ya hubo con el LXC de AdGuard, que usaba DHCP).
 - [ ] **Reserva DHCP en el router** para la MAC `b8:27:eb:5b:1f:30` → `192.168.0.213`. La IP fija en la Pi no le avisa al router: si `.213` está dentro de su rango de reparto, podría entregársela a otro equipo y generar un conflicto.
 - [ ] **Mover al router**: hoy está en el switch. El plan la quiere conectada **directo a un puerto del router** para sobrevivir también a una falla del switch de OSCAR. Se hace después, con la IP ya fija no cambia nada al mover el cable.
-- [x] **Probar el respaldo de Tailscale** (2026-09-21): con `tailscale down` en la Pi la ruta pasó a `core01` y el celular con datos móviles siguió llegando a Homepage. Sin failback automático.
+- [x] **Probar el respaldo de Tailscale** (2026-09-21): con `tailscale down` en la Pi la ruta pasó a `core` y el celular con datos móviles siguió llegando a Homepage. Sin failback automático.
 - [x] **AdGuard Home** instalado (2026-09-21), con config nueva.
 - [ ] Repartirlo como DNS primario por DHCP del router — **decisión firme: no reactivar** (ver `REORGANIZACION_RACK.md`, sección "AdGuard"), aunque la causa raíz del incidente de velocidad ya está corregida. Sigue opt-in por dispositivo.
 - [ ] Restaurar las listas de bloqueo del AdGuard viejo si se recupera el disco.
 - [x] **Uptime Kuma** migrado con su historial (2026-09-21), en paralelo.
-- [x] **Corte de Kuma a esta Pi** (2026-09-21, como `pinode01`): Homepage (widget y siteMonitor) repuntado, Kuma de `core01` detenido (volumen conservado como respaldo) y `kuma.oscarlab.com.ar` en un túnel propio de la Pi. Ver [Uptime Kuma](../servicios/uptime-kuma.md).
+- [x] **Corte de Kuma a esta Pi** (2026-09-21, como `pinode01`): Homepage (widget y siteMonitor) repuntado, Kuma de `core` detenido (volumen conservado como respaldo) y `kuma.oscarlab.com.ar` en un túnel propio de la Pi. Ver [Uptime Kuma](../servicios/uptime-kuma.md).
 - [x] **Uptime Kuma migrado a `monitor`** (2026-09-22) — una sola instancia, vive en `monitor` junto al resto de la observabilidad.
 - [ ] **Decidir el destino del túnel `pinode01`** (Cloudflare): hoy no enruta nada real (ver hallazgo en la tabla de Servicios). Darle un uso real o darlo de baja, parte del paso 9 de `REORGANIZACION_RACK.md`.
 - [ ] Deshabilitar `rpcbind` (sin uso).

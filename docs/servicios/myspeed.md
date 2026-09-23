@@ -5,7 +5,7 @@ sidebar_position: 25
 
 # MySpeed
 
-**Estado:** Actual · Observabilidad — corriendo en `core01`
+**Estado:** Actual · Observabilidad — corriendo en `core`
 **Dónde corre:** Docker Core (`/srv/oscar/apps/myspeed/`)
 **Sizing inicial:** liviano, sin requisitos especiales
 **Red/puertos:** `5216` (API + UI web)
@@ -74,7 +74,7 @@ Uptime Kuma puede sumar un chequeo sobre el puerto 5216 — pendiente, no está 
 ## Troubleshooting
 
 - **El widget no muestra datos** → esperar a que corra al menos un test (MySpeed corre los suyos por cron interno, no bajo demanda desde Homepage) — `/api/speedtests?limit=1` devuelve `[]` hasta el primer test real.
-- **Homepage no puede conectarse** → confirmar que la URL usa la IP LAN de `core01`, no `localhost` (Homepage no comparte la red del host).
+- **Homepage no puede conectarse** → confirmar que la URL usa la IP LAN de `core`, no `localhost` (Homepage no comparte la red del host).
 
 ## Documentación oficial
 

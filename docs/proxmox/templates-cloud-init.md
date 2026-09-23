@@ -25,9 +25,9 @@ flowchart LR
   IMG[Cloud image] --> VM[VM base]
   VM --> CFG[Cloud-Init]
   CFG --> TPL[Template]
-  TPL --> C1[Clone core01]
-  TPL --> C2[Clone devops01]
-  TPL --> C3[Clone k3s01]
+  TPL --> C1[Clone core]
+  TPL --> C2[Clone devops]
+  TPL --> C3[Clone k3s]
 ```
 
 ## Comandos de referencia
@@ -69,7 +69,7 @@ Clonar el template para cada VM real es siempre clon completo (`--full`), no lin
 qm clone 9000 <vmid-nuevo> --name <nombre> --full
 ```
 
-El procedimiento completo para la primera VM real (IP, clave SSH, sizing, validación) está en [crear VM core01](./crear-vm-core01.md) — no lo repetimos acá para no mantener el mismo comando en dos lugares.
+El procedimiento completo para la primera VM real (IP, clave SSH, sizing, validación) está en [crear VM core](./crear-vm-core.md) — no lo repetimos acá para no mantener el mismo comando en dos lugares.
 
 ## Después
 

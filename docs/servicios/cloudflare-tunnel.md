@@ -5,8 +5,8 @@ sidebar_position: 14
 
 # Cloudflare Tunnel + Access
 
-**Estado:** Actual — túnel `core01` corriendo y conectado, ingress configurado para 7 servicios, Cloudflare Access habilitado con una Access Application + política por servicio (solo el email del autor, código de un solo uso), y los 7 registros DNS ya publicados y protegidos
-**Dónde corre:** `core01` (`/srv/oscar/apps/cloudflared/`), `network_mode: host`
+**Estado:** Actual — túnel `core` corriendo y conectado, ingress configurado para 7 servicios, Cloudflare Access habilitado con una Access Application + política por servicio (solo el email del autor, código de un solo uso), y los 7 registros DNS ya publicados y protegidos
+**Dónde corre:** `core` (`/srv/oscar/apps/cloudflared/`), `network_mode: host`
 **Sizing inicial:** muy bajo (~20-30 MB RAM)
 **Red/puertos:** solo conexiones salientes (QUIC/HTTP2 hacia el edge de Cloudflare); ningún puerto inbound en el router
 **Persistencia:** el token del túnel (`TUNNEL_TOKEN` en `.env`) — la configuración de ingress vive en Cloudflare (`config_src: cloudflare`), no en un `config.yml` local
@@ -24,7 +24,7 @@ flowchart LR
   INTERNET((Internet)) -->|HTTPS| EDGE[Cloudflare Edge<br/>WAF / DDoS / TLS]
   EDGE --> ACCESS{Cloudflare Access<br/>política por hostname}
   ACCESS -->|sin login válido| DENY[login OTP / 403]
-  ACCESS -->|identidad OK o ruta bypass| TUNNEL[cloudflared<br/>core01 · network_mode: host]
+  ACCESS -->|identidad OK o ruta bypass| TUNNEL[cloudflared<br/>core · network_mode: host]
   TUNNEL --> VAULT["vault<br/>127.0.0.1:8082"]
   TUNNEL --> N8N["n8n<br/>:5678"]
   TUNNEL --> KUMA["kuma<br/>:3001"]
@@ -37,7 +37,7 @@ flowchart LR
   class DENY deny
 ```
 
-El único tramo de red real hacia afuera es `cloudflared` iniciando la conexión saliente hacia el edge (QUIC/HTTP2) — las flechas de arriba representan el camino lógico de un request, no que exista un puerto escuchando en `core01` hacia Internet.
+El único tramo de red real hacia afuera es `cloudflared` iniciando la conexión saliente hacia el edge (QUIC/HTTP2) — las flechas de arriba representan el camino lógico de un request, no que exista un puerto escuchando en `core` hacia Internet.
 
 ## Estado real del despliegue
 
@@ -52,7 +52,7 @@ Ingress configurado (vía API, `config_src: cloudflare`):
 | `n8n.oscarlab.com.ar` | `http://localhost:5678` |
 | `home.oscarlab.com.ar` | `http://localhost:3005` |
 | `beszel.oscarlab.com.ar` | `http://localhost:8090` |
-| `monitor.oscarlab.com.ar` | `http://192.168.0.233:8008` — [ProxMenux Monitor](./proxmenux-monitor.md), corre en `oscar-core`, no en `core01`; es el único destino que no es `localhost` |
+| `monitor.oscarlab.com.ar` | `http://192.168.0.233:8008` — [ProxMenux Monitor](./proxmenux-monitor.md), corre en `oscar-core`, no en `core`; es el único destino que no es `localhost` |
 | `ha.oscarlab.com.ar` | `http://192.168.0.195:80` — [Home Assistant](./home-assistant.md), VM 101 |
 | *(catch-all)* | `http_status:404` |
 

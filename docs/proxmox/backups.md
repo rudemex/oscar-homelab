@@ -43,7 +43,7 @@ Corre de lunes a viernes a medianoche, backupea **todas** las VMs/LXC (`all 1`, 
 Backup manual de una VM/LXC puntual, fuera del job programado, en modo `snapshot` (no detiene el guest):
 
 ```bash
-# backup de una sola VM/LXC (reemplazar <VMID> por el real, ej. 102 = core01)
+# backup de una sola VM/LXC (reemplazar <VMID> por el real, ej. 102 = core)
 vzdump <VMID> --storage Backups --mode snapshot --compress zstd
 
 # backup de todas las VMs/LXC, igual que el job programado pero a demanda

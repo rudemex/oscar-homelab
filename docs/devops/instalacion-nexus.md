@@ -5,7 +5,7 @@ sidebar_position: 5
 
 # Nexus Repository paso a paso
 
-Guía genérica/conceptual — para los pasos exactos usados en la instancia real de OSCAR (`devops01`, versión fijada, puertos reales, sizing real, usuario `ci-forgejo` acotado) ver [Sonatype Nexus Repository](../servicios/nexus.md). Una diferencia real a tener en cuenta si se sigue esta guía al pie de la letra: el `compose.yaml` de abajo solo expone `8081` (UI/API) — el registry Docker necesita su **propio puerto dedicado** (`8082` en la instancia real) expuesto en el compose *y* creado como HTTP Connector separado desde la propia UI de Nexus antes de poder pushear una imagen; no alcanza con crear el repo `docker-hosted`.
+Guía genérica/conceptual — para los pasos exactos usados en la instancia real de OSCAR (`devops`, versión fijada, puertos reales, sizing real, usuario `ci-forgejo` acotado) ver [Sonatype Nexus Repository](../servicios/nexus.md). Una diferencia real a tener en cuenta si se sigue esta guía al pie de la letra: el `compose.yaml` de abajo solo expone `8081` (UI/API) — el registry Docker necesita su **propio puerto dedicado** (`8082` en la instancia real) expuesto en el compose *y* creado como HTTP Connector separado desde la propia UI de Nexus antes de poder pushear una imagen; no alcanza con crear el repo `docker-hosted`.
 
 ## 1. Capacidad
 
