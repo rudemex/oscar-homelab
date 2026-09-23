@@ -86,9 +86,9 @@ O.S.C.A.R.
 │       └── (futuro) ci-demo, oscar-led-controller, como worker del cluster k3s
 │
 └── SPECIAL PURPOSE
-    ├── games                       [VM nueva, Dell — apagada salvo cuando se usa]
-    │   ├── Minecraft
-    │   └── CS2
+    ├── games                       [✅ VM 109, Dell, 192.168.0.155 — desde 2026-09-23, uso activo]
+    │   ├── Minecraft   (migrado de core01)
+    │   └── CS2         (migrado de lab01)
     │
     └── lab                         [VM, Dell — ex lab01, reutilizada]
         └── experimentos y pruebas (incluye Docker/K8s/acceso a kernel sin restricciones)
@@ -231,7 +231,7 @@ core01
 ├── SMTP Relay           → core (sin cambios funcionales)
 ├── Vaultwarden          → services (nueva LXC) — ✅ hecho (2026-09-23)
 ├── n8n + Postgres       → automation (nueva VM) — ✅ hecho (2026-09-23)
-├── Minecraft             → games (nueva VM)
+├── Minecraft             → games (nueva VM) — ✅ hecho (2026-09-23)
 ├── Cloudflare Tunnel      → network (centralizar ahí, hoy vive en core01)
 ├── Portainer Server      → ELIMINAR
 ├── Beszel Server         → se queda (política de monitoreo: esperar datos)
@@ -250,7 +250,7 @@ k3s01
                                                              contenedor Docker suelto
 
 lab01
-├── CS2         → games (nueva VM)
+├── CS2         → games (nueva VM) — ✅ hecho (2026-09-23)
 └── VM en sí    → se reutiliza como lab (rename, se vacía)
 
 pinode01 → network
@@ -327,7 +327,25 @@ estado que todavía no existe. Se actualiza en el momento en que cada migración
    **De paso (pedido fuera de este paso, mismo momento):** se borraron VM 101 (`haos-18.2`, HA vieja) y LXC 100
    (`adguard`, viejo) — ya no hacían falta, sus rescates de datos siguen en
    `/var/lib/vz/rescate-ssd-2026-09-22/`.
-6. Crear `games` (VM, apagada por defecto), mover Minecraft desde `core01` y CS2 desde `lab01`.
+6. ✅ **Hecho (2026-09-23).** Creada `games` (VM 109, `192.168.0.155/24`, 4 vCPU/6GB/100GB). Minecraft migrado desde
+   `core01` (382MB, checksum verificado) y CS2 desde `lab01` (67GB, ver detalle de la migración abajo). Homepage
+   repuntado a las IPs nuevas. **No quedó apagada por defecto** como decía el plan original — el usuario la usa
+   activamente, se deja encendida; se puede apagar manualmente cuando no se use.
+   **Gotcha real (CPU):** la VM se creó sin `cpu: host` (quedó en el default `kvm64`, sin SSE4.2) — CS2 fallaba al
+   arrancar con `"A CPU that supports the SSE4.2 processor feature is required"`. `lab01` (el host original de
+   CS2) ya tenía `cpu: host` seteado a propósito y no se replicó al crear `games`. Corregido con `qm set 109 --cpu
+   host` + reboot. **Cualquier VM que corra juegos necesita `cpu: host` desde el vamos.**
+   **Incidente real durante la migración de CS2:** la primera transferencia (73GB) se hizo con
+   `docker run --rm alpine tar` en pipe — extremadamente lento (~1MB/s vía relay por la Mac, ~17MB/s directo por la
+   falta de esto), y en el medio `lab01` se quedó sin espacio en disco (el tar local de prueba llenó los 35GB
+   libres). Se resolvió usando `rsync` **directo sobre el path del volumen en el host** (`/var/lib/docker/volumes/
+   .../_data`), sin pasar por el wrapper de `docker run` — ahí sí a ~150MB/s reales de LAN, terminó en 7 minutos.
+   **Lección: para volúmenes grandes, `rsync` directo sobre el filesystem del host, nunca `docker run --rm alpine
+   tar` en pipe.** Después de la copia, CS2 igual necesitó reverificar/re-descargar ~73GB desde Steam (su propio
+   manifiesto no confía en archivos copiados por fuera de Steam) — **coincidió con un cuelgue de red del Dell**
+   (el mismo incidente recurrente ya documentado, ver `docs/arquitectura/estado-actual.md`) que cortó la descarga
+   a mitad de camino; tras el reinicio físico, SteamCMD retomó solo desde donde había quedado, sin perder todo el
+   progreso.
 7. Renombrar `core01`→`core`, `devops01`→`devops`, `k3s01`→`k3s`, `lab01`→`lab` (vaciada de CS2).
 8. Eliminar Portainer Server/Agent de todos los hosts.
 9. Centralizar `cloudflared` en `network` (hoy hay instancias en `core01` y una dedicada en `pinode01`).
@@ -384,8 +402,13 @@ estado que todavía no existe. Se actualiza en el momento en que cada migración
 - **Paso 5 hecho (2026-09-23):** LXC `services` (192.168.0.154) creado y Vaultwarden migrado desde `core01`.
   SearXNG migrado de k3s (no solo evaluado) y DocuSeal sumado — ambas decisiones del usuario, más allá de lo
   mínimo que pedía el paso. De paso: VM 101 y LXC 100 (viejos, sin uso) se borraron.
-- Los pasos 6 en adelante (crear `games`, rename de `core01`/`devops01`/`k3s01`/`lab01`) no están ejecutados
-  todavía — siguen el orden de "Pasos de ejecución" de arriba.
+- **Paso 6 hecho (2026-09-23):** VM `games` (192.168.0.155) creada, Minecraft y CS2 migrados. Encontrado y
+  corregido un gotcha real de `cpu: host` (sin eso, CS2 no arranca — falta SSE4.2). Un cuelgue de red del Dell
+  (incidente recurrente ya documentado) interrumpió la descarga de reverificación de CS2 a mitad de camino; tras
+  el reinicio físico, todo volvió sano solo (autostart de las VMs, Argo CD necesitó un refresh manual) y CS2
+  retomó la descarga sin perder el progreso previo.
+- Falta solo el paso 7 (rename final de `core01`/`devops01`/`k3s01`/`lab01`) para completar toda la
+  reorganización.
 
 ## Prompt para Codex (continuar la ejecución)
 

@@ -5,9 +5,9 @@ sidebar_position: 3
 
 # Servidor de Counter-Strike 2
 
-**Estado:** Laboratorio · Juegos
-**Dónde corre:** VM de laboratorio dedicada (más pesado que Minecraft, mejor no compartir VM con otros servicios)
-**Sizing inicial:** 4 vCPU, 6 GB RAM — sensible a CPU/tickrate, no solo a RAM. **Disco: 100 GB mínimo real** (encontrado en la práctica, 2026-09-18) — SteamCMD preasigna ~58 GB antes de bajar nada (`Failed to preallocate (Not enough disk space) "58.43 GB"` si no alcanza), y eso es solo el juego, sin margen para el propio SO/Docker/logs. 60 GB (el tamaño estándar del resto de las VMs de este repo) se queda corto — no calcar ese default acá.
+**Estado:** Actual · Juegos
+**Dónde corre:** VM dedicada `games` (`192.168.0.155` — migrado de `lab01` el 2026-09-23, ver [estado actual](../arquitectura/estado-actual.md))
+**Sizing inicial:** 4 vCPU, 6 GB RAM — sensible a CPU/tickrate, no solo a RAM. **Disco: 100 GB mínimo real** (encontrado en la práctica, 2026-09-18) — SteamCMD preasigna ~58 GB antes de bajar nada (`Failed to preallocate (Not enough disk space) "58.43 GB"` si no alcanza), y eso es solo el juego, sin margen para el propio SO/Docker/logs. 60 GB (el tamaño estándar del resto de las VMs de este repo) se queda corto — no calcar ese default acá. **`cpu: host` obligatorio** (gotcha real, 2026-09-23): con el default de Proxmox (`kvm64`) el server ni arranca — `Launcher Error: A CPU that supports the SSE4.2 processor feature is required`.
 **Red/puertos:** `27015/udp+tcp` (juego), `27020/udp` (voz, si aplica)
 **Persistencia:** prácticamente ninguna — el juego se re-descarga solo; lo único a versionar son configs/mapas custom
 

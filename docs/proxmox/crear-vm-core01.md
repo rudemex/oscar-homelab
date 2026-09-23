@@ -34,13 +34,15 @@ Las tres VMs de aplicación se crearon con el mismo procedimiento, solo cambia V
 
 | VM | VMID | IP | vCPU | RAM | Rol |
 |---|---|---|---|---|---|
-| `core01` | 102 | `192.168.0.156/24` | 2 | 4 GB | Docker — servicios base (Homepage, NPM, Vaultwarden, Beszel hub, Cloudflare Tunnel, MySpeed, Glances) |
-| `k3s01` | 103 | `192.168.0.150/24` | 4 | 4 GB | k3s — Argo CD, apps desplegadas por GitOps |
+| `core01` | 102 | `192.168.0.156/24` | 2 | 4 GB | Docker — servicios base (Homepage, NPM, Beszel hub, Cloudflare Tunnel, MySpeed, Glances) |
+| `k3s01` | 103 | `192.168.0.150/24` | 4 | 4 GB | k3s — Argo CD, apps desplegadas por GitOps. `cpu: host` (AVX, para Hermes/Claude Code) |
 | `devops01` | 104 | `192.168.0.151/24` | 6 | 6 GB | Docker — Forgejo, Nexus, CI Runner |
-| `lab01` | 105 | `192.168.0.152/24` | 4 | 2 GB | Docker — CS2 |
-| `automation` | 107 | `192.168.0.153/24` | 2 | 4 GB | Docker — n8n+PostgreSQL |
+| `lab01` | 105 | `192.168.0.152/24` | 4 | 2 GB | Docker — vacía desde que CS2 migró a `games` (2026-09-23), pendiente reutilizar como `lab` |
+| `automation` | 107 | `192.168.0.153/24` | 2 | 4 GB | Docker — n8n+PostgreSQL+Redis+worker |
+| `services` | 108 | `192.168.0.154/24` | 2 | 2 GB | **LXC unprivileged**, no VM — Docker con `nesting=1,keyctl=1`. Vaultwarden, SearXNG, DocuSeal |
+| `games` | 109 | `192.168.0.155/24` | 4 | 6 GB | Docker — Minecraft, CS2. `cpu: host` (SSE4.2, para CS2) |
 
-RAM y sizing bajados el 2026-09-23 (right-sizing del paso 3 de la reorganización del rack — ver `REORGANIZACION_RACK.md`, raíz del repo) — los valores de la sección "Sizing inicial" de esta página quedaron como estaban para `core01` a modo de ejemplo histórico del paso a paso; los reales de las 5 VM están en esta tabla.
+RAM y sizing bajados el 2026-09-23 (right-sizing del paso 3 de la reorganización del rack — ver `REORGANIZACION_RACK.md`, raíz del repo) — los valores de la sección "Sizing inicial" de esta página quedaron como estaban para `core01` a modo de ejemplo histórico del paso a paso; los reales de todos los hosts están en esta tabla.
 
 Gateway real para las tres: `192.168.0.1`. Ver el detalle de instalación específico de cada una en su propia página de servicio: [Forgejo](../servicios/forgejo.md) documenta la creación de `devops01`, no se repite acá.
 
@@ -67,6 +69,15 @@ qm set 102 --sshkey ~/.ssh/id_ed25519.pub
 
 # 5. Ajustar sizing al de esta página (ver "Sizing inicial" arriba)
 qm set 102 --cores 2 --memory 8192
+
+# 5a. cpu: host — el default de Proxmox (kvm64) es deliberadamente conservador y
+#     no expone instrucciones modernas (AVX, SSE4.2, etc.) al guest. Se descubrió
+#     como gotcha real TRES veces: k3s01 (Hermes/Claude Code necesitaba AVX),
+#     lab01 (CS2 necesita SSE4.2) y games (mismo motivo, se nos olvidó replicarlo
+#     al crear la VM el 2026-09-23 y CS2 no arrancaba). Regla: cualquier VM que
+#     vaya a correr cargas pesadas/juegos/IA arranca con esto desde el vamos, no
+#     se agrega recién cuando algo falla.
+qm set 102 --cpu host
 
 # 5b. Agrandar el disco — el template clona con su tamaño original (~3.5 GB),
 #     no el "Disk" de la tabla de sizing. Sin este paso, Docker Engine falla

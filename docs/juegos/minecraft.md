@@ -5,8 +5,8 @@ sidebar_position: 2
 
 # Servidor de Minecraft
 
-**Estado:** Laboratorio · Juegos
-**Dónde corre:** Docker Core (`core01`) o VM de laboratorio dedicada
+**Estado:** Actual · Juegos
+**Dónde corre:** Docker en `games` (VM dedicada, `192.168.0.155` — migrado de `core01` el 2026-09-23, ver [estado actual](../arquitectura/estado-actual.md))
 **Sizing inicial:** 2 vCPU, 4 GB RAM (subir si hay mods/muchos jugadores)
 **Red/puertos:** `25565/tcp` (juego), `25575/tcp` (RCON, solo interno)
 **Persistencia:** el mundo completo — es el único dato de esta sección que realmente importa respaldar

@@ -50,7 +50,7 @@ sidebar_position: 2
 
 ## Prioridad alta — pendiente
 
-- **Mitigar el hang recurrente de la NIC física del Dell** (`e1000e`, Intel I219-LM): segunda vez en la misma semana (2026-09-18 dos veces) que tira "Detected Hardware Unit Hang" y deja intermitentemente inalcanzable a `core01`/AdGuard/la gestión del propio Proxmox. Bug conocido y documentado en la comunidad de Proxmox para esta NIC exacta — mitigación investigada y lista para aplicar (deshabilitar TSO/GSO/GRO + EEE por `ethtool`, persistido en `/etc/network/interfaces`), **decidido posponerla** por el usuario, no aplicada todavía. Bloquea reactivar AdGuard como DNS de toda la LAN con confianza — ver el ítem de arriba.
+- **Mitigar el hang recurrente de la NIC física del Dell** (`e1000e`, Intel I219-LM): **tercera vez** (2026-09-18 dos veces, 2026-09-23 una vez) que tira "Detected Hardware Unit Hang". Las primeras dos dejaron intermitentemente inalcanzable a `core01`/AdGuard/la gestión de Proxmox, resueltas sin reiniciar. **La del 2026-09-23 fue peor: tumbó el host completo** (ni SSH, ni ping, nada) mientras la VM `games` descargaba 73GB reales — necesitó apagado forzado y reinicio físico, algo que las dos veces anteriores no habían requerido. Bug conocido y documentado en la comunidad de Proxmox para esta NIC exacta — mitigación investigada y lista para aplicar (deshabilitar TSO/GSO/GRO + EEE por `ethtool`, persistido en `/etc/network/interfaces`), **decidido posponerla** por el usuario las dos veces anteriores, no aplicada todavía. Con esta tercera vez tumbando el host entero (no solo 2 guests), vale la pena que el usuario reconsidere la prioridad. Bloquea reactivar AdGuard como DNS de toda la LAN con confianza — ver el ítem de arriba.
 
 ## Decisiones pendientes
 
