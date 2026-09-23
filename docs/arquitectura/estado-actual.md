@@ -139,6 +139,10 @@ Los 275GB de `dump`/`images` que tenía `Backups` en ese momento (backups viejos
 
 Total de storage externo/interno adicional en el Dell: ~3TB entre los tres discos (fuera del NVMe de 1TB de sistema).
 
+**Hallazgo real (2026-09-23): el controlador USB del Dell no aguanta 3 SSD externos alimentados por bus a la vez.** Al conectar un cuarto disco de prueba (`HS-SSD-WAVE(S) 240G`, usado, sano por SMART) junto a `Documentos` y `Storage`, uno de los tres discos entraba en loop de reset (`uas_eh_device_reset_handler`, cae y reconecta cada ~30s) — con discos en **puertos USB físicamente distintos** (confirmado con `lsusb -t`, no era un problema de hub/puerto compartido como se sospechó el primer día). Es presupuesto de energía del controlador USB 3 completo, no una falla de disco ni de puerto puntual.
+
+**Límite real confirmado:** 2 discos externos alimentados por bus simultáneos andan estables (`Documentos` + `Storage`, sin errores en `dmesg` tras varias pruebas). Un tercero requiere un hub con alimentación propia (no solo del bus USB), no alcanza con cambiar de puerto. El `HS-SSD-WAVE` quedó expulsado y desconectado — no se integró a la arquitectura por ahora.
+
 **Consecuencias vigentes:** sin backups nuevos (el job de las 00:00 fallará mientras esté así), Home Assistant sin escritura, AdGuard viejo caído (reemplazado por el de [`pinode01`](../hardware/network.md)), y `core01`/`lab01` con el DNS principal apuntando a ese AdGuard caído (ver [DNS](../red/dns-adguard.md#adguard-home-en-pinode01-2026-09-21)).
 
 ## Backups — parcialmente resuelto
