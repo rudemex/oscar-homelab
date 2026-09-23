@@ -60,6 +60,7 @@ sidebar_position: 2
 - proveedor/backends de IA;
 - **AdGuard primario real en `network01` (Pi 3)**: hoy el DNS primario sigue siendo el AdGuard del Dell (`192.168.0.93`) y el secundario es `1.1.1.1` (Cloudflare) — son roles provisorios. El diseño real es AdGuard en `network01` (Pi 3) como primario, y el del Dell pasando a secundario — depende de aprovisionar las Raspberry Pi (Fase 2/3/4 del plan de reorganización). **Avance (2026-09-21):** la Pi ya existe y está en línea como [`pinode01`](../hardware/network.md) (Tailscale como subnet router principal y `node_exporter`); falta instalar AdGuard Home ahí y recién después cambiar el DHCP del router. La Pi Zero W no tiene rol de DNS — es `edge01` (sensores/GPIO), un error de una versión vieja del plan (`OSCAR_TARGET_ARCHITECTURE.md`, deprecado) que quedó dando vueltas y ya se corrigió.
 - **Querylog de AdGuard no se está flusheando a disco**: la resolución real funciona (confirmado de varias formas), pero `querylog.json` no reflejó tráfico real reciente tras los reinicios del servicio del 18/9 — puede afectar las estadísticas de la UI, no la resolución. Sin diagnosticar todavía.
+- **Evaluar [Homarr](https://homarr.dev/) como alternativa/complemento a Homepage** (2026-09-23, anotado por el usuario, sin evaluar todavía) — dashboard similar con integraciones propias; comparar contra la config actual de Homepage (`theme: dark`, `language: es`, widgets nativos con PromQL) antes de decidir si reemplaza algo o si conviven.
 
 ## Mejoras futuras
 

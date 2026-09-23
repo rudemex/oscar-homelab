@@ -65,7 +65,7 @@ O.S.C.A.R.
 │   │   ├── n8n main
 │   │   ├── PostgreSQL
 │   │   ├── Redis
-│   │   └── n8n workers (arranca con 0-1)
+│   │   └── n8n workers (✅ 1 worker activo desde 2026-09-23, concurrency 10)
 │   │
 │   └── k3s                         [VM, Dell]
 │       ├── Argo CD

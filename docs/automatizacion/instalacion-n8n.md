@@ -7,6 +7,8 @@ sidebar_position: 4
 
 Para una instalación persistente preferimos n8n + PostgreSQL, evitando depender de una DB embebida cuando los workflows empiecen a importar.
 
+**Actualizado (2026-09-23):** en producción real corre en modo *queue* (main + worker + Redis), no en modo single-process — ver la sección 3 más abajo. El compose de esta página ya refleja eso.
+
 ## 1. Directorio
 
 ```bash
@@ -28,7 +30,7 @@ TZ=America/Argentina/Buenos_Aires
 
 La encryption key debe respaldarse en un lugar seguro. Sin ella, recuperar la DB puede no alcanzar para recuperar credenciales cifradas.
 
-## 3. Compose conceptual
+## 3. Compose real (modo *queue*: main + worker + Redis)
 
 ```yaml
 services:
@@ -47,11 +49,24 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   n8n:
     image: docker.n8n.io/n8nio/n8n:${N8N_VERSION}
     restart: unless-stopped
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     environment:
       DB_TYPE: postgresdb
@@ -60,17 +75,49 @@ services:
       DB_POSTGRESDB_USER: ${POSTGRES_USER}
       DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
       N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      EXECUTIONS_MODE: queue
+      QUEUE_BULL_REDIS_HOST: redis
+      QUEUE_BULL_REDIS_PORT: "6379"
       GENERIC_TIMEZONE: ${TZ}
       TZ: ${TZ}
     volumes:
       - n8n-data:/home/node/.n8n
     ports:
-      - "127.0.0.1:5678:5678"
+      - "5678:5678"
+
+  n8n-worker:
+    image: docker.n8n.io/n8nio/n8n:${N8N_VERSION}
+    restart: unless-stopped
+    command: worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      n8n:
+        condition: service_started
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_DATABASE: ${POSTGRES_DB}
+      DB_POSTGRESDB_USER: ${POSTGRES_USER}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      EXECUTIONS_MODE: queue
+      QUEUE_BULL_REDIS_HOST: redis
+      QUEUE_BULL_REDIS_PORT: "6379"
+      GENERIC_TIMEZONE: ${TZ}
+      TZ: ${TZ}
+    volumes:
+      - n8n-data:/home/node/.n8n
 
 volumes:
   postgres-data:
   n8n-data:
+  redis-data:
 ```
+
+`n8n-data` se comparte entre `n8n` y `n8n-worker` a propósito: en modo *queue* con storage de binarios por filesystem (el default, sin S3), el worker necesita ver los mismos archivos que escribió `main`. Si más adelante se agregan workers adicionales, todos comparten el mismo volumen — o se pasa a un backend de binarios externo (S3-compatible) si el volumen se vuelve un cuello de botella.
 
 ## 4. Inicio
 
