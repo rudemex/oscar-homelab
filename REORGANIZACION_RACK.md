@@ -1,8 +1,9 @@
 # Reorganización del rack
 
-**Estado:** arquitectura objetivo definida y aprobada (2026-09-22). Nada de la parte nueva (VMs/LXC nuevas,
-migraciones de servicios) está ejecutado todavía — sí está hecho el stack de observabilidad en `pinode02`, y el
-renombrado real de las Pi sigue pendiente de aplicar.
+**Estado:** arquitectura objetivo definida y aprobada (2026-09-22). Pasos 1-3 ejecutados (rename de las Pi,
+migración de Uptime Kuma, right-sizing de RAM de las 4 VM del Dell) — ver "Estado al momento de escribir esto"
+abajo para el detalle. Los hosts nuevos (`automation`, `services`, `games`) y el resto de las migraciones siguen
+sin ejecutar.
 
 **Por qué existe:** meses de sesiones agregando cosas de a una dejaron herramientas repetidas midiendo lo mismo,
 `core01` como cajón de sastre (borde de red + apps de usuario + automatización + monitoreo, todo junto), y un
@@ -296,17 +297,17 @@ estado que todavía no existe. Se actualiza en el momento en que cada migración
    sobreviva a una caída del Dell) nunca enrutó nada en la práctica — el DNS real siempre apuntó al túnel de
    `core01`, que proxea por LAN hacia la Pi. Pendiente decidir en el paso 9 si se le da uso real al túnel
    `pinode01` o se da de baja.
-3. ⚠️ **Parcial (2026-09-22).** Right-sizing de RAM en `core01`/`devops01`/`k3s01`/`lab01` según la tabla de arriba,
-   antes de crear hosts nuevos. Aplicado con reboot uno por uno (sin hotplug/balloon configurado, el cambio de
-   memoria no toma efecto en caliente), verificando servicios sanos antes de seguir con el siguiente:
+3. ✅ **Hecho (2026-09-23).** Right-sizing de RAM en `core01`/`devops01`/`k3s01`/`lab01` según la tabla de arriba.
+   Aplicado con reboot uno por uno (sin hotplug/balloon configurado, el cambio de memoria no toma efecto en
+   caliente), verificando servicios sanos antes de seguir con el siguiente:
    - ✅ `lab01`: 6→2GB, reiniciada, sana.
    - ✅ `core01`: 8→4GB, reiniciada, Homepage/NPM verificados, ~1,3GB en uso real de 3,8GB disponibles.
-   - ✅ `devops01`: 6 horas sin jobs de CI corriendo verificado antes de reiniciar; 12→6GB, reiniciada, Forgejo
-     verificado, todos los contenedores (Nexus, Infisical, forgejo-runner, Beszel-agent) arriba.
-   - ❌ **`k3s01`: pendiente, sigue en 8GB sin tocar.** Se cortó la sesión acá — baja tensión real, el usuario pidió
-     apagar todo OSCAR por precaución antes de un corte de luz. **Al retomar: chequear que Argo CD tenga sus
-     aplicaciones `Synced`/`Healthy` antes de bajarle la memoria a 4GB y reiniciarla — es la más sensible de las
-     cuatro (Traefik resuelve todo `*.oscar.home`, tarda más en volver por el propio arranque de k3s).**
+   - ✅ `devops01`: sin jobs de CI corriendo verificado antes de reiniciar; 12→6GB, reiniciada, Forgejo verificado,
+     todos los contenedores (Nexus, Infisical, forgejo-runner, Beszel-agent) arriba.
+   - ✅ `k3s01`: Argo CD verificado con sus 8 aplicaciones `Synced`/`Healthy` antes de tocarla; 8→4GB, reiniciada,
+     nodo `Ready`, las 8 aplicaciones siguen `Synced`/`Healthy`, Headlamp/SearXNG/ci-demo/oscar-led-controller
+     responden `200` vía Traefik. 2GB en uso real de 3,8GB — más ajustado que las otras (overhead propio de k3s),
+     pero con margen.
 4. Crear `automation` (VM), migrar n8n+Postgres desde `core01` con sus datos.
 5. Crear `services` (LXC unprivileged), migrar Vaultwarden desde `core01` con sus datos; evaluar SearXNG y sumar
    DocuSeal.
@@ -338,18 +339,20 @@ estado que todavía no existe. Se actualiza en el momento en que cada migración
   cluster en sí, pero se verifica).
 - `yarn build` sin errores tras renombrar/crear páginas de doc.
 
-## Estado al momento de escribir esto (2026-09-22)
+## Estado al momento de escribir esto (2026-09-23)
 
-- ⚠️ **OSCAR está apagado (2026-09-22, a propósito).** Baja tensión real en la casa — el usuario pidió apagar todo
-  por precaución antes de un corte de luz, en medio del paso 3 (right-sizing). Nada se perdió (no había backups ni
-  jobs corriendo). **Al retomar: prender el Dell primero, después las 2 Pi, y verificar que todo vuelva sano antes
-  de seguir con `k3s01`** (mismo primer paso que ya se hizo la vez anterior que se apagó todo).
-- El SSD SATA de `Backups` del Dell se resolvió: `sda` (WD Green, interno SATA) es `Backups`, `sdb`
-  (`FTM1TN325H`, el que venía fallando, ahora externo USB) es `Documentos`, y se sumó un tercer disco nuevo
-  (SanDisk 1TB, externo USB) como `Storage` general sin uso fijo — ver `docs/arquitectura/estado-actual.md`.
+- OSCAR está encendido y sano. El apagado de emergencia del 2026-09-22 (baja tensión) no dejó nada roto — se
+  retomó sin problemas al día siguiente.
+- El SSD SATA de `Backups` del Dell se resolvió: `sda` (WD Green, interno SATA) es `Backups`, `sdc`
+  (`FTM1TN325H`, el que venía fallando, ahora externo USB) es `Documentos`, y se sumó un disco nuevo (SanDisk
+  1TB, externo USB) como `Storage` general sin uso fijo — ver `docs/arquitectura/estado-actual.md`. **Límite real
+  encontrado (2026-09-23): el controlador USB del Dell solo aguanta 2 discos externos alimentados por bus a la
+  vez** — un tercero (probado con un `HS-SSD-WAVE` 240GB) entra en loop de reset, aunque esté en un puerto físico
+  distinto. No se integró a la arquitectura.
 - `oscar-gitops` (Forgejo, `mdelgado/oscar-gitops`, rama `main`) tiene: el control node de Ansible completo
-  (`ansible/`), con el stack de observabilidad **ya desplegado y funcionando** en `pinode02` (Prometheus, Grafana,
-  Blackbox HTTP), y el Speedtest exporter + Blackbox ICMP **preparados en el código pero sin desplegar**.
+  (`ansible/`), con el stack de observabilidad **ya desplegado y funcionando** en `monitor` (Prometheus, Grafana,
+  Blackbox HTTP, Uptime Kuma), y el Speedtest exporter + Blackbox ICMP **preparados en el código pero sin
+  desplegar**.
 - **Paso 1 hecho (2026-09-22):** las Pi ya se llaman `network`/`monitor` a nivel de SO, `hosts.yml` de Ansible y la
   doc de `oscar-homelab` están al día. **Pendiente:** `git push` del commit `969feb8` en `oscar-gitops` — el clon
   de trabajo vive en un scratchpad fuera de este repo, y el push desde ahí quedó bloqueado por el clasificador de
@@ -357,11 +360,11 @@ estado que todavía no existe. Se actualiza en el momento en que cada migración
   usuario lo autoriza explícitamente.
 - **Paso 2 hecho (2026-09-22):** Uptime Kuma migrado de `network` a `monitor`, con el ingress rule de Cloudflare
   corregido — ver detalle en el paso 2 de "Pasos de ejecución" y en `docs/servicios/uptime-kuma.md`.
-- **Paso 3 parcial (2026-09-22):** right-sizing de RAM — `lab01`/`core01`/`devops01` ya en sus valores nuevos y
-  verificados sanos; **`k3s01` pendiente** (sigue en 8GB), cortado por el apagado de emergencia de arriba. Retomar
-  ahí, chequeando Argo CD antes de reiniciarla.
-- El resto de la arquitectura nueva de este documento (VMs/LXC nuevas, migraciones restantes, rename de
-  `core01`/`devops01`/`k3s01`/`lab01`) no está ejecutado todavía — sigue el orden de "Pasos de ejecución" de arriba.
+- **Paso 3 hecho (2026-09-23):** right-sizing de RAM en las 4 VMs (`core01`=4GB, `devops01`=6GB, `k3s01`=4GB,
+  `lab01`=2GB), todas reiniciadas y verificadas sanas.
+- Los pasos 4 en adelante (crear `automation`/`services`/`games`, migraciones, rename de
+  `core01`/`devops01`/`k3s01`/`lab01`) no están ejecutados todavía — siguen el orden de "Pasos de ejecución" de
+  arriba.
 
 ## Prompt para Codex (continuar la ejecución)
 
