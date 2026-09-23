@@ -71,9 +71,9 @@ O.S.C.A.R.
 │       ├── Traefik
 │       ├── Headlamp
 │       ├── Infisical Operator
-│       └── ⚠️ PROVISIONAL: ci-demo, oscar-led-controller — pertenecen conceptualmente a `apps`,
-│           se quedan acá hasta la Fase 2 (ver nota "apps" más abajo). No agregar más apps propias
-│           a `k3s` asumiendo que se van a quedar — nacen ya marcadas para migrar.
+│       └── ⚠️ oscar-led-controller — se queda acá (no en `apps`), bloqueo real: su imagen se
+│           importa a mano al containerd de este nodo (`pullPolicy: Never`, sin registry).
+│           Revisar cuando tenga CI real con push a Nexus, como `ci-demo`.
 │
 ├── WORKLOADS
 │   ├── services                    [✅ LXC 108 unprivileged, Dell, 192.168.0.154 — desde 2026-09-23]
@@ -81,8 +81,8 @@ O.S.C.A.R.
 │   │   ├── SearXNG           (migrado de k3s)
 │   │   └── DocuSeal          (nuevo, falta setup inicial)
 │   │
-│   └── apps                        [diferido — ver Fase 2, será VM/worker de k3s]
-│       └── (futuro) ci-demo, oscar-led-controller, como worker del cluster k3s
+│   └── apps                        [✅ VM 110, worker de k3s, 192.168.0.157 — desde 2026-09-23]
+│       └── ci-demo (migrado de k3s vía nodeSelector, sin taint al control-plane)
 │
 └── SPECIAL PURPOSE
     ├── games                       [✅ VM 109, Dell, 192.168.0.155 — desde 2026-09-23, uso activo]
@@ -362,13 +362,23 @@ estado que todavía no existe. Se actualiza en el momento en que cada migración
 9. Centralizar `cloudflared` en `network` (hoy hay instancias en `core` y una dedicada en `pinode01`).
 10. Actualizar documentación según la tabla de arriba, commit + push en `oscar-homelab` y `oscar-gitops`.
 11. Actualizar este archivo marcando cada paso como resuelto.
-12. **Fase 2 (separada, sin fecha):** crear el VM `apps` como worker de `k3s`, mover `ci-demo` y
-    `oscar-led-controller` ahí, taintear `k3s` para que no reciba pods de aplicación.
+12. ✅ **Fase 2 hecha (2026-09-23).** VM `apps` (vmid 110, `192.168.0.157/24`, 2vCPU/2GB/40GB) creada y unida al
+    cluster como worker (`k3s-agent`, `node-name=apps`). **No se taintea `k3s` con `NoSchedule` genérico** — se
+    evaluó y se descartó: eso hubiera desalojado Argo CD/Traefik/CoreDNS/metrics-server también (nada tiene
+    toleration para ese taint), no solo las apps propias, y el worker de 2GB no los aguanta a todos. En su lugar,
+    `nodeSelector: kubernetes.io/hostname: apps` puntual por Deployment (agregado como capacidad opcional al
+    chart de Helm). `ci-demo` movido y verificado (`ci-demo.oscar.home` responde, Argo CD `Synced`/`Healthy`).
+    **`oscar-led-controller` se queda en `k3s`** — bloqueo real: su imagen se importa a mano al containerd de
+    `k3s01` (`pullPolicy: Never`, sin registry), moverla de nodo rompe el arranque hasta reimportar ahí. Revisar
+    cuando tenga CI real con push a Nexus.
+    **Gotcha real:** `k3s01` tiene `/etc/rancher/k3s/registries.yaml` con el mirror insecure de Nexus (HTTP, no
+    HTTPS) — no se replica solo a un worker nuevo. Sin copiarlo a mano a `apps` y reiniciar `k3s-agent`, cualquier
+    imagen de Nexus falla con `ImagePullBackOff` (`server gave HTTP response to HTTPS client`).
 
 ## Fuera de alcance, a propósito
 
 - Apagar Beszel, Glances, ProxMenux Monitor o MySpeed — se decide más adelante con datos reales.
-- La Fase 2 de `apps` (worker de k3s) — separada, no bloquea el resto.
+- ~~La Fase 2 de `apps` (worker de k3s)~~ — ✅ hecha (2026-09-23), ver paso 12 arriba.
 - Reparación/reemplazo del tercer SSD SATA del Dell — pendiente de que el usuario lo conecte.
 - VLANs / re-direccionamiento IP (`docs/red/plan-direccionamiento.md` es un ejemplo futuro, no aplica todavía) —
   los hosts nuevos usan una IP libre del mismo `192.168.0.0/24` plano de hoy, con reservation DHCP.
