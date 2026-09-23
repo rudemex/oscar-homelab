@@ -119,6 +119,26 @@ A las 18:19 la placa de red física del Dell (`e1000e`) tiró un **"Detected Har
 
 **Estado tras el reinicio del host:** VMs 102–105 corriendo con normalidad (`devops01` y `lab01` tardan unos minutos más por el arranque escalonado); VM 101 detenida (su disco está en `Backups`). **No existe ninguna copia de Home Assistant fuera de ese SSD**: se buscó en el storage `local` (NVMe) y en la Mac. El monitor de `Home Assistant (VM 101)` en Kuma seguirá en rojo.
 
+**Actualización (2026-09-22): reemplazo físico completo, el plan de contingencia de la línea de arriba ya se ejecutó.** Llegaron el disco nuevo y los cables USB-SATA. Cambio hecho con todo OSCAR apagado:
+
+- El WD Green SATA SSD 1TB (que venía usándose por USB externo desde antes) pasó a la bahía **interna SATA**, reemplazando físicamente al `FTM1TN325H` desgastado.
+- El `FTM1TN325H` (el que venía fallando) pasó a **externo por USB**.
+- Se sumó un tercer disco, SanDisk SSD PLUS 1TB, también externo por USB — completamente nuevo (0 horas de uso, 0 sectores realocados).
+
+Con los discos en su lugar nuevo, se formatearon los tres de cero y se reasignaron los roles:
+
+| Disco | Antes | Ahora | Rol | Punto de montaje |
+|---|---|---|---|---|
+| WD Green 1TB | externo USB | **interno SATA** | `Backups` (storage de Proxmox) | `/mnt/pve/Backups` |
+| `FTM1TN325H` | interno SATA | **externo USB** | `Documentos` (filesystem plano) | `/mnt/documentos` |
+| SanDisk SSD PLUS 1TB | — (nuevo) | externo USB | Storage general/expansión, sin uso fijo todavía | `/mnt/storage` |
+
+Los 275GB de `dump`/`images` que tenía `Backups` en ese momento (backups viejos de la VM 101 y el LXC 100, ya reemplazados) se descartaron a propósito antes de formatear — no eran backups vigentes de la flota actual.
+
+**Por qué `Backups` quedó en el WD Green (SATA interno) y no en el SanDisk (USB):** decisión explícita — el rol más crítico debe depender de la conexión más confiable. Un puente USB-SATA es justamente el tipo de falla que causó todo este incidente (terminó siendo el conector, no el disco). El SanDisk, con su conexión USB, es apto para el rol de menor criticidad (storage general), no para `Backups`.
+
+Total de storage externo/interno adicional en el Dell: ~3TB entre los tres discos (fuera del NVMe de 1TB de sistema).
+
 **Consecuencias vigentes:** sin backups nuevos (el job de las 00:00 fallará mientras esté así), Home Assistant sin escritura, AdGuard viejo caído (reemplazado por el de [`pinode01`](../hardware/network.md)), y `core01`/`lab01` con el DNS principal apuntando a ese AdGuard caído (ver [DNS](../red/dns-adguard.md#adguard-home-en-pinode01-2026-09-21)).
 
 ## Backups — parcialmente resuelto
