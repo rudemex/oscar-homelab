@@ -230,7 +230,7 @@ core01
 ├── NPM                  → core (sin cambios funcionales)
 ├── SMTP Relay           → core (sin cambios funcionales)
 ├── Vaultwarden          → services (nueva LXC) — migrar datos
-├── n8n + Postgres       → automation (nueva VM) — migrar datos
+├── n8n + Postgres       → automation (nueva VM) — ✅ hecho (2026-09-23)
 ├── Minecraft             → games (nueva VM)
 ├── Cloudflare Tunnel      → network (centralizar ahí, hoy vive en core01)
 ├── Portainer Server      → ELIMINAR
@@ -308,7 +308,15 @@ estado que todavía no existe. Se actualiza en el momento en que cada migración
      nodo `Ready`, las 8 aplicaciones siguen `Synced`/`Healthy`, Headlamp/SearXNG/ci-demo/oscar-led-controller
      responden `200` vía Traefik. 2GB en uso real de 3,8GB — más ajustado que las otras (overhead propio de k3s),
      pero con margen.
-4. Crear `automation` (VM), migrar n8n+Postgres desde `core01` con sus datos.
+4. ✅ **Hecho (2026-09-23).** Creado `automation` (VM 107, `192.168.0.153/24`, 2 vCPU/4GB/60GB, mismo patrón de
+   clon que las demás). n8n+Postgres migrados desde `core01`: contenedores parados, volúmenes empaquetados con
+   checksum SHA-256 verificado en origen/Mac/destino, recreados y levantados en `automation`. Repuntados: Homepage
+   (siteMonitor), el ingress rule de Cloudflare (`n8n.oscarlab.com.ar` → `192.168.0.153:5678`), y el monitor de
+   Kuma. `n8n` en `core01` queda detenido (no borrado) como respaldo. Detalle en
+   `docs/arquitectura/estado-actual.md`.
+   **Gotcha real, corregido en `docs/proxmox/crear-vm-core01.md`:** el clon del template no hereda el tamaño de
+   disco de la tabla de sizing, solo el tamaño original del template (~3.5GB) — faltaba un `qm resize` que no
+   estaba en la receta. Se agregó el paso.
 5. Crear `services` (LXC unprivileged), migrar Vaultwarden desde `core01` con sus datos; evaluar SearXNG y sumar
    DocuSeal.
 6. Crear `games` (VM, apagada por defecto), mover Minecraft desde `core01` y CS2 desde `lab01`.
@@ -362,7 +370,9 @@ estado que todavía no existe. Se actualiza en el momento en que cada migración
   corregido — ver detalle en el paso 2 de "Pasos de ejecución" y en `docs/servicios/uptime-kuma.md`.
 - **Paso 3 hecho (2026-09-23):** right-sizing de RAM en las 4 VMs (`core01`=4GB, `devops01`=6GB, `k3s01`=4GB,
   `lab01`=2GB), todas reiniciadas y verificadas sanas.
-- Los pasos 4 en adelante (crear `automation`/`services`/`games`, migraciones, rename de
+- **Paso 4 hecho (2026-09-23):** VM `automation` creada (192.168.0.153) y n8n+Postgres migrados desde `core01`,
+  con Homepage/Cloudflare/Kuma repuntados. `core01` conserva los contenedores viejos detenidos como respaldo.
+- Los pasos 5 en adelante (crear `services`/`games`, migrar Vaultwarden, rename de
   `core01`/`devops01`/`k3s01`/`lab01`) no están ejecutados todavía — siguen el orden de "Pasos de ejecución" de
   arriba.
 

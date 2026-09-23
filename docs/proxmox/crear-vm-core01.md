@@ -34,9 +34,13 @@ Las tres VMs de aplicación se crearon con el mismo procedimiento, solo cambia V
 
 | VM | VMID | IP | vCPU | RAM | Rol |
 |---|---|---|---|---|---|
-| `core01` | 102 | `192.168.0.156/24` | 2 | 8 GB | Docker — servicios base (Homepage, AdGuard front, NPM, Uptime Kuma, Vaultwarden, Beszel hub, Cloudflare Tunnel, n8n, MySpeed, Glances) |
-| `k3s01` | 103 | `192.168.0.150/24` | 4 | 8 GB | k3s — Argo CD, apps desplegadas por GitOps |
-| `devops01` | 104 | `192.168.0.151/24` | 6 | 12 GB | Docker — Forgejo, Nexus, CI Runner |
+| `core01` | 102 | `192.168.0.156/24` | 2 | 4 GB | Docker — servicios base (Homepage, NPM, Vaultwarden, Beszel hub, Cloudflare Tunnel, MySpeed, Glances) |
+| `k3s01` | 103 | `192.168.0.150/24` | 4 | 4 GB | k3s — Argo CD, apps desplegadas por GitOps |
+| `devops01` | 104 | `192.168.0.151/24` | 6 | 6 GB | Docker — Forgejo, Nexus, CI Runner |
+| `lab01` | 105 | `192.168.0.152/24` | 4 | 2 GB | Docker — CS2 |
+| `automation` | 107 | `192.168.0.153/24` | 2 | 4 GB | Docker — n8n+PostgreSQL |
+
+RAM y sizing bajados el 2026-09-23 (right-sizing del paso 3 de la reorganización del rack — ver `REORGANIZACION_RACK.md`, raíz del repo) — los valores de la sección "Sizing inicial" de esta página quedaron como estaban para `core01` a modo de ejemplo histórico del paso a paso; los reales de las 5 VM están en esta tabla.
 
 Gateway real para las tres: `192.168.0.1`. Ver el detalle de instalación específico de cada una en su propia página de servicio: [Forgejo](../servicios/forgejo.md) documenta la creación de `devops01`, no se repite acá.
 
@@ -64,6 +68,12 @@ qm set 102 --sshkey ~/.ssh/id_ed25519.pub
 # 5. Ajustar sizing al de esta página (ver "Sizing inicial" arriba)
 qm set 102 --cores 2 --memory 8192
 
+# 5b. Agrandar el disco — el template clona con su tamaño original (~3.5 GB),
+#     no el "Disk" de la tabla de sizing. Sin este paso, Docker Engine falla
+#     al instalar por falta de espacio (gotcha real, encontrado al crear
+#     `automation` el 2026-09-23). Ajustar el "+56G" al tamaño real deseado.
+qm resize 102 scsi0 +56G
+
 # 6. Habilitar autostart — si no, la VM no arranca sola cuando reinicia oscar-core
 #    (ver "Autostart de VMs" en operacion.md — encontrado como bug real, no estaba seteado)
 qm set 102 --onboot 1
@@ -81,6 +91,14 @@ qm agent 102 ping
 ```
 
 Si no responde nada (sin error) en un par de intentos, el guest agent todavía está iniciando dentro de la VM — esperar y reintentar antes de asumir que algo falló.
+
+El `qm resize` del paso 5b agranda el disco virtual, pero la partición y el filesystem de adentro no crecen solos — hacerlo una vez que la VM esté arriba:
+
+```bash
+sudo growpart /dev/sda 1
+sudo resize2fs /dev/sda1
+df -h /
+```
 
 ## Conectarse y actualizar
 

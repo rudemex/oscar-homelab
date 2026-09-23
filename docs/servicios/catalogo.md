@@ -9,7 +9,7 @@ La tabla resume el rol previsto. **Objetivo** no significa “instalar ya”: ca
 
 | Servicio | Estado | Ubicación sugerida | Para qué lo usamos |
 |---|---|---|---|
-| [Docker y Docker Compose](./docker-compose.md) | **Actual** · Core | VM `core01` | ejecutar n8n, Uptime Kuma, dashboards y utilidades |
+| [Docker y Docker Compose](./docker-compose.md) | **Actual** · Core | VM `core01` | dashboards y utilidades (n8n y Uptime Kuma migraron a `automation`/`monitor`, ver `REORGANIZACION_RACK.md`) |
 | [EasyPanel](./easypanel.md) | Laboratorio · Plataforma de apps | VM Docker dedicada o `core01` durante la etapa inicial | comparar un PaaS casero contra el flujo GitOps; redundante con Compose+k3s si no aporta algo distinto |
 | [Sonatype Nexus Repository](./nexus.md) | **Actual** · DevOps | VM `devops01` | proxy/cache de npm y registry Docker privado, usado por el CI real |
 | [Forgejo / Git local](./forgejo.md) | **Actual** · DevOps | VM `devops01` | origen real de `oscar-gitops` (ya no mirror), repos privados del homelab, GitOps completamente local |

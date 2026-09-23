@@ -62,7 +62,7 @@ Segunda migración, mismo patrón que la de `core01`→`pinode01`: parar el cont
 
 | Monitor | URL | Nota |
 |---|---|---|
-| n8n | `http://192.168.0.156:5678/healthz` | endpoint de salud dedicado, más preciso que chequear la UI |
+| n8n | `http://192.168.0.153:5678/healthz` | en `automation` (migrado 2026-09-23), endpoint de salud dedicado, más preciso que chequear la UI |
 | Homepage | `http://192.168.0.156:3005` | — |
 | Beszel hub | `http://192.168.0.156:8090` | — |
 | ProxMenux Monitor | `http://192.168.0.233:8008` | en `oscar-core`, no en `core01` |
