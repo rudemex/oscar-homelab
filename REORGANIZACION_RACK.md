@@ -296,7 +296,17 @@ estado que todavía no existe. Se actualiza en el momento en que cada migración
    sobreviva a una caída del Dell) nunca enrutó nada en la práctica — el DNS real siempre apuntó al túnel de
    `core01`, que proxea por LAN hacia la Pi. Pendiente decidir en el paso 9 si se le da uso real al túnel
    `pinode01` o se da de baja.
-3. Right-sizing de RAM en `core01`/`devops01`/`k3s01`/`lab01` según la tabla de arriba, antes de crear hosts nuevos.
+3. ⚠️ **Parcial (2026-09-22).** Right-sizing de RAM en `core01`/`devops01`/`k3s01`/`lab01` según la tabla de arriba,
+   antes de crear hosts nuevos. Aplicado con reboot uno por uno (sin hotplug/balloon configurado, el cambio de
+   memoria no toma efecto en caliente), verificando servicios sanos antes de seguir con el siguiente:
+   - ✅ `lab01`: 6→2GB, reiniciada, sana.
+   - ✅ `core01`: 8→4GB, reiniciada, Homepage/NPM verificados, ~1,3GB en uso real de 3,8GB disponibles.
+   - ✅ `devops01`: 6 horas sin jobs de CI corriendo verificado antes de reiniciar; 12→6GB, reiniciada, Forgejo
+     verificado, todos los contenedores (Nexus, Infisical, forgejo-runner, Beszel-agent) arriba.
+   - ❌ **`k3s01`: pendiente, sigue en 8GB sin tocar.** Se cortó la sesión acá — baja tensión real, el usuario pidió
+     apagar todo OSCAR por precaución antes de un corte de luz. **Al retomar: chequear que Argo CD tenga sus
+     aplicaciones `Synced`/`Healthy` antes de bajarle la memoria a 4GB y reiniciarla — es la más sensible de las
+     cuatro (Traefik resuelve todo `*.oscar.home`, tarda más en volver por el propio arranque de k3s).**
 4. Crear `automation` (VM), migrar n8n+Postgres desde `core01` con sus datos.
 5. Crear `services` (LXC unprivileged), migrar Vaultwarden desde `core01` con sus datos; evaluar SearXNG y sumar
    DocuSeal.
@@ -330,11 +340,13 @@ estado que todavía no existe. Se actualiza en el momento en que cada migración
 
 ## Estado al momento de escribir esto (2026-09-22)
 
-- OSCAR está encendido y sano.
-- El SSD SATA de `Backups` del Dell se resolvió esta misma sesión: `sda` (WD Green, interno SATA) es ahora
-  `Backups`, `sdb` (el disco que venía fallando, ahora externo USB) es `Documentos` — ver
-  `docs/arquitectura/estado-actual.md`. Falta conectar un tercer SSD SATA de repuesto (todavía no llegó/no está
-  conectado).
+- ⚠️ **OSCAR está apagado (2026-09-22, a propósito).** Baja tensión real en la casa — el usuario pidió apagar todo
+  por precaución antes de un corte de luz, en medio del paso 3 (right-sizing). Nada se perdió (no había backups ni
+  jobs corriendo). **Al retomar: prender el Dell primero, después las 2 Pi, y verificar que todo vuelva sano antes
+  de seguir con `k3s01`** (mismo primer paso que ya se hizo la vez anterior que se apagó todo).
+- El SSD SATA de `Backups` del Dell se resolvió: `sda` (WD Green, interno SATA) es `Backups`, `sdb`
+  (`FTM1TN325H`, el que venía fallando, ahora externo USB) es `Documentos`, y se sumó un tercer disco nuevo
+  (SanDisk 1TB, externo USB) como `Storage` general sin uso fijo — ver `docs/arquitectura/estado-actual.md`.
 - `oscar-gitops` (Forgejo, `mdelgado/oscar-gitops`, rama `main`) tiene: el control node de Ansible completo
   (`ansible/`), con el stack de observabilidad **ya desplegado y funcionando** en `pinode02` (Prometheus, Grafana,
   Blackbox HTTP), y el Speedtest exporter + Blackbox ICMP **preparados en el código pero sin desplegar**.
@@ -343,7 +355,12 @@ estado que todavía no existe. Se actualiza en el momento en que cada migración
   de trabajo vive en un scratchpad fuera de este repo, y el push desde ahí quedó bloqueado por el clasificador de
   Claude Code ("Out-of-Place Publication"). Hay que pushearlo desde un checkout normal de `oscar-gitops`, o el
   usuario lo autoriza explícitamente.
-- El resto de la arquitectura nueva de este documento (VMs/LXC nuevas, migraciones, right-sizing, rename de
+- **Paso 2 hecho (2026-09-22):** Uptime Kuma migrado de `network` a `monitor`, con el ingress rule de Cloudflare
+  corregido — ver detalle en el paso 2 de "Pasos de ejecución" y en `docs/servicios/uptime-kuma.md`.
+- **Paso 3 parcial (2026-09-22):** right-sizing de RAM — `lab01`/`core01`/`devops01` ya en sus valores nuevos y
+  verificados sanos; **`k3s01` pendiente** (sigue en 8GB), cortado por el apagado de emergencia de arriba. Retomar
+  ahí, chequeando Argo CD antes de reiniciarla.
+- El resto de la arquitectura nueva de este documento (VMs/LXC nuevas, migraciones restantes, rename de
   `core01`/`devops01`/`k3s01`/`lab01`) no está ejecutado todavía — sigue el orden de "Pasos de ejecución" de arriba.
 
 ## Prompt para Codex (continuar la ejecución)
