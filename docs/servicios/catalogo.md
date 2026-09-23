@@ -21,7 +21,7 @@ La tabla resume el rol previsto. **Objetivo** no significa “instalar ya”: ca
 | [Loki](./loki.md) | Objetivo · Logs | VM observabilidad o k3s | logs de contenedores |
 | [Uptime Kuma](./uptime-kuma.md) | **Actual** · Disponibilidad | Docker Core | HTTP checks |
 | [n8n](./n8n.md) | **Actual** · Automatización | Docker Core | backups coordinados |
-| [Vaultwarden](./vaultwarden.md) | **Actual** · Seguridad | Docker Core | gestor de contraseñas propio (Bitwarden-compatible) |
+| [Vaultwarden](./vaultwarden.md) | **Actual** · Seguridad | Docker `services` (migrado de Core el 2026-09-23) | gestor de contraseñas propio (Bitwarden-compatible) |
 | [Homepage](./homepage.md) | **Actual** · Dashboard | Docker Core | landing con links/estado de todos los servicios |
 | [Beszel](./beszel.md) | **Actual** · Observabilidad | Docker Core | monitoreo liviano de CPU/RAM/disco, alternativa a Prometheus+Grafana |
 | [Home Assistant](./home-assistant.md) | **Actual** · Hogar | VM dedicada (vmid 101) | automatización doméstica |
@@ -132,9 +132,11 @@ De las candidatas en evaluación, `Karakeep` (bookmarking con full-text + búsqu
 
 ### Tabla de candidatos (sin Karakeep y sin Paperless-ngx, ya tratados arriba)
 
+**DocuSeal ya no es candidato — pasó a Actual el 2026-09-23**, desplegado en `services` en su modo standalone (SQLite embebida, no Postgres+Redis separados como decía la fila de abajo — para el volumen de un homelab alcanza y sobra). Fila conservada por el análisis de "criterio de adopción" más abajo, que sigue siendo válido.
+
 | App | Qué hace | Necesidad real / qué reemplazaría | Esfuerzo | Dónde |
 |---|---|---|---|---|
-| [Docuseal](https://www.docuseal.com/) | Firma electrónica de documentos (PDF/Word), campos drag-and-drop, plantillas, auditoría | Alternativa a DocuSign/HelloSign — firmar sin depender de un tercero | Medio — 3 servicios (app + Postgres + Redis) | k3s, `oscar-tools` |
+| ~~[Docuseal](https://www.docuseal.com/)~~ **Actual (2026-09-23)** | Firma electrónica de documentos (PDF/Word), campos drag-and-drop, plantillas, auditoría | Alternativa a DocuSign/HelloSign — firmar sin depender de un tercero | Bajo en la práctica — imagen standalone, un solo contenedor | `services` (LXC, Docker Compose) |
 | [Nextcloud](https://nextcloud.com/) | Sync/share de archivos, calendario, contactos, edición colaborativa | Reemplaza Google Drive/Dropbox — el único candidato de esta lista con volumen de datos real y creciente | Alto — PHP+DB+caché, más pesado que el resto de esta lista junta | Docker Compose, `core01` (o VM propia si crece) |
 | [Garage](https://garagehq.deuxfleurs.fr/) | Storage S3-compatible, pensado para clusters chicos/homelab (Rust, footprint bajo) | Responde lo mismo que MinIO pero sin el peso de MinIO — vale compararlos antes de elegir cuál de los dos, no los dos (ver "Decisiones futuras de plataforma" abajo) | Bajo | Docker Compose, `core01` |
 | [Firefly III](https://www.firefly-iii.org/) | Finanzas personales — presupuesto, categorización de gastos, reportes | Ninguna herramienta hoy cubre esto | Bajo-medio — app + DB | Docker Compose |

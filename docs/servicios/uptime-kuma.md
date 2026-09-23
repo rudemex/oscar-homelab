@@ -66,7 +66,7 @@ Segunda migración, mismo patrón que la de `core01`→`pinode01`: parar el cont
 | Homepage | `http://192.168.0.156:3005` | — |
 | Beszel hub | `http://192.168.0.156:8090` | — |
 | ProxMenux Monitor | `http://192.168.0.233:8008` | en `oscar-core`, no en `core01` |
-| Vaultwarden | `https://vault.oscarlab.com.ar/alive` | endpoint de salud dedicado (liviano, no carga toda la app); solo escucha en `127.0.0.1` en `core01` así que se mide vía el dominio público — necesitó otro bypass de Access (`/alive`, igual patrón que `/identity`/`/api`/`/notifications`/`/icons`) porque si no Cloudflare lo interceptaba antes de llegar |
+| Vaultwarden | `https://vault.oscarlab.com.ar/alive` | endpoint de salud dedicado (liviano, no carga toda la app); en `services` desde el 2026-09-23 (antes `core01`), se sigue midiendo vía el dominio público — necesitó otro bypass de Access (`/alive`, igual patrón que `/identity`/`/api`/`/notifications`/`/icons`) porque si no Cloudflare lo interceptaba antes de llegar |
 | Proxmox | `https://192.168.0.233:8006` | con `ignoreTls` (certificado self-signed) |
 | AdGuard Home | `http://192.168.0.93:80` | LXC 100 |
 | Home Assistant | `http://192.168.0.195:80` | VM 101 — **no** el 8123 típico de otras instalaciones; esta usa el puerto 80, se descubrió por error al asumir el default |
@@ -78,7 +78,8 @@ Segunda migración, mismo patrón que la de `core01`→`pinode01`: parar el cont
 | Argo CD | `http://argocd.oscar.home` | en k3s (Traefik) |
 | Infisical | `http://192.168.0.151:8085/api/status` | en `devops01`, por IP+puerto (2026-09-20) |
 | Headlamp | `http://headlamp.oscar.home` | en k3s (2026-09-20) |
-| SearXNG | `http://searxng.oscar.home/healthz` | en k3s, namespace `oscar-ai` (2026-09-20) |
+| SearXNG | `http://searxng.oscar.home/healthz` | en `services` desde el 2026-09-23 (antes k3s, namespace `oscar-ai`) — misma URL, resuelve distinto (NPM en vez de Traefik) |
+| DocuSeal | `http://docuseal.oscar.home` | en `services` (2026-09-23), instalado sin cuenta admin todavía |
 | ci-demo | `http://ci-demo.oscar.home` | en k3s (2026-09-20) |
 | Nginx Proxy Manager | `http://192.168.0.156:81` | UI de administración (2026-09-20) |
 | MySpeed | `http://192.168.0.156:5216` | (2026-09-20) |

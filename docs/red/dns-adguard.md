@@ -156,12 +156,21 @@ rewrites:
   - domain: portainer.oscar.home
     answer: 192.168.0.156
     enabled: true
+  - domain: infisical.oscar.home
+    answer: 192.168.0.156
+    enabled: true
+  - domain: searxng.oscar.home  # agregado 2026-09-23, al migrar de k3s a services
+    answer: 192.168.0.156
+    enabled: true
+  - domain: docuseal.oscar.home # agregado 2026-09-23, nuevo en services
+    answer: 192.168.0.156
+    enabled: true
   - domain: '*.oscar.home'
     answer: 192.168.0.150      # Traefik (k3s01) — todo lo que corre en k3s
     enabled: true
 ```
 
-Motivo: cada app nueva desplegada vía Argo CD (`led`, `argocd`, `ci-demo`, y las que vengan) ya trae su propio `Ingress` en Traefik — el único paso manual que faltaba era agregar el rewrite en AdGuard cada vez. Con el wildcard, cualquier `Ingress` nuevo con host `<lo-que-sea>.oscar.home` resuelve solo, sin tocar AdGuard de nuevo. Los dominios explícitos (`git`, `nexus`, que van a `192.168.0.156`, no a k3s01) siguen ganando por especificidad — confirmado con `dig`, no es una suposición sobre cómo prioriza AdGuard.
+Motivo: cada app nueva desplegada vía Argo CD (`led`, `argocd`, `ci-demo`, y las que vengan) ya trae su propio `Ingress` en Traefik — el único paso manual que faltaba era agregar el rewrite en AdGuard cada vez. Con el wildcard, cualquier `Ingress` nuevo con host `<lo-que-sea>.oscar.home` resuelve solo, sin tocar AdGuard de nuevo. Los dominios explícitos (que van a `192.168.0.156`, no a k3s01) siguen ganando por especificidad — confirmado con `dig`, no es una suposición sobre cómo prioriza AdGuard. Cada vez que una app sale de k3s hacia Docker Compose (como pasó con SearXNG), hay que agregar su rewrite explícito a mano — si no, el wildcard la sigue mandando a Traefik, donde ya no existe.
 
 Deliberadamente **no** se unificó bajo NPM (ej. `*.oscar.home` → NPM → Traefik): Traefik ya es un reverse proxy completo con routing por host nativo de k3s, meter NPM en el medio sería un proxy delante de otro resolviendo lo mismo, y ataría la disponibilidad de las apps de k3s a que `core01`/NPM esté arriba — hoy son capas independientes (Docker y k3s), a propósito.
 

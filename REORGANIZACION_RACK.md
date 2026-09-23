@@ -77,10 +77,10 @@ O.S.C.A.R.
 │           a `k3s` asumiendo que se van a quedar — nacen ya marcadas para migrar.
 │
 ├── WORKLOADS
-│   ├── services                    [LXC nueva unprivileged, Dell]
-│   │   ├── Vaultwarden
-│   │   ├── SearXNG
-│   │   └── DocuSeal
+│   ├── services                    [✅ LXC 108 unprivileged, Dell, 192.168.0.154 — desde 2026-09-23]
+│   │   ├── Vaultwarden       (migrado de core01)
+│   │   ├── SearXNG           (migrado de k3s)
+│   │   └── DocuSeal          (nuevo, falta setup inicial)
 │   │
 │   └── apps                        [diferido — ver Fase 2, será VM/worker de k3s]
 │       └── (futuro) ci-demo, oscar-led-controller, como worker del cluster k3s
@@ -229,7 +229,7 @@ core01
 ├── Homepage             → core (sin cambios funcionales)
 ├── NPM                  → core (sin cambios funcionales)
 ├── SMTP Relay           → core (sin cambios funcionales)
-├── Vaultwarden          → services (nueva LXC) — migrar datos
+├── Vaultwarden          → services (nueva LXC) — ✅ hecho (2026-09-23)
 ├── n8n + Postgres       → automation (nueva VM) — ✅ hecho (2026-09-23)
 ├── Minecraft             → games (nueva VM)
 ├── Cloudflare Tunnel      → network (centralizar ahí, hoy vive en core01)
@@ -246,9 +246,8 @@ devops01
 k3s01
 ├── Argo CD / Traefik / Headlamp / Infisical Operator → k3s (sin cambios funcionales, solo rename)
 ├── ci-demo / oscar-led-controller                      → se quedan en k3s (Fase 2 los mueve a `apps`)
-└── SearXNG                                               → services (nueva LXC) — hoy corre en k3s01 vía Argo CD,
-                                                             evaluar si migra a k8s-manifest en `services` o se
-                                                             redeploya como contenedor Docker suelto
+└── SearXNG                                               → services (nueva LXC) — ✅ hecho (2026-09-23), como
+                                                             contenedor Docker suelto
 
 lab01
 ├── CS2         → games (nueva VM)
@@ -317,8 +316,17 @@ estado que todavía no existe. Se actualiza en el momento en que cada migración
    **Gotcha real, corregido en `docs/proxmox/crear-vm-core01.md`:** el clon del template no hereda el tamaño de
    disco de la tabla de sizing, solo el tamaño original del template (~3.5GB) — faltaba un `qm resize` que no
    estaba en la receta. Se agregó el paso.
-5. Crear `services` (LXC unprivileged), migrar Vaultwarden desde `core01` con sus datos; evaluar SearXNG y sumar
-   DocuSeal.
+5. ✅ **Hecho (2026-09-23).** Creado `services` (LXC 108 unprivileged, `192.168.0.154/24`, Debian 13, `nesting=1,
+   keyctl=1`, 2vCPU/2GB/16GB — Docker probado real con `docker run hello-world`, no asumido). Migrado Vaultwarden
+   desde `core01` (checksum verificado, ingress de Cloudflare repuntado). **Decisión del usuario: migrar SearXNG
+   también** (no solo evaluar) — sacado de k3s/Argo CD, recreado en Compose con su config y secret intactos, app y
+   recursos viejos borrados de k3s y de `oscar-gitops`. **Decisión del usuario: sumar DocuSeal ahora** — instalado
+   en modo standalone (SQLite embebida, sin Postgres separado), falta que el usuario haga el setup inicial (cuenta
+   admin) por la web. Los tres accesibles vía NPM + rewrite de AdGuard (`vault` además por Cloudflare Tunnel).
+   Detalle completo en `docs/arquitectura/estado-actual.md`.
+   **De paso (pedido fuera de este paso, mismo momento):** se borraron VM 101 (`haos-18.2`, HA vieja) y LXC 100
+   (`adguard`, viejo) — ya no hacían falta, sus rescates de datos siguen en
+   `/var/lib/vz/rescate-ssd-2026-09-22/`.
 6. Crear `games` (VM, apagada por defecto), mover Minecraft desde `core01` y CS2 desde `lab01`.
 7. Renombrar `core01`→`core`, `devops01`→`devops`, `k3s01`→`k3s`, `lab01`→`lab` (vaciada de CS2).
 8. Eliminar Portainer Server/Agent de todos los hosts.
@@ -371,10 +379,13 @@ estado que todavía no existe. Se actualiza en el momento en que cada migración
 - **Paso 3 hecho (2026-09-23):** right-sizing de RAM en las 4 VMs (`core01`=4GB, `devops01`=6GB, `k3s01`=4GB,
   `lab01`=2GB), todas reiniciadas y verificadas sanas.
 - **Paso 4 hecho (2026-09-23):** VM `automation` creada (192.168.0.153) y n8n+Postgres migrados desde `core01`,
-  con Homepage/Cloudflare/Kuma repuntados. `core01` conserva los contenedores viejos detenidos como respaldo.
-- Los pasos 5 en adelante (crear `services`/`games`, migrar Vaultwarden, rename de
-  `core01`/`devops01`/`k3s01`/`lab01`) no están ejecutados todavía — siguen el orden de "Pasos de ejecución" de
-  arriba.
+  con Homepage/Cloudflare/Kuma repuntados. `core01` conserva los contenedores viejos detenidos como respaldo. n8n
+  además pasó a modo *queue* (Redis + worker) el mismo día, a pedido del usuario.
+- **Paso 5 hecho (2026-09-23):** LXC `services` (192.168.0.154) creado y Vaultwarden migrado desde `core01`.
+  SearXNG migrado de k3s (no solo evaluado) y DocuSeal sumado — ambas decisiones del usuario, más allá de lo
+  mínimo que pedía el paso. De paso: VM 101 y LXC 100 (viejos, sin uso) se borraron.
+- Los pasos 6 en adelante (crear `games`, rename de `core01`/`devops01`/`k3s01`/`lab01`) no están ejecutados
+  todavía — siguen el orden de "Pasos de ejecución" de arriba.
 
 ## Prompt para Codex (continuar la ejecución)
 
