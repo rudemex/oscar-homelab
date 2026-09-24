@@ -5,7 +5,7 @@ sidebar_position: 13
 
 # Home Assistant
 
-**Estado:** Actual · Hogar — **VM 106 (`haos-18.3`)** en `oscar-core`, rehecha desde cero el 2026-09-21 (la VM 101 `haos-18.2` se perdió con el SSD SATA de `Backups`, ver [incidente](../arquitectura/estado-actual.md)). **Onboarding hecho (2026-09-23)** — cuenta de admin creada por el usuario. Sirve por `http://192.168.0.195:80` (no `:8123` como se pensó originalmente — coincide con el ingress ya configurado del túnel de Cloudflare, que siempre apuntó a `:80`). **IP fija resuelta (2026-09-24)**: reserva DHCP real en el router TP-Link (`02:DC:F8:B9:49:3F` → `192.168.0.195`, vía la API del router con la librería `tplinkrouterc6u`), más un reinicio de la VM para que tomara la IP nueva — una reserva no mueve un lease ya activo. `ha.oscarlab.com.ar` verificado funcionando de nuevo.
+**Estado:** Actual · Hogar — **VM 106 (`haos-18.3`)** en `oscar-core`, rehecha desde cero el 2026-09-21 (la VM 101 `haos-18.2` se perdió con el SSD SATA de `Backups`, ver [incidente](../arquitectura/estado-actual.md)). **Onboarding hecho (2026-09-23)** — cuenta de admin creada por el usuario. Sirve por `http://192.168.0.195:80` (no `:8123` como se pensó originalmente — coincide con el ingress ya configurado del túnel de Cloudflare, que siempre apuntó a `:80`). **IP fija resuelta (2026-09-24)**: reserva DHCP real en el router TP-Link (`02:DC:F8:B9:49:3F` → `192.168.0.195`, vía la API del router con la librería `tplinkrouterc6u`), más un reinicio de la VM para que tomara la IP nueva — una reserva no mueve un lease ya activo. Al volver, `ha.oscarlab.com.ar` dio `400: Bad Request` (el gotcha ya documentado del proxy de confianza, ver abajo) — verificado vía la API WebSocket (`http/config`, con un token de acceso de larga duración) que `trusted_proxies` ya tenía `192.168.0.156/32` activo (`active_config_type: "stable"`), con timestamp de segundos después del reinicio — se autoconfiguró solo, sin intervención manual. Confirmado funcionando (`302` de Access) sin tocar nada.
 **Dónde corre:** VM dedicada en `oscar-core` (no Raspberry Pi todavía — ver [estado actual](../arquitectura/estado-actual.md))  
 **Sizing inicial:** 2 vCPU/2–4 GB RAM típico inicial; depende de integraciones  
 **Red/puertos:** **puerto 80** interno (no el 8123 típico de otras instalaciones — esta instancia quedó configurada distinto); acceso real vía [Cloudflare Tunnel](./cloudflare-tunnel.md) en `ha.oscarlab.com.ar`  
@@ -75,6 +75,8 @@ Home Assistant rechaza por defecto cualquier request que declare venir de un pro
 **Configuración → Sistema → Red → Servidor HTTP → Proxies de confianza** → agregar `192.168.0.156` (`core`, donde corre `cloudflared` con `network_mode: host`).
 
 Si en algún momento se migra a una instalación más vieja que no tenga ese panel en Red, ahí sí correspondería el bloque YAML de arriba — confirmar la versión antes de asumir cuál de los dos caminos aplica.
+
+**Para diagnosticar sin entrar a la UI:** el comando de la API WebSocket es `http/config` (requiere un token de acceso de larga duración, `Perfil → Seguridad → Tokens de acceso de larga duración`) — devuelve `result.stable.trusted_proxies` con la config activa. No se probó el comando de escritura (no hizo falta, ver abajo).
 
 ## Troubleshooting
 
