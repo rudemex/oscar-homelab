@@ -102,7 +102,17 @@ A las 18:19 la placa de red física del Dell (`e1000e`) tiró un **"Detected Har
 
 **Tercera recurrencia (2026-09-23), esta vez peor: colgó todo el host, no solo dos guests.** Con la VM `games` descargando 73GB reales desde Steam (carga de red sostenida alta), el Dell entero dejó de responder por red — ni SSH, ni ping, nada, en ningún host/VM/LXC del Dell (las Raspberry Pi y el resto de la LAN siguieron funcionando sin problema, confirmando que no era un problema de red general sino puntual del Dell). A diferencia de las dos veces anteriores, **no hubo forma de aplicar el fix remoto de resetear la interfaz** — el host mismo no respondía a nada. Se resolvió con **apagado forzado y reinicio físico** (mantener el botón de power). Tras el reinicio: todo volvió solo (autostart de las 6 VMs + el LXC), Argo CD necesitó un refresh manual de 3 apps que habían quedado en estado `Unknown` (no `OutOfSync` real, solo el timing del restart), y el download de CS2 que se había cortado a mitad de camino retomó solo desde donde había quedado (SteamCMD guarda estado local, no perdió el progreso).
 
-**La correlación con carga de red sostenida alta (descarga de 73GB) en las tres recurrencias es sugerente pero no está confirmada como causa** — las dos anteriores no tenían ese patrón de carga. Sigue sin aplicarse la mitigación de `ethtool` investigada arriba; con esta tercera vez (y la primera que tumba el host completo, no solo 2 guests), sube de prioridad real.
+**La correlación con carga de red sostenida alta (descarga de 73GB) en las tres recurrencias es sugerente pero no está confirmada como causa** — las dos anteriores no tenían ese patrón de carga.
+
+**Mitigación aplicada (2026-09-23):** deshabilitado TSO/GSO/GRO + EEE en `nic0` vía `ethtool`, primero en caliente (verificado sin cortar la conexión) y después persistido en `/etc/network/interfaces` con hooks `pre-up` en la estrofa `iface nic0 inet manual`:
+
+```
+iface nic0 inet manual
+	pre-up /usr/sbin/ethtool -K nic0 tso off gso off gro off
+	pre-up /usr/sbin/ethtool --set-eee nic0 eee off
+```
+
+Validado con `ifquery nic0 -v` (exit 0, muestra ambos `pre-up`) y `ifquery -a` sin errores de sintaxis — se reaplica solo en cada arranque de `vmbr0`, sobrevive a un reinicio (incluido uno forzado por un futuro hang). Backup del archivo original en `/etc/network/interfaces.bak-nic-fix-2026-09-23`. **Pendiente de verificación real:** confirmar que no vuelve a repetirse bajo la misma carga (descarga sostenida grande) que gatilló la tercera recurrencia — no hay forma de probarlo sin esperar a que se dé esa condición de nuevo.
 
 ## Dominio — en uso
 
