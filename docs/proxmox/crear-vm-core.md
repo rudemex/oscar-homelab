@@ -85,6 +85,20 @@ qm set 102 --cpu host
 #     `automation` el 2026-09-23). Ajustar el "+56G" al tamaño real deseado.
 qm resize 102 scsi0 +56G
 
+# 5c. instance-id fijo de cloud-init — sin esto, Proxmox regenera el meta-data
+#     en CADA arranque con un instance-id distinto, y cloud-init trata cada boot
+#     como una instancia nueva: vuelve a correr los módulos once-per-instance,
+#     incluido el que regenera las claves SSH host. Gotcha real encontrado el
+#     2026-09-24 en 3 de las VMs originales (core/k3s/devops) — cada reinicio del
+#     Dell disparaba un warning real de "host key changed". Requiere habilitar
+#     el content type `snippets` en el storage `local` una sola vez por host
+#     Proxmox (pvesm set local --content ...,snippets), no por VM.
+cat > /var/lib/vz/snippets/102-meta.yaml << 'EOF'
+instance-id: oscar-core-vm102-fixed
+local-hostname: core
+EOF
+qm set 102 --cicustom 'meta=local:snippets/102-meta.yaml'
+
 # 6. Habilitar autostart — si no, la VM no arranca sola cuando reinicia oscar-core
 #    (ver "Autostart de VMs" en operacion.md — encontrado como bug real, no estaba seteado)
 qm set 102 --onboot 1
