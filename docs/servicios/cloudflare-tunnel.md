@@ -5,7 +5,7 @@ sidebar_position: 14
 
 # Cloudflare Tunnel + Access
 
-**Estado:** Actual — túnel `core` corriendo y conectado, ingress configurado para 7 servicios, Cloudflare Access habilitado con una Access Application + política por servicio (solo el email del autor, código de un solo uso), y los 7 registros DNS ya publicados y protegidos
+**Estado:** Actual — dos túneles corriendo y conectados: `core` (7 hostnames) y `pinode01` (1 hostname, `kuma`, movido acá el 2026-09-23 para que sobreviva a un cuelgue del Dell — ver [abajo](#segundo-túnel-pinode01-con-uso-real-2026-09-23)). Cloudflare Access habilitado con una Access Application + política por servicio (solo el email del autor, código de un solo uso), los 8 registros DNS ya publicados y protegidos
 **Dónde corre:** `core` (`/srv/oscar/apps/cloudflared/`), `network_mode: host`
 **Sizing inicial:** muy bajo (~20-30 MB RAM)
 **Red/puertos:** solo conexiones salientes (QUIC/HTTP2 hacia el edge de Cloudflare); ningún puerto inbound en el router
@@ -25,13 +25,15 @@ flowchart LR
   EDGE --> ACCESS{Cloudflare Access<br/>política por hostname}
   ACCESS -->|sin login válido| DENY[login OTP / 403]
   ACCESS -->|identidad OK o ruta bypass| TUNNEL[cloudflared<br/>core · network_mode: host]
-  TUNNEL --> VAULT["vault<br/>127.0.0.1:8082"]
-  TUNNEL --> N8N["n8n<br/>:5678"]
-  TUNNEL --> KUMA["kuma<br/>:3001"]
+  TUNNEL --> VAULT["vault<br/>services:8082"]
+  TUNNEL --> N8N["n8n<br/>automation:5678"]
   TUNNEL --> HOME["home<br/>:3005"]
   TUNNEL --> BESZEL["beszel<br/>:8090"]
   TUNNEL --> MONITOR["monitor<br/>oscar-core:8008"]
-  TUNNEL --> HA["ha<br/>VM101:80"]
+  TUNNEL --> HA["ha<br/>:80"]
+  TUNNEL --> LED["led<br/>k3s:80"]
+  ACCESS -->|identidad OK o ruta bypass| TUNNEL2[cloudflared<br/>network · segundo túnel]
+  TUNNEL2 --> KUMA["kuma<br/>monitor:3001"]
 
   classDef deny fill:#c0392b,stroke:#333,color:#fff;
   class DENY deny
@@ -43,18 +45,26 @@ El único tramo de red real hacia afuera es `cloudflared` iniciando la conexión
 
 `network_mode: host` es deliberado (mismo criterio que [Beszel](./beszel.md)): así el túnel llega a cada servicio vía `http://localhost:<puerto>` sin importar en qué red Docker viva cada compose por separado.
 
-Ingress configurado (vía API, `config_src: cloudflare`):
+Ingress del túnel `core` (vía API, `config_src: cloudflare`) — **ya no incluye `kuma`**, ver la sección de abajo:
 
 | Hostname | Servicio interno |
 |---|---|
-| `vault.oscarlab.com.ar` | `http://localhost:8082` (Vaultwarden, publicado solo en loopback) |
-| `kuma.oscarlab.com.ar` | `http://localhost:3001` |
-| `n8n.oscarlab.com.ar` | `http://localhost:5678` |
+| `vault.oscarlab.com.ar` | `http://192.168.0.154:8082` — Vaultwarden, migrado a `services` |
+| `n8n.oscarlab.com.ar` | `http://192.168.0.153:5678` — migrado a `automation` |
 | `home.oscarlab.com.ar` | `http://localhost:3005` |
 | `beszel.oscarlab.com.ar` | `http://localhost:8090` |
-| `monitor.oscarlab.com.ar` | `http://192.168.0.233:8008` — [ProxMenux Monitor](./proxmenux-monitor.md), corre en `oscar-core`, no en `core`; es el único destino que no es `localhost` |
-| `ha.oscarlab.com.ar` | `http://192.168.0.195:80` — [Home Assistant](./home-assistant.md), VM 101 |
+| `monitor.oscarlab.com.ar` | `http://192.168.0.233:8008` — [ProxMenux Monitor](./proxmenux-monitor.md), corre en `oscar-core` (el hipervisor), no en `core` (la VM) |
+| `ha.oscarlab.com.ar` | `http://192.168.0.195:80` — [Home Assistant](./home-assistant.md), VM 106 |
+| `led.oscarlab.com.ar` | `http://192.168.0.150:80` (`httpHostHeader: led.oscar.home`) — Ingress de Traefik en `k3s` |
 | *(catch-all)* | `http_status:404` |
+
+## Segundo túnel: `pinode01`, con uso real (2026-09-23)
+
+Existía un segundo túnel registrado en Cloudflare, `pinode01` (el nombre quedó del host antes de renombrarse a [`network`](../hardware/network.md)), con su propio `cloudflared` corriendo ahí desde el 21/9 pero **sin ninguna regla de ingress** (`config: null`) — un hallazgo de la migración de Kuma: el DNS de `kuma.oscarlab.com.ar` había estado apuntando todo este tiempo al túnel de `core`, proxeando por LAN, no a este túnel dedicado (ver [Uptime Kuma](./uptime-kuma.md)).
+
+**Por qué importa tenerlo separado:** con `cloudflared` de `core` corriendo en el mismo host que tuvo 3 cuelgues reales de NIC (el último tumbando el host entero, ver [estado actual](../arquitectura/estado-actual.md)), cualquier hostname público que dependa de ese túnel se cae junto con el Dell — aunque el servicio en sí (Kuma, en `monitor`) siga sano. Mover `kuma` a un túnel con conector en una Raspberry Pi separada la hace sobrevivir a un cuelgue del Dell.
+
+**Cambio hecho:** ingress nuevo en el túnel `pinode01` (`kuma.oscarlab.com.ar` → `http://192.168.0.214:3001`, proxeando por LAN a `monitor`, más el catch-all `http_status:404` obligatorio), el registro DNS de `kuma.oscarlab.com.ar` repuntado (`CNAME` al nuevo `tunnel-id.cfargotunnel.com`), y recién después la entrada vieja borrada del ingress de `core` — en ese orden, para no dejar una ventana sin servir el hostname. Verificado con los 8 hostnames públicos respondiendo `302` (Access) antes y después del corte.
 
 Orden que se siguió (importa para no dejar una ventana pública sin protección): primero se creó la Access Application + política de cada hostname, y **recién después** el registro DNS (`CNAME` → `<tunnel-id>.cfargotunnel.com`, `proxied: true`) — así, en el instante exacto en que cada hostname empezó a resolver, Access ya estaba interceptando. Crear el DNS antes que la política habría dejado el servicio público sin nada delante durante esa ventana.
 
