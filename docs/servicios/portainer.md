@@ -20,7 +20,9 @@ El usuario decidió sacarlo: "no nos sirve". Ya estaba planificado (ver [REORGAN
 3. `docker compose down` del agente en `devops`, imagen `portainer/agent:2.21.4` y `/srv/oscar/apps/portainer-agent/`.
 4. Proxy Host `portainer.oscar.home` de [Nginx Proxy Manager](./nginx-proxy-manager.md) y su rewrite de [AdGuard](../red/dns-adguard.md).
 
-Ya no tenía tarjeta en Homepage (se había sacado antes; solo quedan backups `services.yaml.bak-*` que la mencionan). **No se tocó** la entrada de Portainer en Vaultwarden ni la línea `192.168.0.156 portainer.oscar.home` del `/etc/hosts` de la Mac del usuario (necesita `sudo`) — limpieza manual pendiente.
+5. **Tarjeta de Homepage** — sacada del `services.yaml` vivo de `core` (validado el YAML antes y después, 32 → 31 tarjetas, backup `services.yaml.bak-portainer-removal-2026-09-25`, reinicio de Homepage). Ojo: en la primera pasada se dio por sentado que ya no estaba (el `grep` se cortó en los `.bak`) y seguía ahí — se detectó al pedir el barrido completo. Quedan 18 archivos `services.yaml.bak-*` históricos que la mencionan, a propósito (son backups).
+
+Barrido final sin restos: `oscar-gitops`, `oscar-compose`, `coredns-custom`, Cloudflare Tunnel, `/etc/hosts` de todas las VMs y la stack de monitoreo. **No se tocó** la entrada de Portainer en Vaultwarden ni la línea `192.168.0.156 portainer.oscar.home` del `/etc/hosts` de la Mac del usuario (necesita `sudo`) — limpieza manual pendiente.
 
 ## Por qué existía, y su límite de uso deliberado
 
