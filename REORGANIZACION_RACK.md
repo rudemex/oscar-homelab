@@ -70,10 +70,7 @@ O.S.C.A.R.
 │       ├── Argo CD
 │       ├── Traefik
 │       ├── Headlamp
-│       ├── Infisical Operator
-│       └── ⚠️ oscar-led-controller — se queda acá (no en `apps`), bloqueo real: su imagen se
-│           importa a mano al containerd de este nodo (`pullPolicy: Never`, sin registry).
-│           Revisar cuando tenga CI real con push a Nexus, como `ci-demo`.
+│       └── Infisical Operator
 │
 ├── WORKLOADS
 │   ├── services                    [✅ LXC 108 unprivileged, Dell, 192.168.0.154 — desde 2026-09-23]
@@ -82,7 +79,8 @@ O.S.C.A.R.
 │   │   └── DocuSeal          (nuevo, falta setup inicial)
 │   │
 │   └── apps                        [✅ VM 110, worker de k3s, 192.168.0.157 — desde 2026-09-23]
-│       └── ci-demo (migrado de k3s vía nodeSelector, sin taint al control-plane)
+│       ├── ci-demo (migrado de k3s vía nodeSelector, sin taint al control-plane)
+│       └── oscar-led-controller (migrado de k3s el 2026-09-25, con CI real vía Nexus)
 │
 └── SPECIAL PURPOSE
     ├── games                       [✅ VM 109, Dell, 192.168.0.155 — desde 2026-09-23, uso activo]
@@ -160,7 +158,7 @@ Estado real hoy, por servicio (ver también la tabla de "Redundancias"/inventari
 | Beszel | — | — | ✅ `beszel.oscarlab.com.ar` | — |
 | ProxMenux Monitor | ✅ `:8008` | — | ✅ `monitor.oscarlab.com.ar` | — |
 | Home Assistant | — | — | ✅ `ha.oscarlab.com.ar` | — |
-| oscar-led-controller | ✅ (Traefik, `k3s`) | ✅ `led.oscar.home` | ✅ `led.oscarlab.com.ar` | — |
+| oscar-led-controller | ✅ (Traefik, `apps`) | ✅ `led.oscar.home` | ✅ `led.oscarlab.com.ar` | — |
 | Uptime Kuma | ✅ `:3001` (hoy en `network`, después `monitor`) | — | ✅ `kuma.oscarlab.com.ar` (túnel propio) | — |
 | Forgejo, Nexus, Infisical, Argo CD, Headlamp, SearXNG, ci-demo | ✅ vía IP o `*.oscar.home` | ✅ | — | — |
 | Proxmox VE, AdGuard UI, Grafana, Prometheus | ✅ solo IP directa | — | — | — (deliberado: nunca exponer gestión de infra a Internet) |
@@ -171,13 +169,15 @@ mano por `/etc/hosts` o DNS del dispositivo, mientras AdGuard no sea el default 
 Paneles de gestión de infraestructura (Proxmox, AdGuard, Grafana, Prometheus) **nunca** salen a Internet, ni con
 Access.
 
-## `apps` como worker de k3s — Fase 2, diferida
+## `apps` como worker de k3s — Fase 2, completa (2026-09-25)
 
-El diseño a futuro separa `k3s` (control plane: Argo CD, Traefik, Headlamp, operators) de `apps` (worker: los pods
-de las aplicaciones propias). Hoy no existe ese segundo nodo. **Para esta pasada**, `ci-demo` y
-`oscar-led-controller` se quedan corriendo en el cluster `k3s` tal cual están (Argo CD los sigue desplegando sin
-cambios). Crear el VM `apps`, unirlo al cluster como worker, y taintear `k3s` para que no reciba pods de
-aplicación, queda como una fase separada y posterior — no bloquea el resto de esta reorganización.
+El diseño separa `k3s` (control plane: Argo CD, Traefik, Headlamp, operators) de `apps` (worker: los pods de las
+aplicaciones propias). `ci-demo` se migró primero (vía `nodeSelector`, sin taint al control-plane). `oscar-led-controller`
+se quedó en `k3s` más tiempo por un bloqueo real (imagen importada a mano al containerd, `pullPolicy: Never`, sin
+registry) — se resolvió el 2026-09-25 al validar el CI/CD del repo (build + push real a Nexus, ver
+[backlog](docs/roadmap/backlog.md)): se actualizó `values.yaml` con la imagen de Nexus y `nodeSelector: apps`, y
+Argo CD la migró sin downtime salvo por un PVC `local-path` anclado a `k3s01` (dato trivial, se recreó en el nodo
+nuevo). Con esto, las dos apps de usuario del cluster ya corren en `apps`; `k3s` quedó solo con control-plane.
 
 ## Portainer — se elimina
 
@@ -244,7 +244,8 @@ devops
 
 k3s
 ├── Argo CD / Traefik / Headlamp / Infisical Operator → k3s (sin cambios funcionales, solo rename)
-├── ci-demo / oscar-led-controller                      → se quedan en k3s (Fase 2 los mueve a `apps`)
+├── ci-demo / oscar-led-controller                      → migrados a `apps` — ✅ hecho (ci-demo 2026-09-23,
+│                                                            oscar-led-controller 2026-09-25)
 └── SearXNG                                               → services (nueva LXC) — ✅ hecho (2026-09-23), como
                                                              contenedor Docker suelto
 
@@ -368,9 +369,10 @@ estado que todavía no existe. Se actualiza en el momento en que cada migración
     toleration para ese taint), no solo las apps propias, y el worker de 2GB no los aguanta a todos. En su lugar,
     `nodeSelector: kubernetes.io/hostname: apps` puntual por Deployment (agregado como capacidad opcional al
     chart de Helm). `ci-demo` movido y verificado (`ci-demo.oscar.home` responde, Argo CD `Synced`/`Healthy`).
-    **`oscar-led-controller` se queda en `k3s`** — bloqueo real: su imagen se importa a mano al containerd de
-    `k3s01` (`pullPolicy: Never`, sin registry), moverla de nodo rompe el arranque hasta reimportar ahí. Revisar
-    cuando tenga CI real con push a Nexus.
+    **`oscar-led-controller` se quedó en `k3s`** por un tiempo — bloqueo real: su imagen se importaba a mano al
+    containerd de `k3s01` (`pullPolicy: Never`, sin registry), moverla de nodo rompía el arranque hasta reimportar
+    ahí. **Resuelto el 2026-09-25**: con el CI/CD del repo validado (build + push real a Nexus), se migró a `apps`
+    igual que `ci-demo` — detalle completo en [backlog.md](docs/roadmap/backlog.md).
     **Gotcha real:** `k3s01` tiene `/etc/rancher/k3s/registries.yaml` con el mirror insecure de Nexus (HTTP, no
     HTTPS) — no se replica solo a un worker nuevo. Sin copiarlo a mano a `apps` y reiniciar `k3s-agent`, cualquier
     imagen de Nexus falla con `ImagePullBackOff` (`server gave HTTP response to HTTPS client`).
@@ -469,8 +471,8 @@ Copiar y pegar tal cual como prompt inicial:
 >   archivo anterior en el propio host.
 > - **No apagues las herramientas de monitoreo redundantes** (Beszel, Glances, ProxMenux Monitor, MySpeed) — la
 >   politica acordada es esperar datos reales en Grafana antes de decidir, funcion por funcion.
-> - La Fase 2 (VM `apps` como worker de k3s) es un trabajo aparte, no la empieces salvo que el usuario lo pida
->   explicitamente — por ahora `ci-demo` y `oscar-led-controller` se quedan en el cluster `k3s` tal cual estan.
+> - La Fase 2 (VM `apps` como worker de k3s) ya esta completa (2026-09-25): `ci-demo` y `oscar-led-controller`
+>   corren en `apps`, `k3s` quedo solo con el control-plane.
 > - La seccion "Documentacion a actualizar" de `REORGANIZACION_RACK.md` dice exactamente que pagina de `docs/`
 >   tocar en cada paso — no reescribas las ~80 paginas que mencionan nombres viejos de una sola vez, solo las que
 >   correspondan al paso que estas ejecutando en ese momento (la documentacion debe describir lo que ya paso, no lo

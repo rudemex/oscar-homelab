@@ -1,5 +1,5 @@
 # O.S.C.A.R. HomeLab
-
+claude --resume 01LiAHJ1bxZQVnfu5kmrjC8R
 Documentación viva para construir, operar y evolucionar **O.S.C.A.R.**: rack, red, Proxmox, Docker, Kubernetes, GitOps, observabilidad, backups, automatización y capa de IA.
 
 Esta versión toma como base el template [`rudemex/railway-docusaurus-v3`](https://github.com/rudemex/railway-docusaurus-v3): Docusaurus v3 + TypeScript + estructura clásica + despliegue mediante Docker/Railway.
