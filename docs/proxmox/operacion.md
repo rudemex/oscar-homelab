@@ -53,6 +53,12 @@ qm set <vmid> --onboot 1
 
 No confundir con el orden de arranque (`qm set <vmid> --startup order=X`) — con 3 VMs en el mismo host y sin dependencia dura de boot entre ellas (k3s no depende de que devops esté arriba para *arrancar*, solo para pullear imágenes de Nexus en runtime), no hizo falta definir orden, solo que las tres tengan el flag en `1`.
 
+## Servicio propio del host: `oscar-led-boot` (2026-09-25)
+
+Único servicio de systemd propio que corre **en el host** `oscar-core` (no en una VM): `oscar-led-boot.service`, habilitado en `multi-user.target`. Refleja el arranque del Dell en la [tira LED](../hardware/led-status.md) — espera (hasta 20 min, cada 10 s) a que la API de la tira responda, reproduce `booting` y, si nadie tomó la tira mientras tanto, la asienta en `healthy`. Vive en el host y no en k3s porque el `oscar-led-controller` corre adentro de k3s, que arranca *después* del host: no puede avisar de su propio arranque. Script en `/usr/local/sbin/oscar-led-boot.sh`, unidad en `/etc/systemd/system/`, ambos versionados en `oscar-compose/hosts/oscar-core/`. `Type=simple` a propósito: un `oneshot` bloquearía `multi-user.target` durante toda la espera.
+
+Si en algún momento un reinicio del host demora de más en dar el "listo", esta unidad **no** es la causa (corre en paralelo, no bloquea nada) — se puede ver con `journalctl -u oscar-led-boot.service`.
+
 ## Nunca
 
 - instalar stacks de aplicación directamente en el host "porque es más rápido";
