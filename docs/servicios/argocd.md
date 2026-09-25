@@ -21,7 +21,8 @@ El widget de Argo CD en Homepage usa una cuenta propia de solo lectura, `homepag
 |---|---|---|---|---|
 | `root-app` | `argocd` | Manual (sin `automated`, a propósito — ver Troubleshooting) | Healthy | app-of-apps — descubre `apps/*/application.yaml` e `infra/*/application.yaml` en `oscar-gitops` (ver "Estructura del repo" abajo). Su propio manifiesto vive en `clusters/oscar/root-app.yaml`, pero eso es solo dónde vive el bootstrap, no lo que vigila. |
 | `oscar-led-controller` | `oscar-lab` | Automated (`selfHeal`, `prune`) — antes era manual por error, aunque esta doc decía lo contrario | Progressing / Degraded (`0/1`) | El pod está `Running` pero falla el readiness probe — el ESP32 físico está apagado, no es un problema de la plataforma. Tras un rollout reciente Kubernetes marca el plazo vencido (`ProgressDeadlineExceeded`) y Argo CD lo muestra `Degraded` en vez de `Progressing`: mismo estado de fondo. Ver [runbook](../runbooks/k3s-degradado.md) si en algún momento el ESP32 está prendido y sigue sin ponerse healthy. Código en Forgejo (`mdelgado/oscar-led-controller`); la imagen es local y **se despliega a mano** (comandos en el `values.yaml` del chart), ver [LED de estado](../hardware/led-status.md#código-fuente-y-despliegue). |
-| `ci-demo` | `oscar-lab` | Automated (`selfHeal`, `prune`) | Healthy | Cierra el loop CI→registry→GitOps→deploy, ver [pipeline de ejemplo](../devops/pipeline-ejemplo.md) |
+| `ci-demo` | `oscar-lab` | Automated (`selfHeal`, `prune`) | Healthy | Cierra el loop CI→registry→GitOps→deploy, ver [pipeline de ejemplo](../devops/pipeline-ejemplo.md). Piloto (2026-09-25) de `argocd-led-relay` — cada sync suyo refleja `deploying`/`success`/`healthy` en la tira LED, ver la sección dedicada abajo. |
+| `argocd-led-relay` | `oscar-lab` | Automated (`selfHeal`, `prune`) | Healthy | Relay entre Argo CD Notifications y `oscar-led-controller` (2026-09-25) — ver sección dedicada abajo. |
 | `searxng` | `oscar-ai` | Automated | Healthy | Metabuscador, primera pieza de la capa OSCAR AI (Fase 1 del spec de Hermes). Chart propio `apps/searxng/`, secret desde Infisical. Publicado en `searxng.oscar.home` solo para probar. |
 | `infisical-operator` | `infisical-operator-system` | Automated | Healthy | Chart oficial de Infisical (fuente Helm remota, no un chart propio), versión fija `v0.11.9` — sincroniza `Secret`s de k8s desde Infisical. Ver [gestión de secretos](../seguridad/secretos.md#secrets-en-gitops-k3s--argo-cd). |
 | `headlamp` | `headlamp` | Automated | Healthy | UI de exploración del cluster (pods/logs/eventos) — complementa a Argo CD, que se enfoca en estado de sync, no en explorar recursos sueltos. Login por token de ServiceAccount (`cluster-admin`), no usuario/contraseña — token real en Vaultwarden. Publicado en `headlamp.oscar.home`. Chart fijo `0.45.0`; los valores viven en `infra/headlamp/values.yaml` (multi-source con `ref: values`). |
@@ -31,6 +32,27 @@ El widget de Argo CD en Homepage usa una cuenta propia de solo lectura, `homepag
 `root-app` sin `syncPolicy.automated` es intencional, no un olvido: el operador dispara el sync manual (`kubectl patch application root-app -n argocd --type merge -p '{"operation":{"sync":{"revision":"HEAD"}}}'` o desde la UI) para tener control explícito sobre cuándo se propaga un cambio en la estructura del repo, mientras que las Applications hoja (`ci-demo`, `searxng`, `infisical-operator`, `headlamp`) sí son automáticas porque su blast radius es una sola app. Las Applications **no llevan finalizer** de borrado en cascada a propósito: borrar una (ej. `oscar-led-controller`) no debe llevarse su PVC con datos.
 
 **Gotcha real, encontrado dos veces (2026-09-19 y 2026-09-20):** como `root-app` es manual, un cambio a `clusters/oscar/root-app.yaml` **tampoco** se propaga solo — hay que `kubectl apply -f` ese archivo puntual a mano antes de esperar que el sync manual haga algo. Pasa fácil de olvidar porque el resto del repo sí es autodiscovery: la única pieza que de verdad requiere tocar el cluster a mano es ese único archivo.
+
+## `argocd-led-relay`: deploying/success/healthy reales (2026-09-25)
+
+El cluster tenía el `argocd-notifications-controller` corriendo desde la instalación base de Argo CD — visible con `kubectl get pods -n argocd`, pero con `argocd-notifications-cm` completamente vacío: nadie lo había configurado nunca. Se conectó para que los `OscarState` `deploying`/`success`/`healthy`/`critical` de la [tira LED](../hardware/led-status.md) reaccionen solos a un deploy real, en vez de cambiarse siempre a mano.
+
+**Piezas:**
+
+- `infra/argocd/manifests/argocd-notifications-cm.yaml`: 3 triggers custom evaluados contra el `status` real de cada `Application` —
+  - `led-deploying`: `operationState.phase in ['Running']` (un sync está en curso);
+  - `led-success`: `operationState.phase in ['Succeeded']` y `health.status == 'Healthy'`;
+  - `led-failed`: `operationState.phase in ['Error', 'Failed']` o `health.status == 'Degraded'`.
+  
+  Más un `service.webhook.argocd-led-relay` apuntando al Service in-cluster de abajo.
+- `infra/argocd-led-relay/`: chart propio, mismo patrón sin build/CI que `oscar-compose/apps/kuma-led-bridge` — imagen pública `python:3.13-alpine`, el código real (`relay.py`) vive como archivo del chart y se empaqueta en un `ConfigMap` montado como volumen, sin imagen propia ni registry. Expone `/deploying`, `/success`, `/failed`, `/healthz` en el puerto 8080.
+- Suscripción por `Application`, no global: anotaciones `notifications.argoproj.io/subscribe.<trigger>.argocd-led-relay` en el `application.yaml` de cada app que se quiera reflejar. Piloto: solo `ci-demo` por ahora.
+
+**Por qué hace falta un relay y no alcanza con la Notification en sí:** Argo CD Notifications puede llamar a un webhook, pero no sabe secuenciar "mostrar `success` un rato y después asentarse en `healthy`" — y el propio estado `success` de `oscar-led-controller` no sirve para eso solo: es `temporary` (ver `states.ts`), así que al vencer su ventana de 4s vuelve sola al estado que estaba activo **antes** de `success`, que acá sería `deploying`, no `healthy`. El relay hace las dos llamadas HTTP en el orden correcto (`POST /state/success`, espera ~4.5s, `POST /state/healthy`) para que el resultado final sea el que corresponde.
+
+**Por qué in-cluster y no en una Pi:** habla con `oscar-led-controller` por su Service DNS interno (`oscar-led-controller.oscar-lab.svc.cluster.local`), nunca por `led.oscar.home` — evita a propósito la misma clase de bug encontrada ese mismo día en `kuma-led-bridge`/`monitor01-watchdog` (dependían de la DNS de `network01` sin necesitarlo, ver [Uptime Kuma](./uptime-kuma.md#bug-real-encontrado-los-dos-scripts-dependían-de-la-dns-de-network01-2026-09-25)).
+
+**Validado con eventos reales de Argo CD**, no solo pruebas manuales al relay: forzando un sync de `ci-demo` (`kubectl patch application ci-demo -n argocd --type merge -p '{"operation":{"sync":{}}}'`), los logs del relay muestran los `POST /deploying` y `POST /success` llegando desde la IP real del pod `argocd-notifications-controller`, y la tira terminó en `healthy` sola.
 
 ### Estructura del repo (2026-09-20)
 
