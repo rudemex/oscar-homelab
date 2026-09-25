@@ -76,7 +76,6 @@ Segunda migración, mismo patrón que la de `core`→`pinode01`: parar el conten
 | Cloudflare Tunnel | `http://192.168.0.156:20241/ready` | endpoint de salud propio de `cloudflared`, expuesto porque corre en `network_mode: host` |
 | Forgejo | `http://192.168.0.151:3000/api/healthz` | en `devops`, no en `core`; medido por IP+puerto igual que el resto, no por `git.oscar.home` |
 | Nexus | `http://192.168.0.151:8081/service/rest/v1/status` | en `devops`; sin monitor para el CI Runner (`forgejo-runner`) — no expone ningún endpoint HTTP propio sin sumarle config de métricas aparte |
-| Portainer | `http://portainer.oscar.home` | vía NPM, como el resto de los `*.oscar.home` |
 | oscar-led-controller | `http://led.oscar.home/health` | en k3s; **fuera de la status page a propósito**: da `503` mientras el ESP32 esté apagado y dejaría un "down" permanente en el widget de Homepage |
 | Argo CD | `http://argocd.oscar.home` | en k3s (Traefik) |
 | Infisical | `http://192.168.0.151:8085/api/status` | en `devops`, por IP+puerto (2026-09-20) |
@@ -122,6 +121,8 @@ Deliberadamente polling en vez de un canal de notificación "Webhook" de Kuma ap
 2. Inmediatamente después, un corte de red real de ~3 minutos contra `monitor01` (visto desde la Mac como `ping`/`ssh` sin respuesta, y confirmado desde *adentro* del contenedor del bridge como `Network unreachable` repetido) tiró 7 monitores caídos a la vez. El bridge no se cayó (cada tick fallido se loguea y reintenta, sin excepción no controlada) y, apenas la red volvió y Kuma re-chequeó todo arriba, hizo `recovering` → `healthy` solo. Causa del corte de red: no determinada — `monitor01` no se reinició (`uptime` sin cambios, load average normal, ningún contenedor reiniciado), así que no fue una caída del Pi; parece un blip de red puntual. Queda como hallazgo suelto, no una causa raíz cerrada.
 
 **Nota de despliegue:** por ahora vive en `/home/pi/apps/kuma-led-bridge/` en vez de `/srv/oscar/apps/` (ese directorio es `root:root`, no había sudo a mano en el momento) — mover cuando se tenga la contraseña de sudo del Pi.
+
+**Ajuste tras una prueba de despliegue real (2026-09-25): solo cuentan las caídas *confirmadas*.** El bridge contaba como caído todo heartbeat con `status != 1`, incluido `2` (*pending*: Kuma está reintentando antes de confirmar). En un microcorte de red real (7 monitores en `pending` a la vez) la tira oscilaba `critical` ↔ `recovering`. Ahora solo `status == 0` cuenta; el retry propio de Kuma existe justamente para absorber fallos sueltos. Costo: una caída real tarda un intervalo más (~60 s) en reflejarse.
 
 ## `monitor01-watchdog`: quién vigila al vigilante (2026-09-25)
 

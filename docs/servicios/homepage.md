@@ -140,11 +140,6 @@ mkdir -p /srv/oscar/apps/homepage/config
         description: Registry de artefactos — npm proxy y Docker registry privado
         icon: nexus.png
         siteMonitor: http://<IP-de-devops>:8081/service/rest/v1/status
-    - Portainer:
-        href: http://portainer.oscar.home
-        description: Contenedores y logs de core/devops en un panel - solo lectura/estado, no reemplaza a Git como fuente de la config
-        icon: portainer.png
-        siteMonitor: http://portainer.oscar.home
     - MySpeed:
         href: http://<IP-de-core>:5216
         description: Historial de velocidad de internet, tests automáticos cada tanto — no es CPU/RAM/disco, es ancho de banda

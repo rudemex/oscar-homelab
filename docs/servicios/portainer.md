@@ -5,13 +5,24 @@ sidebar_position: 28
 
 # Portainer
 
-**Estado:** Actual — Portainer CE 2.21.4 corriendo en `core` (server), Agent en `devops`, ambos endpoints conectados y sanos
+**Estado:** **Retirado el 2026-09-25** — server (`core`) y agente (`devops`) eliminados, ver [Retiro](#retiro-2026-09-25). El resto de esta página es historial de por qué se usó y cómo estaba armado.
 **Dónde corre:** server en Docker Core (`/srv/oscar/apps/portainer/`), agente en `devops` (`/srv/oscar/apps/portainer-agent/`)
 **Sizing inicial:** liviano, sin límites propios en el compose
 **Red/puertos:** `http://portainer.oscar.home` (vía [Nginx Proxy Manager](./nginx-proxy-manager.md#proxy-hosts-reales) en `core`, que proxea a `192.168.0.156:9443`) — igual que `git.oscar.home`/`nexus.oscar.home`, sin HTTPS del lado público (NPM habla HTTPS con Portainer del otro lado, eso es interno); `9000`/`9443` siguen respondiendo directo por IP también. Agente en `devops:9001`.
 **Persistencia:** volumen nombrado `portainer-data` (usuarios, configuración de endpoints) — sin datos de aplicación real, todo reconstruible
 
-## Por qué existe, y su límite de uso deliberado
+## Retiro (2026-09-25)
+
+El usuario decidió sacarlo: "no nos sirve". Ya estaba planificado (ver [REORGANIZACION_RACK.md](https://github.com/rudemex/oscar-homelab/blob/develop/REORGANIZACION_RACK.md), "Portainer — se elimina": la administración es Docker Compose + Ansible en hosts sueltos, Git + Argo CD en Kubernetes), pero nunca se había ejecutado. Qué se eliminó, en este orden:
+
+1. **Monitor de Uptime Kuma** (#15, "Portainer (core01)") — primero, a propósito: con el servicio bajo, el monitor habría quedado en rojo y [`kuma-led-bridge`](./uptime-kuma.md#integración-con-la-tira-led-kuma-led-bridge-2026-09-25) habría dejado la tira LED en `critical` para siempre.
+2. `docker compose down -v` del server en `core` (contenedor, red, **volumen `portainer-data`** — solo tenía usuarios y endpoints, sin datos reales), imagen `portainer/portainer-ce:2.21.4` y `/srv/oscar/apps/portainer/`.
+3. `docker compose down` del agente en `devops`, imagen `portainer/agent:2.21.4` y `/srv/oscar/apps/portainer-agent/`.
+4. Proxy Host `portainer.oscar.home` de [Nginx Proxy Manager](./nginx-proxy-manager.md) y su rewrite de [AdGuard](../red/dns-adguard.md).
+
+Ya no tenía tarjeta en Homepage (se había sacado antes; solo quedan backups `services.yaml.bak-*` que la mencionan). **No se tocó** la entrada de Portainer en Vaultwarden ni la línea `192.168.0.156 portainer.oscar.home` del `/etc/hosts` de la Mac del usuario (necesita `sudo`) — limpieza manual pendiente.
+
+## Por qué existía, y su límite de uso deliberado
 
 No está en `OSCAR_FINAL_INFRASTRUCTURE.md` (raíz del repo, fuente de verdad de arquitectura) — se sumó aparte porque no había ninguna forma de ver contenedores/logs de `core` y `devops` en un solo lugar sin saltar de SSH en SSH. Ni Beszel ni Uptime Kuma ni el futuro Grafana cubren eso: son observabilidad de métricas/disponibilidad, no una consola de contenedores.
 

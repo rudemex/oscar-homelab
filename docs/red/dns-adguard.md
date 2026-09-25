@@ -131,7 +131,7 @@ El AdGuard del Dell (LXC 100) **está caído desde el 2026-09-21 03:32**: su dis
 | `ratelimit` | `300`, `ratelimit_subnet_len_ipv4: 24` (el fix del incidente de arriba, ya desde el inicio) |
 | Upstreams | `1.1.1.1` y `8.8.8.8` (balanceo de carga) |
 | Filtros | *AdGuard DNS filter* (181 586 reglas, activo). Las listas del LXC viejo no se pudieron recuperar |
-| Rewrites | `git`, `nexus`, `portainer`, `infisical` `.oscar.home` → `192.168.0.156` (los 4 proxy hosts reales de NPM); `*.oscar.home` → `192.168.0.150` (Traefik) |
+| Rewrites | `git`, `nexus`, `infisical` `.oscar.home` (y los de las apps nuevas de `services`) → `192.168.0.156` (proxy hosts de NPM); `*.oscar.home` → `192.168.0.150` (Traefik). El de `portainer` se borró el 2026-09-25 al retirar Portainer |
 | Querylog | retención de 24 h (cuida la microSD) |
 | Consumo | ~68 MB de RAM |
 
@@ -151,9 +151,6 @@ rewrites:
     answer: 192.168.0.156      # NPM (core) — apps en Docker Compose
     enabled: true
   - domain: nexus.oscar.home
-    answer: 192.168.0.156
-    enabled: true
-  - domain: portainer.oscar.home
     answer: 192.168.0.156
     enabled: true
   - domain: infisical.oscar.home
@@ -178,12 +175,11 @@ Deliberadamente **no** se unificó bajo NPM (ej. `*.oscar.home` → NPM → Trae
 
 **Wildcard + DNS del dispositivo apuntado a `192.168.0.93`** (+ fallback `1.1.1.1`) es ahora la opción más práctica para cualquier app de k3s — con el wildcard de arriba, resuelve *cualquier* `*.oscar.home` sin mantener una lista a mano y sin tocar nada de nuevo cuando se agrega una app. Sigue dependiendo de que AdGuard esté arriba y manda todo el tráfico DNS del dispositivo por él.
 
-**`/etc/hosts` por hostname puntual** sigue siendo válido para `git.oscar.home`/`nexus.oscar.home`/`portainer.oscar.home` (no cubiertos por el wildcard) o si no se quiere depender de AdGuard en absoluto — apuntan a `192.168.0.156` (NPM en `core`), no a `devops` directo, desde que se migraron detrás de NPM:
+**`/etc/hosts` por hostname puntual** sigue siendo válido para `git.oscar.home`/`nexus.oscar.home` (no cubiertos por el wildcard) o si no se quiere depender de AdGuard en absoluto — apuntan a `192.168.0.156` (NPM en `core`), no a `devops` directo, desde que se migraron detrás de NPM:
 
 ```text
 192.168.0.156 git.oscar.home
 192.168.0.156 nexus.oscar.home
-192.168.0.156 portainer.oscar.home
 ```
 
 **Descartado a propósito: Tailscale Split DNS.** Resolvería lo mismo para cualquier dispositivo del tailnet sin configurar DNS a mano en cada uno, incluido el acceso remoto desde el celular — pero el objetivo acá es explícitamente **DNS por nombre dentro de la LAN, no acceso desde afuera**, así que no aporta nada sobre el wildcard de arriba para este caso de uso y suma una dependencia (Tailscale) que no hace falta. Queda anotado por si en algún momento sí se busca resolver el acceso remoto (que sigue roto para `*.oscar.home` vía Tailscale, caso reportado con el celular).

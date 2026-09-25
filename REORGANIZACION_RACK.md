@@ -232,14 +232,14 @@ core
 ├── n8n + Postgres       → automation (nueva VM) — ✅ hecho (2026-09-23)
 ├── Minecraft             → games (nueva VM) — ✅ hecho (2026-09-23)
 ├── Cloudflare Tunnel      → network (centralizar ahí, hoy vive en core)
-├── Portainer Server      → ELIMINAR
+├── Portainer Server      → ELIMINAR — ✅ hecho (2026-09-25)
 ├── Beszel Server         → se queda (política de monitoreo: esperar datos)
 ├── Glances                → se queda (ídem)
 └── MySpeed                → se queda en core (corrección respecto al diseño original)
 
 devops
 ├── Forgejo / Nexus / Infisical → devops (sin cambios funcionales, solo rename)
-├── Portainer Agent              → ELIMINAR
+├── Portainer Agent              → ELIMINAR — ✅ hecho (2026-09-25)
 └── Beszel Agent                  → se queda (política de monitoreo)
 
 k3s
@@ -359,7 +359,7 @@ estado que todavía no existe. Se actualiza en el momento en que cada migración
    dependa del hostname y no genere un nodo duplicado si el servicio de `k3s` se reinicia alguna vez (`kubectl get
    nodes` sigue mostrando `k3s01` a propósito, es interno y estable). El grupo de Ansible `k3s` y el host `k3s`
    ahora comparten nombre (warning no fatal de Ansible), se aceptó en vez de reestructurar el grupo.
-8. Eliminar Portainer Server/Agent de todos los hosts.
+8. ✅ **Hecho (2026-09-25).** Eliminado Portainer Server (`core`) y Agent (`devops`), con su monitor de Kuma, Proxy Host de NPM y rewrite de AdGuard. Detalle en `docs/servicios/portainer.md`.
 9. Centralizar `cloudflared` en `network` (hoy hay instancias en `core` y una dedicada en `pinode01`).
 10. Actualizar documentación según la tabla de arriba, commit + push en `oscar-homelab` y `oscar-gitops`.
 11. Actualizar este archivo marcando cada paso como resuelto.
