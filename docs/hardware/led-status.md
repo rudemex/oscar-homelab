@@ -46,9 +46,11 @@ La tira física es WS2812B, direccionable LED por LED, controlada por un ESP32 c
 
 ## Integración con el resto de O.S.C.A.R.
 
-El estado de O.S.C.A.R. (`OscarState`) se sigue cambiando manualmente (`POST /state/:state`, CLI, o un script que envuelve un deploy). El punto de extensión para que Proxmox/Prometheus/Grafana/Home Assistant/CI-CD/agentes de IA disparen cambios de estado automáticamente ya existe (`setState(state, { source, reason })`) pero **ninguna integración real está conectada todavía** para `OscarState`. El propio README trae un ejemplo listo de automatización desde Home Assistant vía `rest_command`.
+**Primera integración real conectada (2026-09-25): `critical`/`recovering` vía Uptime Kuma.** [`kuma-led-bridge`](../servicios/uptime-kuma.md#integración-con-la-tira-led-kuma-led-bridge-2026-09-25) (`oscar-compose/apps/kuma-led-bridge`, en `monitor01`) hace polling del endpoint público de la status page de Kuma cada 20s y llama a esta API: `critical` mientras algo esté caído, `recovering` → `healthy` cuando todo vuelve — solo si fue el propio bridge el que puso `critical`, nunca pisa un estado manual. Validado en producción con dos incidentes reales (un monitor de Kuma con una URL vieja, y un corte de red real de ~3 minutos que tiró 7 monitores a la vez) — detalle completo en la doc de Kuma.
 
-La única integración automática real hoy es `rackStatus` (ver arriba): repintado periódico por TCP, sin depender de ningún sistema externo (ni Prometheus ni Kuma) — deliberado, para no acoplar esta feature a un stack de observabilidad que todavía no existe.
+El resto de los estados (`deploying`, `success`, `thinking`, `backup`, `maintenance`, `booting`, `night`, ...) se siguen cambiando manualmente (`POST /state/:state`, CLI, o el panel). El punto de extensión sigue siendo el mismo (`setState(state, { source, reason })`) — `kuma-led-bridge` es la prueba de que conectarlo a una fuente real es barato una vez que existe un endpoint público sin credenciales de por medio.
+
+La otra integración automática real es `rackStatus` (ver arriba): repintado periódico por TCP, sin depender de ningún sistema externo (ni Prometheus ni Kuma) — deliberado, para no acoplar esa feature a un stack de observabilidad que todavía no existía cuando se construyó.
 
 ## Dónde profundizar
 

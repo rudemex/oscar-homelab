@@ -57,6 +57,7 @@ Segunda migración, mismo patrón que la de `core`→`pinode01`: parar el conten
 - TCP port checks
 - DNS checks
 - status page interna
+- **fuente real de `critical`/`recovering` para la tira LED** (2026-09-25) — ver [`kuma-led-bridge`](#integración-con-la-tira-led-kuma-led-bridge-2026-09-25) más abajo
 
 ## Monitores reales configurados
 
@@ -101,6 +102,26 @@ Notas técnicas si se vuelve a tocar por API (`uptime-kuma-api` v1.x contra este
 - **`get_status_page()`/`save_status_page()` fallan con `KeyError: 'incident'`** — la librería espera una key `incident` (objeto singular) que este servidor ya no devuelve; la API pública (`GET /api/status-page/<slug>`) ahora manda `incidents` (array, en plural). Workaround: no usar `save_status_page()`, armar el payload a mano leyendo `publicGroupList`/`config` de esa misma respuesta REST y llamar `api._call('saveStatusPage', (slug, config, icon, publicGroupList))` directo.
 - **`saveStatusPage` responde `"Invalid array"`** si el `config` no incluye `domainNameList` — la respuesta REST de arriba no siempre trae esa key; agregarla a mano (`config.setdefault('domainNameList', [])`) antes de guardar.
 - **`python-socketio` necesita una `tuple` para mandar múltiples argumentos posicionales, no una `list`** — pasar una lista hace que el servidor reciba todo el array como un solo parámetro (`slug`), y falla con `"No slug?"`.
+- **`edit_monitor()` sí funciona** (a diferencia de `add_monitor()`) siempre que se le pase el objeto completo de `get_monitor()` con el/los campos a cambiar encima y `conditions` seteado (mismo bug que `add_monitor()`, mismo workaround) — usado el 2026-09-25 para corregir el monitor de Home Assistant, ver abajo.
+
+## Bug real encontrado: monitor de Home Assistant con URL vieja (2026-09-25)
+
+Al armar [`kuma-led-bridge`](#integración-con-la-tira-led-kuma-led-bridge-2026-09-25) (abajo), el primer chequeo real mostró "1 monitor caído" — el monitor #10, "Home Assistant". Pero Home Assistant respondía `200` al toque desde todos lados (la Mac, el propio Pi `monitor01`, hasta desde adentro del contenedor de Kuma). Causa real, encontrada leyendo `kuma.db` directo (solo lectura, sin tocar nada): el monitor tenía `url: http://192.168.0.198:80` — una IP vieja, no la `192.168.0.195` real y documentada desde que se fijó por DHCP el 2026-09-24 (ver [Home Assistant](./home-assistant.md)). Nadie actualizó el monitor después de ese cambio — un falso positivo silencioso que llevaba corriendo así desde entonces, sin que nadie lo notara porque nada consumía ese estado hasta ahora. Corregido vía `edit_monitor()` (`uptime-kuma-api`), confirmado el ciclo real completo abajo. Pendiente menor: el nombre del monitor sigue diciendo "(VM 106, IP provisoria)" — cosmético, sacarlo cuando se vuelva a tocar este monitor por API (un intento de renombrarlo dio timeout de socket.io, no se insistió).
+
+## Integración con la tira LED: `kuma-led-bridge` (2026-09-25)
+
+Primera integración real de los `OscarState` de [`oscar-led-controller`](../hardware/led-status.md) con algo fuera de sí mismo: hasta ahora los 16 estados existían pero todos se cambiaban a mano. `kuma-led-bridge` (`oscar-compose/apps/kuma-led-bridge`, corriendo en `monitor01` junto a este mismo Kuma) hace polling cada 20s del endpoint público de la status page (`GET /api/status-page/heartbeat/oscar`, el mismo que ya consume el widget de Homepage — sin credenciales, sin tocar la configuración de Kuma) y llama a la API de `oscar-led-controller`:
+
+- si algún monitor de la status page está caído → `POST /state/critical`;
+- cuando todos vuelven a estar arriba, **solo si fue el propio bridge el que puso `critical`** (nunca pisa un estado manual como `gamer`/`aurora`/`maintenance`) → `POST /state/recovering`, espera unos segundos, `POST /state/healthy`.
+
+Deliberadamente polling en vez de un canal de notificación "Webhook" de Kuma apuntando a algo que reciba el evento: eso necesitaría crear un canal y asociarlo a los 11 monitores por la API de socket.io (login real), mientras que el endpoint de la status page ya es público — cero credenciales nuevas, cero configuración adicional en Kuma. El costo es hasta ~20s de latencia extra sobre el propio intervalo de chequeo de Kuma (60s) — aceptable para un indicador de humor, no un sistema de paging.
+
+**Validado con dos incidentes reales durante la implementación misma, no solo con pruebas sintéticas:**
+1. El bug de arriba (monitor de HA con URL vieja) — ciclo completo confirmado: caído → `critical` → URL corregida → `recovering` → `healthy`, sin tocar nada a mano después del fix.
+2. Inmediatamente después, un corte de red real de ~3 minutos contra `monitor01` (visto desde la Mac como `ping`/`ssh` sin respuesta, y confirmado desde *adentro* del contenedor del bridge como `Network unreachable` repetido) tiró 7 monitores caídos a la vez. El bridge no se cayó (cada tick fallido se loguea y reintenta, sin excepción no controlada) y, apenas la red volvió y Kuma re-chequeó todo arriba, hizo `recovering` → `healthy` solo. Causa del corte de red: no determinada — `monitor01` no se reinició (`uptime` sin cambios, load average normal, ningún contenedor reiniciado), así que no fue una caída del Pi; parece un blip de red puntual. Queda como hallazgo suelto, no una causa raíz cerrada.
+
+**Nota de despliegue:** por ahora vive en `/home/pi/apps/kuma-led-bridge/` en vez de `/srv/oscar/apps/` (ese directorio es `root:root`, no había sudo a mano en el momento) — mover cuando se tenga la contraseña de sudo del Pi.
 
 ## Checklist de despliegue
 
