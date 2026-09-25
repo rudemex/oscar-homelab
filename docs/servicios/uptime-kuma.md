@@ -123,6 +123,14 @@ Deliberadamente polling en vez de un canal de notificación "Webhook" de Kuma ap
 
 **Nota de despliegue:** por ahora vive en `/home/pi/apps/kuma-led-bridge/` en vez de `/srv/oscar/apps/` (ese directorio es `root:root`, no había sudo a mano en el momento) — mover cuando se tenga la contraseña de sudo del Pi.
 
+## `monitor01-watchdog`: quién vigila al vigilante (2026-09-25)
+
+`kuma-led-bridge` (arriba) tiene un hueco real: vive en `monitor01`, la misma Pi que corre Kuma — así que si **esa Pi específica** pierde red, el propio proceso que debería avisar pierde red al mismo tiempo. No es teórico: el mismo día se probó en vivo. El usuario desconectó a propósito el cable de red de `monitor01` — la tira **no cambió de color** mientras el cable estuvo afuera (confirmado con los logs del bridge: de 20:10:02 a 20:13:02 cada intento dio `Network unreachable`, *desde adentro del propio contenedor*). Recién reaccionó a las 20:13:24, apenas volvió el cable y el bridge pudo correr de nuevo — encontró 8 monitores caídos (todo lo que se había perdido durante el corte) y puso `critical`, después `healthy` solo al confirmar que todo seguía arriba.
+
+Fix: `monitor01-watchdog` (`oscar-compose/apps/monitor01-watchdog`), un script gemelo que corre en **`network01`** (la otra Pi) y chequea `monitor01` desde afuera — puerto real de Kuma (`:3001`), no solo `ping`. Mismo patrón exacto que `kuma-led-bridge` (sin credenciales, sin dependencias, respeta cualquier estado manual). Los dos scripts no compiten en la práctica: `kuma-led-bridge` solo puede actuar mientras `monitor01` está arriba, y `monitor01-watchdog` solo mientras **no** lo está — son mutuamente excluyentes por construcción, no por coordinación explícita.
+
+Desplegado y confirmado sin falsos positivos (todo en `healthy` con `monitor01` arriba). **No se pudo ejercitar con una caída real durante la sesión** — parar el contenedor de Kuma para probarlo quedó bloqueado por el clasificador de seguridad ("Interfere With Workloads"). Pendiente: repetir la prueba del cable (ahora en `monitor01`, con el watchdog corriendo en `network01`) para confirmar el ciclo completo.
+
 ## Checklist de despliegue
 
 - [ ] hostname y ubicación decididos;
