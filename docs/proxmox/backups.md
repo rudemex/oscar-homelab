@@ -33,10 +33,21 @@ vzdump: backup-94c323b5-388e
     enabled 1
     mode snapshot
     prune-backups keep-last=5,keep-monthly=1,keep-yearly=6
+    script /var/lib/vz/snippets/oscar-led-vzdump-hook.sh
     storage Backups
 ```
 
 Corre de lunes a viernes a medianoche, backupea **todas** las VMs/LXC (`all 1`, no una lista puntual) en modo `snapshot`, comprimido `zstd`, hacia el storage `Backups` (`dir`, montado en `/mnt/pve/Backups`, **no** `backup-local` como decía esta página antes — ese nombre nunca existió, era un placeholder que quedó como si fuera real). Retención: últimos 5 + 1 mensual + 6 anuales — más agresiva que la "política inicial" de la tabla de arriba, que quedó como referencia conceptual sin actualizar contra lo que realmente se configuró.
+
+### Hookscript: el backup se ve en la tira LED (2026-09-25)
+
+La línea `script` de arriba es un **hookscript de `vzdump`** que refleja el job en el `OscarState` de la [tira LED](../hardware/led-status.md): `backup` al arrancar el job (`job-start`), `healthy` al terminar (`job-end`), `critical` si el job entero aborta (`job-abort`). Cada llamada lleva `|| true` — si la tira no responde, el backup real sigue igual, es puramente cosmético. Habla por IP directa con header `Host` (no por `led.oscar.home`, que depende de la DNS de `network01`).
+
+Se asoció al job por la API, no editando `jobs.cfg` a mano: `pvesh set /cluster/backup/backup-94c323b5-388e --script /var/lib/vz/snippets/oscar-led-vzdump-hook.sh`. El código vive versionado en `oscar-compose/hosts/oscar-core/`.
+
+**Gotcha real: ruta absoluta, no notación de storage.** Con `--script local:snippets/oscar-led-vzdump-hook.sh`, `vzdump` falló con `The hook script ... does not exist` aunque el archivo existía y `pvesh set` había aceptado el valor sin quejarse. La ruta absoluta funcionó tanto con el CLI `vzdump` como con `pvesh create /nodes/oscar-core/vzdump` (la misma API que usa el scheduler).
+
+**Validado con corridas reales de `vzdump`** (VM `apps`, 39,5 GiB, ~40 s, vía `pvesh create /nodes/oscar-core/vzdump`): la tira quedó en `backup` durante todo el backup (observado cada 3 s) y volvió a `healthy` sola al terminar. **Pendiente de confirmar:** la primera corrida programada de verdad (lunes a las 00:00) — se probó por la misma API que usa el scheduler, pero no se observó todavía disparada por `pvescheduler`.
 
 ## Comandos de referencia (vzdump)
 
