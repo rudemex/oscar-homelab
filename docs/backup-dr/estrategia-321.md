@@ -50,4 +50,10 @@ Riesgo explícito: `PROD` y `LOCAL` están en el mismo chasis. Mitigación míni
 
 ## Destino off-site
 
-**Decision Pending.** Candidatos razonables para un homelab doméstico, en orden de simplicidad: object storage compatible con S3 (ej. Backblaze B2 o similar, cifrado antes de subir con `restic`/`rclone crypt`), o un segundo equipo físico en otra ubicación (casa de un familiar, trabajo) sincronizado periódicamente. No se fija un proveedor hasta decidir presupuesto y volumen real de datos a respaldar.
+**Bloqueado por ahora (2026-09-25) — no es una decisión pendiente, es una restricción real.** El usuario descartó explícitamente pagar por object storage (evaluado AWS S3: peor opción todavía, más caro que B2 en storage y además cobra por egress — justo lo que se necesita en el peor momento, al restaurar). La alternativa gratuita (`restic`/`rclone crypt` a un segundo equipo físico en otra ubicación — casa de un familiar, trabajo) tampoco está disponible: sin ese segundo lugar hoy.
+
+**Cloudflare R2 evaluado y descartado antes** (credenciales encontradas sin usar en el vault, `2026-09-22` o antes): nunca se llegó a habilitar, falla el handshake TLS — no es una opción viable, no vale la pena reintentarlo sin investigar esa falla primero.
+
+**Sin off-site real, Karakeep/Actual Budget/Paperless-ngx siguen siendo un riesgo aceptado** (documentos/bookmarks/finanzas sin ninguna copia fuera del Dell) — decisión ya tomada por el usuario para Paperless-ngx, pendiente para los otros dos.
+
+**Se retoma cuando aparezca cualquiera de las dos condiciones:** presupuesto (aunque sea el mínimo de B2, unos pocos dólares al mes según volumen real) o un segundo lugar físico real (con Tailscale ya andando, sincronizar ahí por internet no sería trabajo extra). No forzar una solución peor mientras tanto — un "backup" en discos del mismo Dell no es off-site, aunque parezca resolver algo.
