@@ -19,6 +19,8 @@ Fondo animado para la [pantalla del Dell](./dell-7060.md): WebGL (Three.js + GLS
 - **Dos capas** preparadas: *hora del día* + *estado del sistema* (`NORMAL`, `PROCESSING`, `DEPLOYING`, `SUCCESS`, `WARNING`, `ERROR`, `STANDBY`). Los estados existen pero todavía son neutros.
 - Paletas y parámetros son **datos** (`palettes.js`, `config.js`), no están en el shader. En `npm run dev` hay un panel de debug; no existe en el build.
 
+Hay un segundo fondo hermano: el [O.S.C.A.R. Core](./oscar-core-fondo.md).
+
 ## Cómo probarlo
 
 ```bash
