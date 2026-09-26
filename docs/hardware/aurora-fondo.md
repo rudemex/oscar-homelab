@@ -9,13 +9,13 @@ sidebar_position: 8
 
 Fondo animado para la [pantalla del Dell](./dell-7060.md): WebGL (Three.js + GLSL) a 1280×720 y fullscreen en Chromium. Es solo el *background*: la UI de O.S.C.A.R. (hora, fecha, clima, estado) va encima.
 
-**Cómo está hecho (2026-09-26).** Las versiones anteriores generaban la aurora de forma completamente procedural y no se parecían a la referencia. El actual **copia la imagen de referencia** (`ref-aurora.png`): un script (`tools/make_plate.py`) le quita las estrellas y la descompone en intensidad, "rol de color" y blancura (una *placa* de datos); el shader la vuelve a pintar con la paleta de cada momento del día (tomadas de la lámina `bg-aurora.png`) y la **anima** con balanceo lento, destellos que suben por los rayos, ondas de brillo y corrimiento del color. Las estrellas van aparte: procedurales, discretas y animadas (titilan y el campo gira imperceptiblemente).
+**Cómo está hecho (2026-09-26).** Las versiones anteriores generaban la aurora de forma completamente procedural y no se parecían a la referencia. El actual **copia la imagen de referencia** (`ref-aurora.png`): un script (`tools/make_plate.py`) le quita las estrellas y la descompone en intensidad, "rol de color" y blancura (una *placa* de datos); el shader la vuelve a pintar con la paleta de cada momento del día (tomadas de la lámina `bg-aurora.png`) y la **anima**: los cortinados se balancean, los grupos de rayos pulsan, suben destellos, pasan ondas de brillo y el color se corre (`motionAmount` regula cuánto). Las estrellas van aparte: procedurales, discretas y animadas (titilan y el campo gira imperceptiblemente).
 
 ## Qué hace
 
 - **Ciclo horario continuo** con cinco paletas (madrugada 00–06, amanecer 06–09, día 09–17, atardecer 17–20, noche 20–24). Alrededor de cada cambio se mezcla durante 60 minutos (30 antes y 30 después): colores, brillo, velocidad e intensidad, nunca a saltos.
 - **Deep Night** opcional (manual o por horario): brillo ×0.35, velocidad ×0.4, estrellas ×0.5, aurora ×0.4. La pantalla "duerme" pero sigue funcionando.
-- **Cielo oscuro y estrellas discretas**; movimiento lento (una captura parece estática y a los 10–20 s se nota).
+- **Cielo oscuro y estrellas discretas**, con movimiento que se ve a simple vista (balanceo, pulsos y ondas de brillo); no es agresivo: es ambiental.
 - **Dos capas** preparadas: *hora del día* + *estado del sistema* (`NORMAL`, `PROCESSING`, `DEPLOYING`, `SUCCESS`, `WARNING`, `ERROR`, `STANDBY`). Los estados existen pero todavía son neutros.
 - Paletas y parámetros son **datos** (`palettes.js`, `config.js`), no están en el shader. En `npm run dev` hay un panel de debug; no existe en el build.
 
