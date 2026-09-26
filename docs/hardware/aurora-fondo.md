@@ -9,7 +9,7 @@ sidebar_position: 8
 
 Fondo animado para la [pantalla del Dell](./dell-7060.md): WebGL (Three.js + GLSL) a 1280×720 y fullscreen en Chromium. Es solo el *background*: la UI de O.S.C.A.R. (hora, fecha, clima, estado) va encima.
 
-**Cómo está hecho (2026-09-26).** Las versiones anteriores generaban la aurora de forma completamente procedural y no se parecían a la referencia. El actual **copia la imagen de referencia** (`ref-aurora.png`): un script (`tools/make_plate.py`) le quita las estrellas y la descompone en intensidad, "rol de color" y blancura (una *placa* de datos); el shader la vuelve a pintar con la paleta de cada momento del día (tomadas de la lámina `bg-aurora.png`) y la **anima**: los cortinados se balancean, los grupos de rayos pulsan, suben destellos, pasan ondas de brillo y el color se corre (`motionAmount` regula cuánto). Las estrellas van aparte: procedurales, discretas y animadas (titilan y el campo gira imperceptiblemente).
+**Cómo está hecho (2026-09-26).** Aurora **100 % procedural**: sin imágenes ni texturas, todo se calcula en un shader con ruido que evoluciona en el tiempo. Un intento intermedio copiaba la imagen de referencia y la movía; se descartó porque se veía como una foto animada. De la referencia (`ref-aurora.png`) solo se tomó la **composición**, escrita como curvas medidas: una cinta principal en diagonal con rayos altos, una segunda cinta más baja, un abanico en "V" y nubes bajas. Cada cinta se dibuja como varias láminas con profundidad (rayos, pliegues, pulsos, cresta luminosa). Las paletas de cada momento del día salen de la lámina `bg-aurora.png`. Las estrellas van aparte: procedurales, discretas y animadas.
 
 ## Qué hace
 
@@ -30,8 +30,8 @@ npm run dev                                    # http://localhost:5173 (?palette
 
 ## Pendiente
 
-- **Medir en el Dell.** La GPU integrada (Intel UHD 630) es mucho más lenta que la de la Mac de desarrollo, donde no se pudo medir con precisión. El shader es liviano (2 lecturas de textura y unas 20 de ruido por píxel) y hay calidad adaptable (`renderScale` baja sola si no se llega a ~50 fps), pero hay que verlo en el kiosco real antes de instalarlo.
+- **Medir en el Dell.** La GPU integrada (Intel UHD 630) es mucho más lenta que la de la Mac de desarrollo, donde no se pudo medir con precisión. El shader es pesado para una GPU integrada (hasta 7 cortinas por píxel, con salidas tempranas) y hay calidad adaptable (`renderScale` baja sola si no se llega a ~50 fps), pero hay que verlo en el kiosco real antes de instalarlo.
 - **Integrarlo en la UI del kiosco** (hoy el kiosco muestra Homepage). El README explica cómo: canvas `z-index: -1`, API `window.OscarAurora`.
 - **Conectar `SystemState` con la tira LED** (`GET led.oscar.home/state`) si se quiere que el fondo refleje `deploying`/`critical`, etc.
 - Subirlo a un repositorio de Forgejo (`oscar-aurora`).
-- La forma es fija (la de la imagen); si se quisieran varias composiciones, hay que generar más placas.
+- La composición es una aproximación medida a mano sobre la referencia, no una copia; la forma general es fija y lo que cambia es la estructura interna.
