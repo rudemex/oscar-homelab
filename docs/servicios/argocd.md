@@ -58,6 +58,14 @@ El cluster tenía el `argocd-notifications-controller` corriendo desde la instal
 
 **Validado con eventos reales de Argo CD**, no solo pruebas manuales al relay: forzando un sync de `ci-demo` (`kubectl patch application ci-demo -n argocd --type merge -p '{"operation":{"sync":{}}}'`), los logs del relay muestran los `POST /deploying` y `POST /success` llegando desde la IP real del pod `argocd-notifications-controller`, y la tira terminó en `healthy` sola.
 
+### Hallazgo del primer reinicio real (2026-09-25): notificaciones repetidas
+
+Al reiniciar el Dell, las Applications pasaron `Healthy` → `Progressing` → `Healthy` mientras k3s volvía, y el `argocd-notifications-controller` (que arrancó de cero) reenvió `led-success` por dos despliegues que no eran nuevos (`ci-demo` y `oscar-led-controller`): un `success` falso que **cortó a los 26 s la animación de `booting`** (que dura ~35 s). Un trigger sin `oncePer` notifica cada vez que su condición pasa de falsa a verdadera, y "Healthy otra vez" no es un despliegue.
+
+**Fix:** `led-deploying` y `led-success` llevan ahora `oncePer` (`operationState.startedAt` y `operationState.finishedAt` respectivamente — únicos por cada sync), así notifican **una sola vez por operación** aunque la condición se vuelva a cumplir. `led-failed` queda sin `oncePer` a propósito: un fallo real debe volver a avisar cada vez que ocurra. (Se descartó `oncePer: app.status.sync.revision`, que es el ejemplo típico de la doc de Argo CD: un sync forzado del *mismo* commit —`selfHeal`, `kubectl patch … operation`— avisaría `deploying` pero nunca `success`, y la tira quedaría trabada en `deploying`.)
+
+**Validado:** al aplicar la config salió un único `success` por app (la primera evaluación con `oncePer`, esperable) y, tras reiniciar el pod del controlador, **ningún** reenvío.
+
 ### Estructura del repo (2026-09-20)
 
 ```text

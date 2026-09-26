@@ -122,6 +122,8 @@ Deliberadamente polling en vez de un canal de notificación "Webhook" de Kuma ap
 
 **Ubicación:** `/srv/oscar/apps/kuma-led-bridge/` en `monitor01` (ruta estándar). Arrancó en `/home/pi/apps/` por falta de `sudo` en ese momento; se movió el mismo día usando la contraseña de `sudo` de las Pi que está en el vault (la misma sirve en `network01` y `monitor01`).
 
+**Respeta `booting` (agregado tras el primer reinicio real del Dell):** durante los ~35 s de la animación de arranque tampoco levantan `critical` — los monitores del Dell tardan hasta un ciclo de Kuma en volver a marcarse arriba y taparían justo el "OSCAR despertando".
+
 **Respeta `maintenance`:** mientras la tira esté en `maintenance` (ver `oscar-maintenance` en [operación de Proxmox](../proxmox/operacion.md)), ni este bridge ni `monitor01-watchdog` levantan `critical` — en un reinicio planeado es esperable que caigan cosas. Si al terminar sigue algo caído, el siguiente tick lo levanta igual. Un problema real sigue pisando `healthy` o un modo elegido a mano (`gamer`, etc.).
 
 **Ajuste tras una prueba de despliegue real (2026-09-25): solo cuentan las caídas *confirmadas*.** El bridge contaba como caído todo heartbeat con `status != 1`, incluido `2` (*pending*: Kuma está reintentando antes de confirmar). En un microcorte de red real (7 monitores en `pending` a la vez) la tira oscilaba `critical` ↔ `recovering`. Ahora solo `status == 0` cuenta; el retry propio de Kuma existe justamente para absorber fallos sueltos. Costo: una caída real tarda un intervalo más (~60 s) en reflejarse.
