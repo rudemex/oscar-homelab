@@ -9,6 +9,10 @@ sidebar_position: 8
 
 Fondo animado **procedural** para la [pantalla del Dell](./dell-7060.md): aurora y estrellas hechas con WebGL (Three.js + GLSL), sin imágenes ni video, a 1280×720 y fullscreen en Chromium. Es solo el *background*: la UI de O.S.C.A.R. (hora, fecha, clima, estado) va encima. La referencia visual es la lámina `bg-aurora.png` (variantes por momento del día), guardada en `apps/oscar-aurora/reference/`.
 
+## Fidelidad a la referencia
+
+Se comparó lado a lado con cada panel de la lámina. Coincide en luminosidad (noche 0,12 vs 0,11 de la referencia, día 0,27 vs 0,31, etc.), paletas, densidad de estrellas, cresta diagonal con base irregular, rayos finos altos, abanico en V a la derecha y resplandor de horizonte en amanecer/atardecer. **No es idéntico**: a la referencia le falta parecerse en volumen (nubes de gas), nitidez de los rayos y brillo blanco-magenta en los núcleos. Es una aproximación procedural, no una copia.
+
 ## Qué hace
 
 - **Ciclo horario continuo** con cinco paletas (madrugada 00–06, amanecer 06–09, día 09–17, atardecer 17–20, noche 20–24). Alrededor de cada cambio se mezcla durante 60 minutos (30 antes y 30 después): colores, brillo, velocidad e intensidad, nunca a saltos.
@@ -28,7 +32,7 @@ npm run dev                                    # http://localhost:5173 (?palette
 
 ## Pendiente
 
-- **Medir en el Dell.** La GPU integrada (Intel UHD 630) es mucho más lenta que la de la Mac de desarrollo (~5,5 ms por cuadro a 1280×720 allá). Hay calidad adaptable (`renderScale` baja sola si no se llega a ~50 fps), pero hay que ver cómo anda en el kiosco real antes de instalarlo.
+- **Medir en el Dell.** La GPU integrada (Intel UHD 630) es mucho más lenta que la de la Mac de desarrollo (~4,6 ms por cuadro a 1280×720 allá). Hay calidad adaptable (`renderScale` baja sola si no se llega a ~50 fps), pero hay que ver cómo anda en el kiosco real antes de instalarlo.
 - **Integrarlo en la UI del kiosco** (hoy el kiosco muestra Homepage). El README explica cómo: canvas `z-index: -1`, API `window.OscarAurora`.
 - **Conectar `SystemState` con la tira LED** (`GET led.oscar.home/state`) si se quiere que el fondo refleje `deploying`/`critical`, etc.
 - Subirlo a un repositorio de Forgejo (`oscar-aurora`).
