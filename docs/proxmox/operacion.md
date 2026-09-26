@@ -53,9 +53,22 @@ qm set <vmid> --onboot 1
 
 No confundir con el orden de arranque (`qm set <vmid> --startup order=X`) — con 3 VMs en el mismo host y sin dependencia dura de boot entre ellas (k3s no depende de que devops esté arriba para *arrancar*, solo para pullear imágenes de Nexus en runtime), no hizo falta definir orden, solo que las tres tengan el flag en `1`.
 
-## Servicio propio del host: `oscar-led-boot` (2026-09-25)
+## Servicios y scripts propios del host (2026-09-25)
 
-Único servicio de systemd propio que corre **en el host** `oscar-core` (no en una VM): `oscar-led-boot.service`, habilitado en `multi-user.target`. Refleja el arranque del Dell en la [tira LED](../hardware/led-status.md) — espera (hasta 20 min, cada 10 s) a que la API de la tira responda, reproduce `booting` y, si nadie tomó la tira mientras tanto, la asienta en `healthy`. Vive en el host y no en k3s porque el `oscar-led-controller` corre adentro de k3s, que arranca *después* del host: no puede avisar de su propio arranque. Script en `/usr/local/sbin/oscar-led-boot.sh`, unidad en `/etc/systemd/system/`, ambos versionados en `oscar-compose/hosts/oscar-core/`. `Type=simple` a propósito: un `oneshot` bloquearía `multi-user.target` durante toda la espera.
+Todo esto corre **en el host** `oscar-core` (no en una VM), versionado en `oscar-compose/hosts/oscar-core/`, y existe para reflejar el estado real en la [tira LED](../hardware/led-status.md):
+
+| Pieza | Qué hace |
+|---|---|
+| `oscar-led-boot.service` | al bootear el Dell, `booting` cuando la tira responde (detalle abajo) |
+| `oscar-led-night.timer` / `oscar-led-day.timer` | 23:00 `healthy` → `night`, 07:00 `night` → `healthy` (hora del host, `America/Argentina/Buenos_Aires`); solo entre esos dos estados, nunca pisa `critical`/`backup`/`maintenance` ni un modo a mano |
+| `/usr/local/sbin/oscar-maintenance` | envuelve un comando con `maintenance` → `healthy` (también con error o Ctrl-C; no pisa un estado cambiado por otro; propaga el código de salida). Uso: `oscar-maintenance apt-get -y dist-upgrade`, `oscar-maintenance ansible-playbook site.yml`, o `start`/`end` a mano para trabajo físico en el rack |
+| hookscript de `vzdump` | `backup` durante el job de backup, ver [Backups](./backups.md) |
+
+Mientras la tira está en `maintenance`, `kuma-led-bridge` y `monitor01-watchdog` no levantan `critical`. Para cambiar los horarios de `night`, editar `OnCalendar=` en `/etc/systemd/system/oscar-led-{night,day}.timer` y `systemctl daemon-reload`. Limitación conocida: si de noche hay un incidente y se resuelve, el bridge de Kuma devuelve la tira a `healthy` (no a `night`) hasta el siguiente cambio de horario.
+
+### `oscar-led-boot.service`
+
+`oscar-led-boot.service`, habilitado en `multi-user.target`. Refleja el arranque del Dell en la [tira LED](../hardware/led-status.md) — espera (hasta 20 min, cada 10 s) a que la API de la tira responda, reproduce `booting` y, si nadie tomó la tira mientras tanto, la asienta en `healthy`. Vive en el host y no en k3s porque el `oscar-led-controller` corre adentro de k3s, que arranca *después* del host: no puede avisar de su propio arranque. Script en `/usr/local/sbin/oscar-led-boot.sh`, unidad en `/etc/systemd/system/`, ambos versionados en `oscar-compose/hosts/oscar-core/`. `Type=simple` a propósito: un `oneshot` bloquearía `multi-user.target` durante toda la espera.
 
 Si en algún momento un reinicio del host demora de más en dar el "listo", esta unidad **no** es la causa (corre en paralelo, no bloquea nada) — se puede ver con `journalctl -u oscar-led-boot.service`.
 
