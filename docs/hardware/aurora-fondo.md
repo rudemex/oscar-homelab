@@ -5,7 +5,7 @@ sidebar_position: 8
 
 # Fondo aurora de la pantalla (`oscar-aurora`)
 
-**Estado:** primera versión funcionando (2026-09-26), **sin desplegar** en el kiosco. Vive en `apps/oscar-aurora/` (repositorio git local, todavía sin remoto en Forgejo), con un `README.md` completo que es la fuente de verdad; esta página es el resumen.
+**Estado:** primera versión funcionando (2026-09-26), **sin desplegar** en el kiosco. Código en Forgejo: **`http://git.oscar.home/mdelgado/oscar-aurora`** (privado); clon de trabajo en `apps/oscar-aurora/`, con un `README.md` completo que es la fuente de verdad; esta página es el resumen.
 
 Fondo animado para la [pantalla del Dell](./dell-7060.md): WebGL (Three.js + GLSL) a 1280×720 y fullscreen en Chromium. Es solo el *background*: la UI de O.S.C.A.R. (hora, fecha, clima, estado) va encima.
 
@@ -33,5 +33,4 @@ npm run dev                                    # http://localhost:5173 (?palette
 - **Medir en el Dell.** La GPU integrada (Intel UHD 630) es mucho más lenta que la de la Mac de desarrollo, donde no se pudo medir con precisión. El shader es pesado para una GPU integrada (hasta 7 cortinas por píxel, con salidas tempranas) y hay calidad adaptable (`renderScale` baja sola si no se llega a ~50 fps), pero hay que verlo en el kiosco real antes de instalarlo.
 - **Integrarlo en la UI del kiosco** (hoy el kiosco muestra Homepage). El README explica cómo: canvas `z-index: -1`, API `window.OscarAurora`.
 - **Conectar `SystemState` con la tira LED** (`GET led.oscar.home/state`) si se quiere que el fondo refleje `deploying`/`critical`, etc.
-- Subirlo a un repositorio de Forgejo (`oscar-aurora`).
 - La composición es una aproximación medida a mano sobre la referencia, no una copia; la forma general es fija y lo que cambia es la estructura interna.
