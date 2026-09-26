@@ -812,7 +812,7 @@ services:
       - "3005:3000"
 ```
 
-`.env`: `HOMEPAGE_VERSION=v2.3.0`.
+`.env`: `HOMEPAGE_VERSION=v2.4.0` (actualizado desde `v2.3.0` el 2026-09-25, ver [Actualización](#actualización-a-v240-2026-09-25); el `.env` anterior quedó como `.env.bak-v2.3.0` para volver atrás).
 
 ```bash
 docker compose up -d
@@ -838,7 +838,18 @@ Todo el estado es la carpeta `config/` (YAML de servicios, widgets, settings) �
 
 Disponibilidad HTTP del puerto 3005 alcanza — es un dashboard, no un servicio con estado crítico.
 
+## Actualización a v2.4.0 (2026-09-25)
+
+Pedida por el usuario ("hay un update de homepage"). Release menor (`v2.4.0`, 17/09): un widget nuevo (auth bearer en `whatsupdocker`) y dos fixes que no usamos, más dependencias — sin cambios que rompan configuración. Procedimiento: backup (`tar` de `config/`, `.env` y `compose.yaml` en `/srv/oscar/apps/homepage-backup-pre-v2.4.0-*.tgz`), `HOMEPAGE_VERSION` en el `.env` (copia previa en `.env.bak-v2.3.0`), `docker compose pull && up -d`, esperar `healthy`. **Volver atrás** = restaurar ese `.env` y repetir el `up -d`. Verificado: página local y pública (`302` de Access), 31 tarjetas, sin errores nuevos en los logs. No hizo falta purgar la caché de Cloudflare (no se tocó `custom.css`/`custom.js`).
+
+Mirando los logs de después salieron **dos tarjetas rotas que ya lo estaban antes** (no las causó la versión), y una incidencia propia al arreglarlas — ver Troubleshooting.
+
 ## Troubleshooting
+
+- **Tarjeta de un servicio con HTTPS forzado en rojo (`500`), Actual Budget (2026-09-25)** → el `siteMonitor` apuntaba a `http://actual.oscar.home`, que desde que se le puso un certificado autofirmado redirige a `https`; el cliente HTTP de Homepage no sigue redirecciones a `https` (`Protocol "https:" not supported. Expected "http:"`) y da `500`. Fix: `siteMonitor` al backend directo por IP:puerto (`http://192.168.0.154:5006`) y el `href` (el link que abre el navegador) al `https`. Es probablemente parte de lo que se veía como "Actual da errores".
+- **`siteMonitor` da `400`/`403` contra una API que solo acepta `GET` o exige credenciales, Garage (2026-09-25)** → Homepage chequea con `HEAD`, y Garage no responde `HEAD` en `/health` (`400`) ni sin credenciales en ningún endpoint útil (`403` en el puerto S3). No hay URL que dé un `2xx` anónimo, así que la tarjeta pasó a `ping: 192.168.0.154` (chequeo del host, más débil: avisa si el LXC `services` cae pero no verifica Garage) y la descripción lo dice.
+- **Las tarjetas con `widget:` pero sin `siteMonitor`/`ping` dan `400` en `/api/siteMonitor`** → no es una falla, esas tarjetas simplemente no tienen monitor (Cloudflare Tunnel, DVR Dahua, Minecraft, CS2). Al auditar el estado de todas por la API, distinguir "sin monitor" de "monitor caído".
+- **Incidencia propia (2026-09-25): `services.yaml` quedó vacío ~2 minutos.** Al reintentar el cambio de Garage, la validación local del YAML falló (una descripción con `: ` adentro es una clave nueva para YAML), pero el resto del comando **siguió corriendo**: el archivo intermedio no se había generado, `base64` dio vacío y se pisó `services.yaml` con un archivo de 0 bytes. Homepage arrancó sin servicios (`Unable to find service`). Se restauró desde la última versión validada (31 tarjetas) enseguida. **Regla que queda:** encadenar validación → envío con `&&` y comprobar `[ -s archivo ]` antes de pisar el de producción; no confiar en que un paso anterior fallido corte el script. Y al escribir descripciones en YAML evitar `: ` y backticks (o entrecomillar el valor).
 
 - **Tarjeta con `500` pero el servicio real anda bien** → dos causas reales encontradas (2026-09-15), ninguna era el servicio en sí:
   1. **`siteMonitor` apuntando al puerto equivocado.** Pasó con "Beszel devops" y "Beszel k3s": el `widget:` (que trae CPU/RAM/disco) estaba bien apuntado al hub (`192.168.0.156:8090`), pero el `siteMonitor` — el puntito de estado — apuntaba al puerto del *agente* (`45876`), que habla el protocolo SSH-like propio de Beszel, no HTTP. El log del contenedor (`docker logs homepage-homepage-1`) lo delata clarísimo: `Error: Parse Error: Expected HTTP/, RTSP/ or ICE/` con el `rawPacket` mostrando un banner `SSH-2.0-beszel_...` en vez de una respuesta HTTP. Fix: `siteMonitor` al mismo host:puerto que ya usa `widget.url` (el hub), nunca al puerto del agente.
