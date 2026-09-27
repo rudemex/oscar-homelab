@@ -11,7 +11,8 @@ Segundo fondo animado para la [pantalla del Dell](./dell-7060.md), hermano de la
 
 ## Qué hace
 
-- **Capas independientes**: 3–5 anillos de energía (contorno irregular, tramos apagados, giro muy lento en sentidos distintos), hasta 36 filamentos que aparecen y se apagan por opacidad (nunca parpadean), puntos de energía que recorren los filamentos, partículas (órbita, libres, micro y chispas) y resplandor.
+- **Capas independientes**: 3–5 anillos de energía (contorno irregular, tramos apagados, fibras internas, giro muy lento en sentidos distintos), hasta 120 filamentos finos que aparecen y se apagan por opacidad (nunca parpadean), puntos de energía que recorren los filamentos, partículas (órbita, libres, micro, y chispas y cuentas que viajan pegadas a los filamentos) y resplandor.
+- **Aspecto de foto de exposición larga**: anillos y filamentos son cintas de geometría dibujadas como luz aditiva en un buffer HDR con **bloom real** (desenfoque a 1/2 y 1/4 de resolución); donde se acumulan muchos hilos la luz se lleva hacia el blanco, conservando el matiz en el resto.
 - **Respiración orgánica** (ciclo ~6,5 s): combina brillo, glow, radio, partículas y filamentos con desfases propios; no es un simple escalar arriba y abajo.
 - **Ciclo horario continuo** con las cinco paletas de la referencia y mezcla de ±30 min alrededor de cada cambio; **Deep Night** (brillo ×0.35, partículas ×0.30, giro ×0.30, filamentos ×0.40) que sigue respirando.
 - **Siete estados del sistema**, separados de la hora: `NORMAL`, `PROCESSING`, `DEPLOYING` (pulsos en secuencia y anillos que se alinean), `SUCCESS` (pulso verde de centro a afuera; vuelve solo), `WARNING` (ámbar), `ERROR` (rojo, latido lento) y `STANDBY`. Nunca strobe ni flashes.
@@ -28,7 +29,7 @@ npm run dev                                    # http://localhost:5173 (?palette
 
 ## Pendiente
 
-- **Medir en el Dell.** La GPU integrada (Intel UHD 630) es mucho más lenta que la de la Mac de desarrollo, donde no se pudo medir con precisión. El fragment shader recorre hasta 5 anillos (con 3 hilos cada uno) y 36 filamentos por píxel; hay calidad adaptable (`renderScale` baja sola si no se llega a ~50 fps) y se puede bajar `filamentCount`, pero hay que verlo en el kiosco real antes de instalarlo.
+- **Medir en el Dell.** La GPU integrada (Intel UHD 630) es mucho más lenta que la de la Mac de desarrollo, donde no se pudo medir con precisión. Se dibujan ~50 000 vértices de cintas más 4 pasadas de bloom en un buffer half float; hay calidad adaptable (`renderScale` baja sola si no se llega a ~50 fps) y se puede bajar `filamentCount`, pero hay que verlo en el kiosco real antes de instalarlo.
 - **Integrarlo en la UI del kiosco** (hoy muestra Homepage). El README explica cómo: canvas `z-index: -1` y API `window.OscarCore`. En la referencia el Core está a la derecha y la UI a la izquierda; por defecto está centrado (`coreCenter`).
 - **Conectar el estado del sistema con la tira LED** (`GET led.oscar.home/state`) si se quiere que el Core refleje `deploying`, `critical`, etc.
-- Es una aproximación: la referencia tiene aún más densidad de filamentos (con nodos brillantes en las intersecciones) y una nube de partículas más marcada a la izquierda; el bloom es analítico, no un postproceso real.
+- Es una aproximación: la referencia tiene una nube de partículas más marcada a la izquierda y nodos brillantes exactamente en los cruces entre filamentos.
