@@ -3,36 +3,79 @@ title: Fondo aurora de la pantalla
 sidebar_position: 8
 ---
 
-# Fondo aurora de la pantalla (`oscar-aurora`)
+# O.S.C.A.R. Aurora — NIGHT V1
 
-**Estado:** primera versión funcionando (2026-09-26), **sin desplegar** en el kiosco. Código en Forgejo: **`http://git.oscar.home/mdelgado/oscar-aurora`** (privado); clon de trabajo en `apps/oscar-aurora/`, con un `README.md` completo que es la fuente de verdad; esta página es el resumen.
+**Estado (2026-09-26):** V1 nocturna implementada y medida en el Dell, pendiente de aprobación visual en pantalla.
+**Sin instalar en el kiosco.** Código privado: [oscar-aurora](http://git.oscar.home/mdelgado/oscar-aurora).
+Clon local independiente en `apps/oscar-aurora/`.
 
-Fondo animado para la [pantalla del Dell](./dell-7060.md): WebGL (Three.js + GLSL) a 1280×720 y fullscreen en Chromium. Es solo el *background*: la UI de O.S.C.A.R. (hora, fecha, clima, estado) va encima.
+Para continuar, leer [HANDOFF.md](http://git.oscar.home/mdelgado/oscar-aurora/src/branch/main/HANDOFF.md) y
+[README.md](http://git.oscar.home/mdelgado/oscar-aurora/src/branch/main/README.md), ambos en la raíz del repo.
+Los enlaces requieren acceso a la red interna.
 
-**Cómo está hecho (2026-09-26).** Aurora **100 % procedural**: sin imágenes ni texturas, todo se calcula en un shader con ruido que evoluciona en el tiempo. Un intento intermedio copiaba la imagen de referencia y la movía; se descartó porque se veía como una foto animada. De la referencia (`ref-aurora.png`) solo se tomó la **composición**, escrita como curvas medidas: una cinta principal en diagonal con rayos altos, una segunda cinta más baja, un abanico en "V" y nubes bajas. Cada cinta se dibuja como varias láminas con profundidad (rayos, pliegues, pulsos, cresta luminosa); el abanico en V son dos haces curvos. Se renderiza en un buffer HDR con **bloom real** para el resplandor volumétrico (mismo esquema que el [Core](./oscar-core-fondo.md)). Las paletas de cada momento del día salen de la lámina `bg-aurora.png`. Las estrellas van aparte: procedurales, discretas y animadas.
+## Alcance aprobado para desarrollar
 
-## Qué hace
+La instrucción vigente concentra el trabajo en **NIGHT**: cielo negro/azul oscuro, muchas estrellas y aurora procedural
+violeta, azul y cyan. La referencia confirmada es `reference/ref-aurora.png`; se usa para comparar composición,
+**nunca se carga como textura ni se anima la imagen**.
 
-- **Ciclo horario continuo** con cinco paletas (madrugada 00–06, amanecer 06–09, día 09–17, atardecer 17–20, noche 20–24). Alrededor de cada cambio se mezcla durante 60 minutos (30 antes y 30 después): colores, brillo, velocidad e intensidad, nunca a saltos.
-- **Deep Night** opcional (manual o por horario): brillo ×0.35, velocidad ×0.4, estrellas ×0.5, aurora ×0.4. La pantalla "duerme" pero sigue funcionando.
-- **Fondo estrellado animado** (~5000 estrellas, cada una con su titileo y un giro imperceptible del cielo) sobre un cielo oscuro; discretas, pero bien visibles como estrellas, con movimiento que se ve a simple vista (balanceo, pulsos y ondas de brillo); no es agresivo: es ambiental.
-- **Dos capas** preparadas: *hora del día* + *estado del sistema* (`NORMAL`, `PROCESSING`, `DEPLOYING`, `SUCCESS`, `WARNING`, `ERROR`, `STANDBY`). Los estados existen pero todavía son neutros.
-- Paletas y parámetros son **datos** (`palettes.js`, `config.js`), no están en el shader. En `npm run dev` hay un panel de debug; no existe en el build.
+La escena tiene cinco capas con distintas profundidades: diagonal violeta principal, cinta cyan inferior, velo violeta bajo,
+capa lejana a la izquierda y pliegue ascendente derecho integrado. Shader GLSL con ruido multiescala, domain warping y fibras verticales;
+HDR, tone mapping y bloom suave configurable. Three.js y Vite, sin framework de UI.
 
-Hay un segundo fondo hermano: el [O.S.C.A.R. Core](./oscar-core-fondo.md).
+Las estrellas ocupan **toda la pantalla**, permanecen fijas y titilan de forma visible. El 90 % se distribuye uniformemente;
+el resto aporta un acento tenue arriba a la izquierda. Se conservan a resolución completa al bajar la calidad de la aurora.
 
-## Cómo probarlo
+Tras aprobar el realismo de la base, el usuario pidió **movimiento y cambios de color más visibles**, cortes suaves,
+estrellas animadas y una curva ascendente en lugar de la V aislada. Se aumentó la velocidad a 0,24, se agregó mezcla
+cromática local y titileo configurable. Las cintas ahora se superponen con extremos transparentes.
+
+Horarios, otras paletas, Deep Night, estados del sistema e integraciones quedaron fuera del arranque de esta V1.
+Los módulos antiguos siguen inactivos en el repo. Primero se aprueba NIGHT; las variantes vendrán después.
+
+## Probar y calibrar
 
 ```bash
 cd apps/oscar-aurora
-export NPM_CONFIG_USERCONFIG=/dev/null        # el ~/.npmrc de la Mac apunta a un registry privado con token vencido
-npm install --registry https://registry.npmjs.org/
-npm run dev                                    # http://localhost:5173 (?palette=atardecer, ?hour=8.5, ?deep=1)
+NPM_CONFIG_USERCONFIG=/dev/null npm install --registry https://registry.npmjs.org/
+npm run dev
 ```
 
-## Pendiente
+El panel dev permite ajustar velocidad, intensidad, escala, warp, cortinas, brillo, saturación, cantidad/brillo/titileo de
+estrellas y fuerza/radio/umbral del bloom. Tecla **D** para ocultarlo; `?panel=0` evita montarlo.
+`?time=0`, `?time=10`, etc. fijan el tiempo para comparar capturas. El build de producción no incluye panel.
+Los parámetros y colores están en `src/config.js`; canvas fullscreen sin scroll, objetivo 1280×720.
 
-- **Medir en el Dell.** La GPU integrada (Intel UHD 630) es mucho más lenta que la de la Mac de desarrollo, donde no se pudo medir con precisión. El shader es pesado para una GPU integrada (hasta 7 cortinas por píxel, con salidas tempranas) y hay calidad adaptable (`renderScale` baja sola si no se llega a ~50 fps), pero hay que verlo en el kiosco real antes de instalarlo.
-- **Integrarlo en la UI del kiosco** (hoy el kiosco muestra Homepage). El README explica cómo: canvas `z-index: -1`, API `window.OscarAurora`.
-- **Conectar `SystemState` con la tira LED** (`GET led.oscar.home/state`) si se quiere que el fondo refleje `deploying`/`critical`, etc.
-- La composición es una aproximación medida a mano sobre la referencia, no una copia; la forma general es fija y lo que cambia es la estructura interna.
+## Verificación de la primera NIGHT (histórico)
+
+- Cero errores de consola, GLSL o warnings de Three.js en la prueba de Chrome.
+- Capturas 1280×720 comparadas contra la referencia. Luminosidad media 0,142 frente a 0,127;
+  casi negro en 29,1 % de píxeles frente a 30,1 %. La referencia conserva micropliegues más complejos.
+- Diferencia media RGB entre capturas a 1 / 10 / 30 s: **0,31 / 2,31 / 5,61 sobre 255**.
+- Estrellas en todas las celdas de una cuadrícula 4×3: entre 1.034 y 1.766 por celda.
+- Resize comprobado a 1024×768, 720×1280, 1600×720 y 1280×720, sin scroll ni bandas vacías de estrellas.
+
+**Dell 7060, Intel UHD 630 real, Chromium 154, headless con EGL surfaceless:**
+
+| Caso | FPS promedio | Intervalo p95 | Canvas | Aurora HDR |
+|---|---|---|---|---|
+| Aurora a resolución fija 0,7 | 59,5 | 16,7 ms | 1280×720 | 896×504 |
+| Calidad adaptable desde 0,7 | 59,6 | 16,8 ms | 1280×720 | 896×504 |
+
+Se midieron 30 s por caso después del calentamiento; la adaptación no necesitó bajar la resolución.
+El kiosco y las VMs siguieron funcionando. Son medidas de cadencia headless con GPU real: todavía falta verificar
+presentación en Wayland y funcionamiento prolongado en la [pantalla del Dell](./dell-7060.md).
+
+Scripts y método: `apps/oscar-aurora/scripts/`. Datos y capturas: `results/night-v1/` y `results/night-v1-dell/` en ese repo.
+La medición del shader anterior (18,8 FPS a escala completa, 53,5 al mínimo) queda como histórico; no describe la NIGHT actual.
+
+## Revisión de movimiento y continuidad
+
+Capturas en `results/night-v2/`: diferencia media RGB a 1 / 10 / 30 s de **1,45 / 9,26 / 16,53 sobre 255**.
+Cero errores de consola/GLSL; resize y cobertura estelar completos; panel ampliado a 17 controles.
+La aprobación del realismo corresponde a la base anterior; falta revisar visualmente esta última iteración.
+
+## Próximo paso
+
+Revisar la NIGHT actual en la pantalla física y calibrar la fidelidad visual antes de agregar variantes o integraciones.
+El kiosco sigue mostrando Homepage. El fondo hermano [O.S.C.A.R. Core](./oscar-core-fondo.md) es un proyecto independiente.
