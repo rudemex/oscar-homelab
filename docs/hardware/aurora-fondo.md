@@ -5,7 +5,7 @@ sidebar_position: 8
 
 # O.S.C.A.R. Aurora — NIGHT V1
 
-**Estado (2026-09-27):** V1 nocturna implementada, medida en el Dell (59,5 FPS a 1280×720) y **desplegada como [protector de pantalla del kiosco](./dell-7060.md)** (5 min de inactividad; el primer toque la cierra). Pendiente de aprobación visual en la pantalla física.
+**Estado (2026-09-27):** V1 nocturna implementada, medida en el Dell (59,5 FPS a 1280×720) y **desplegada como [protector de pantalla del kiosco](./dell-7060.md)** (2 min de inactividad, con el header de Homepage encima; el primer toque la cierra). Pendiente de aprobación visual en la pantalla física.
 **Sin instalar en el kiosco.** Código privado: [oscar-aurora](http://git.oscar.home/mdelgado/oscar-aurora).
 Clon local independiente en `apps/oscar-aurora/`.
 
