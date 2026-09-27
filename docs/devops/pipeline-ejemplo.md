@@ -63,12 +63,12 @@ jobs:
           apt-get install -y -qq sed
           git config --global user.email "ci@oscar.home"
           git config --global user.name "CI (ci-demo)"
-          git -c http.extraHeader="Authorization: token ${{ secrets.GITOPS_TOKEN }}" clone http://git.oscar.home/mdelgado/oscar-gitops.git /tmp/oscar-gitops
+          git -c http.extraHeader="Authorization: token ${{ secrets.GITOPS_TOKEN }}" clone http://git.oscar.home/mdelgado/gitops.git /tmp/oscar-gitops
           cd /tmp/oscar-gitops
           sed -i "s|tag: .*|tag: ${{ github.sha }}|" apps/ci-demo/values.yaml
           git add apps/ci-demo/values.yaml
           git commit -m "ci-demo: actualizar tag a ${{ github.sha }}" || echo "sin cambios"
-          git -c http.extraHeader="Authorization: token ${{ secrets.GITOPS_TOKEN }}" push http://git.oscar.home/mdelgado/oscar-gitops.git main
+          git -c http.extraHeader="Authorization: token ${{ secrets.GITOPS_TOKEN }}" push http://git.oscar.home/mdelgado/gitops.git main
 ```
 
 Diferencias reales contra lo que decía esta página antes: la sintaxis es `on:`/`jobs:`/`steps:` (compatible con GitHub Actions, no `stages:`/`script:` estilo GitLab), las variables de contexto son `github.*` (no `gitea.*`, pese a ser Forgejo — ver gotcha #1), y el `docker build`/`push` necesitó dos ajustes de infraestructura que no son parte del YAML: `docker_host: automount` en la config del runner y `insecure-registries` en el daemon Docker del host (Nexus corre HTTP plano). Credenciales (`NEXUS_USER`, `NEXUS_PASSWORD`, `GITOPS_TOKEN`) van como **secrets de Forgejo Actions a nivel usuario** (no por repo — ver [Forgejo: secrets a nivel usuario](../servicios/forgejo.md#secrets-y-variables-de-actions-nivel-usuario-no-solo-por-repo)), nunca en el YAML — `NEXUS_USER`/`NEXUS_PASSWORD` son el usuario `ci-forgejo` con rol acotado a push en `docker-hosted` únicamente, no la cuenta admin de Nexus; `GITOPS_TOKEN` es un token de acceso de Forgejo con permiso de escritura sobre `oscar-gitops` únicamente.

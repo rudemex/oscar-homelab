@@ -3,7 +3,7 @@ title: Indicador LED de estado
 sidebar_position: 7
 ---
 
-# Indicador LED de estado (`oscar-led-controller`)
+# Indicador LED de estado (`led-controller`)
 
 **Estado:** Actual — mapea los estados de O.S.C.A.R. (`healthy`, `critical`, `deploying`, `backup`, ...) a color y animación en la tira WS2812B real, de forma provider-agnóstica. Desde el 2026-09-25 corre en el worker `apps` de k3s con CI/CD real (build + push a Nexus, sin `pullPolicy: Never`).
 
@@ -32,9 +32,9 @@ Es un efecto manual como `mirrorBlock`/`mirrorSparkle`: reemplaza lo que se ve e
 
 ## Código fuente y despliegue
 
-El código del controlador vive en Forgejo: **`http://git.oscar.home/mdelgado/oscar-led-controller`** (repo privado, rama `main`; NestJS + WLED, ~60 archivos, con su propio README). Hasta el 2026-09-21 estaba **solo en el disco local**, sin ningún respaldo; ahora `apps/` está en el `.gitignore` de este repo de documentación para no mezclar las dos cosas.
+El código del controlador vive en Forgejo: **`http://git.oscar.home/mdelgado/led-controller`** (repo privado, rama `main`; NestJS + WLED, ~60 archivos, con su propio README). Hasta el 2026-09-21 estaba **solo en el disco local**, sin ningún respaldo; ahora `apps/` está en el `.gitignore` de este repo de documentación para no mezclar las dos cosas.
 
-**CI/CD real desde el 2026-09-25** (antes era manual, imagen importada a mano al containerd de `k3s01` con `pullPolicy: Never`): Forgejo Actions construye la imagen, corre `yarn verify` (lint + typecheck + tests unitarios + e2e + build) y la sube a Nexus (`192.168.0.151:8082/oscar-led-controller`, tag = SHA del commit). El deploy sigue siendo manual (`DEPLOY: 'false'` en el workflow): se actualiza `image.tag` en el `values.yaml` de [`oscar-gitops`](../servicios/argocd.md) y Argo CD sincroniza. Corre en el worker `apps` (no en el control-plane `k3s`), con `nodeSelector`. Suite de tests: 89/89 verdes.
+**CI/CD real desde el 2026-09-25** (antes era manual, imagen importada a mano al containerd de `k3s01` con `pullPolicy: Never`): Forgejo Actions construye la imagen, corre `yarn verify` (lint + typecheck + tests unitarios + e2e + build) y la sube a Nexus (`192.168.0.151:8082/oscar-led-controller`, tag = SHA del commit). El deploy sigue siendo manual (`DEPLOY: 'false'` en el workflow): se actualiza `image.tag` en el `values.yaml` de [`gitops`](../servicios/argocd.md) y Argo CD sincroniza. Corre en el worker `apps` (no en el control-plane `k3s`), con `nodeSelector`. Suite de tests: 89/89 verdes.
 
 ## Panel táctil (2026-09-21)
 
@@ -62,7 +62,7 @@ La tira física es WS2812B, direccionable LED por LED, controlada por un ESP32 c
 
 **Séptima, mismo día: `maintenance` con `oscar-maintenance`.** Un wrapper en el host (`oscar-maintenance <comando…>`, o `start`/`end` a mano) que pone `maintenance`, corre el comando y devuelve la tira a `healthy` al terminar —con éxito, error o Ctrl-C—, solo si sigue en `maintenance`. Mientras dura, los bridges de Kuma no levantan `critical` (un reinicio planeado deja caer cosas a propósito).
 
-Los deploys de las apps propias se reflejan para `ci-demo` (piloto) y `oscar-led-controller`.
+Los deploys de las apps propias se reflejan para `ci-demo` (piloto) y `led-controller`.
 
 **Qué sigue manual, a propósito o por falta de fuente:** `argentina`, `gamer`, `aurora`, `offline` son modos de ánimo sin evento que los dispare; `thinking` esperaría al pod de Claude Code (Hermes), que todavía es solo una prueba de concepto; `warning` y `degraded` no tienen una fuente limpia (Kuma solo distingue arriba/abajo). El punto de extensión sigue siendo el mismo (`setState(state, { source, reason })`) — las integraciones de arriba son la prueba de que conectarlo a una fuente real es barato una vez que existe un endpoint accesible sin credenciales de por medio.
 

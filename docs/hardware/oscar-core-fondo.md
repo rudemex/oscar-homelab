@@ -3,9 +3,9 @@ title: Fondo O.S.C.A.R. Core
 sidebar_position: 9
 ---
 
-# Fondo O.S.C.A.R. Core (`oscar-core`)
+# Fondo O.S.C.A.R. Core (`core`)
 
-**Estado:** primera versión funcionando (2026-09-26), **sin desplegar** en el kiosco. Código en Forgejo: **`http://git.oscar.home/mdelgado/oscar-core`** (privado); clon de trabajo en `apps/oscar-core/`, con un `README.md` completo que es la fuente de verdad. Esta página es el resumen.
+**Estado:** primera versión funcionando (2026-09-26), **sin desplegar** en el kiosco. Código en Forgejo: **`http://git.oscar.home/mdelgado/core`** (privado); clon de trabajo en `apps/oscar-core/`, con un `README.md` completo que es la fuente de verdad. Esta página es el resumen.
 
 Segundo fondo animado para la [pantalla del Dell](./dell-7060.md), hermano de la [aurora](./aurora-fondo.md): el **O.S.C.A.R. Core**, una estructura de energía formada por anillos, filamentos y partículas alrededor de un **centro negro** (donde después irá la UI). **100 % procedural** en WebGL (Three.js + GLSL), sin imágenes ni videos; la referencia visual es la lámina `bg-nucleo.png` (seis variantes por momento del día), guardada en `apps/oscar-core/reference/`. Es solo el *background*: la UI de O.S.C.A.R. va encima.
 
