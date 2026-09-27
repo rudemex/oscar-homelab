@@ -71,3 +71,7 @@ La otra integración automática real es `rackStatus` (ver arriba): repintado pe
 ## Dónde profundizar
 
 Todo lo demás — cómo emparejar el Hue Bridge, cómo funciona el protocolo KLAP de Tapo (con el detalle de ingeniería inversa real, no un resumen), el modelo completo de `MirrorZone`, los 8 efectos espaciales, el catálogo completo de `POST /effects`, por qué se compila con Rspack/SWC en vez de `tsx`/esbuild — está en `apps/oscar-led-controller/README.md`. Es intencionalmente un documento técnico distinto a esta guía: más cercano a un ADR + bitácora de ingeniería inversa que a documentación de usuario.
+
+## Apagado total (2026-09-27)
+
+El botón «Apagar todo» del kiosco (ver [Dell 7060](./dell-7060.md)) termina **apagando la tira** con un pedido directo al WLED (`192.168.0.161`, `POST /json/state {"on":false}`), porque el controller vive en k3s y para ese momento ya está apagado; durante el apagado la tira queda en blanco de mantenimiento, que los bridges de Kuma y del watchdog no pisan. Detalle a tener en cuenta: en el controller solo `POST /on` vuelve a prender una tira apagada (ningún estado normal lo hace), por eso `oscar-led-boot` lo llama antes de la animación `booting` al arrancar el Dell.
