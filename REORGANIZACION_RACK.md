@@ -207,6 +207,17 @@ así que Glances quedó sin ningún consumidor real, solo una tarjeta decorativa
 compose down` en `/srv/oscar/apps/glances/`) y se borró la carpeta; se sacó su tarjeta de `services.yaml` y la
 entrada oculta de `widgets.yaml`.
 
+**Exporters de Proxmox y Speedtest desplegados (2026-09-28):** la precondición para poder comparar Beszel/ProxMenux
+Monitor/MySpeed contra Grafana ya está cumplida. `prometheus-pve-exporter` corre en el propio hipervisor
+`oscar-core` (pipx + systemd, fuera de Ansible — no tiene Docker ni está en el inventario) con un token de API
+dedicado de solo lectura; `speedtest-exporter` se desplegó por Ansible en `core` (rol nuevo `speedtest_exporter`,
+grupo `speedtest_host` que ya existía en el inventario sin play); Blackbox ICMP se activó en `monitor` (le faltaba
+el `cap_add: NET_RAW` en `compose.yaml`, ya estaba en el código). Dashboard nuevo *OSCAR — Proxmox* (7 paneles,
+datos reales con nombres de VM/LXC vía join con `pve_guest_info`) + 2 paneles de Speedtest sumados a *OSCAR —
+Infraestructura*. Detalle completo en [`docs/hardware/monitor.md`](docs/hardware/monitor.md#qué-mide-prometheus-hoy).
+**Con esto corriendo un tiempo real en paralelo, queda pendiente decidir con el usuario, herramienta por
+herramienta, qué se retira** — no se apagó nada todavía, sigue siendo la misma política de arriba.
+
 ## Presupuesto de recursos (Dell, `oscar-core`)
 
 Host: 31GB RAM físicos, 6 núcleos / 12 hilos. Estado actual (2026-09-22, sin balloon configurado en ninguna VM):
