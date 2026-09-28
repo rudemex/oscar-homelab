@@ -3,78 +3,81 @@ title: Pipeline de ejemplo
 sidebar_position: 4
 ---
 
-# Pipeline de referencia
+# Pipelines compartidos
 
-Una aplicación simple puede recorrer:
+O.S.C.A.R. usa [Forgejo Actions](../servicios/ci-runner.md) y el repositorio [ci-shared](http://git.oscar.home/mdelgado/ci-shared). La estructura v2 sigue la referencia `Arquitectura/pipelines/npm`: steps independientes, una plantilla general y dos plantillas consumidoras, para templates y para apps.
 
-```text
-lint -> unit-test -> build -> scan -> push -> deploy -> smoke-test
+```mermaid
+flowchart LR
+  T[Repo de template] --> TB[template-be]
+  A[Repo de aplicación] --> AB[apps-be]
+  TB --> B[template-base]
+  AB --> B
+  B --> CI[common/ci: install, lint, test, build]
+  AB --> D[common/ci: Docker y smoke]
+  D --> CD[common/cd: publicación y GitOps]
 ```
 
-## Pipeline real (validado, no pseudocódigo)
+## Estructura y responsabilidades
 
-El motor de CI es **Forgejo Actions** ([ADR-010](../arquitectura/decisiones-arquitectonicas.md#adr-010--forgejo-con-forgejo-actions-como-plataforma-git-local)), corriendo en el [CI Runner](../servicios/ci-runner.md). Este workflow es el real, tomado de [`ci-demo`](http://git.oscar.home/mdelgado/ci-demo) — corre de punta a punta con `status: success`, imagen confirmada en Nexus **y despliegue real en Argo CD sin ningún paso manual**, después de encontrar 10 problemas reales que un pseudocódigo nunca hubiera anticipado (ver [Gotchas reales](../servicios/ci-runner.md#gotchas-reales-encontrados-con-el-pipeline-completo-no-obvios-de-antemano) en CI Runner):
+- `common/ci/*` y `common/cd/*`: composite actions independientes; shell verificable en `scripts/ci` y `scripts/cd`.
+- `template-base.yml`: instalación npm/Yarn, lint, tests y build. Todos los comandos y el registro npm son configurables.
+- `template-be.yml`: valida templates mediante la base común, sin publicar imágenes ni desplegar.
+- `apps-be.yml`: usa la misma base y agrega build Docker, smoke test opcional, publicación y GitOps.
+- Repos de aplicaciones: comandos, parámetros y verificaciones propias. El smoke test vive en `scripts/ci-smoke.sh` de cada app.
+
+Forgejo exige los workflows en `.forgejo/workflows/`; los nombres equivalen a las carpetas `template-base`, `template-be` y `apps-be` de la referencia GitLab. No se copian sus integraciones con Sonar, notificaciones o rebase, que no forman parte del pipeline actual de O.S.C.A.R.
+
+`nestjs-starter` sigue siendo un mirror de solo lectura del proyecto de GitHub. El CI de `ci-shared` prueba la cadena `template-be → template-base → steps`; hay un ejemplo listo para futuros templates editables en `examples/template-consumer.yml`.
+
+## Consumidor real: ci-demo
 
 ```yaml
 name: CI/CD
-on:
+'on':
   push:
-    branches: [main]
-
+    branches:
+      - main
+  pull_request: {}
+  workflow_dispatch: {}
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
-  build:
-    runs-on: docker
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Test
-        run: npm test
-
-      - name: Instalar Docker CLI
-        run: |
-          apt-get update -qq
-          apt-get install -y -qq docker.io
-
-      - name: Build Docker image
-        run: docker build -t 192.168.0.151:8082/ci-demo:${{ github.sha }} -t 192.168.0.151:8082/ci-demo:latest .
-
-      - name: Login a Nexus
-        run: echo "${{ secrets.NEXUS_PASSWORD }}" | docker login 192.168.0.151:8082 -u "${{ secrets.NEXUS_USER }}" --password-stdin
-
-      - name: Push a Nexus
-        run: |
-          docker push 192.168.0.151:8082/ci-demo:${{ github.sha }}
-          docker push 192.168.0.151:8082/ci-demo:latest
-
-      - name: Actualizar tag en oscar-gitops
-        run: |
-          apt-get install -y -qq sed
-          git config --global user.email "ci@oscar.home"
-          git config --global user.name "CI (ci-demo)"
-          git -c http.extraHeader="Authorization: token ${{ secrets.GITOPS_TOKEN }}" clone http://git.oscar.home/mdelgado/gitops.git /tmp/oscar-gitops
-          cd /tmp/oscar-gitops
-          sed -i "s|tag: .*|tag: ${{ github.sha }}|" apps/ci-demo/values.yaml
-          git add apps/ci-demo/values.yaml
-          git commit -m "ci-demo: actualizar tag a ${{ github.sha }}" || echo "sin cambios"
-          git -c http.extraHeader="Authorization: token ${{ secrets.GITOPS_TOKEN }}" push http://git.oscar.home/mdelgado/gitops.git main
+  pipeline:
+    uses: mdelgado/ci-shared/.forgejo/workflows/apps-be.yml@v2.0.0
+    with:
+      node-version: '20'
+      package-manager: npm
+      install-command: npm install
+      lint-command: npm run lint
+      test-command: npm test
+      build-command: ''
+      nexus-npm-url: ''
+      image: 192.168.0.151:8082/ci-demo
+      app: ci-demo
+      publish: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' && 'true' || 'false' }}
+      deploy: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' && 'true' || 'false' }}
+    secrets:
+      nexus-user: ${{ secrets.NEXUS_USER }}
+      nexus-password: ${{ secrets.NEXUS_PASSWORD }}
+      gitops-token: ${{ secrets.GITOPS_TOKEN }}
 ```
 
-Diferencias reales contra lo que decía esta página antes: la sintaxis es `on:`/`jobs:`/`steps:` (compatible con GitHub Actions, no `stages:`/`script:` estilo GitLab), las variables de contexto son `github.*` (no `gitea.*`, pese a ser Forgejo — ver gotcha #1), y el `docker build`/`push` necesitó dos ajustes de infraestructura que no son parte del YAML: `docker_host: automount` en la config del runner y `insecure-registries` en el daemon Docker del host (Nexus corre HTTP plano). Credenciales (`NEXUS_USER`, `NEXUS_PASSWORD`, `GITOPS_TOKEN`) van como **secrets de Forgejo Actions a nivel usuario** (no por repo — ver [Forgejo: secrets a nivel usuario](../servicios/forgejo.md#secrets-y-variables-de-actions-nivel-usuario-no-solo-por-repo)), nunca en el YAML — `NEXUS_USER`/`NEXUS_PASSWORD` son el usuario `ci-forgejo` con rol acotado a push en `docker-hosted` únicamente, no la cuenta admin de Nexus; `GITOPS_TOKEN` es un token de acceso de Forgejo con permiso de escritura sobre `oscar-gitops` únicamente.
+`ci-demo` usa npm y Node 20; los consumidores NestJS usan Yarn y Node 22. Los comandos diferentes no requieren duplicar la infraestructura del pipeline. `led-controller` conserva además verificación posterior y rollback propios, con `DEPLOY: 'false'`.
 
-El último paso, `git clone` necesita el header de auth igual que el `push` — clonar un repo privado sin credenciales también requiere autenticación, no solo escribir en él (gotcha #10 en CI Runner).
+En PRs y ejecuciones manuales, `publish` y `deploy` son `'false'`: la imagen se construye y prueba sin tocar Nexus ni GitOps. En un push a `main`, las aplicaciones mantienen su política de publicación y despliegue. Los smoke tests usan `SMOKE_CONTAINER` único y el wrapper lo elimina aunque falle la prueba. Los builds de validación no sobrescriben el alias local `latest`.
 
-## Deploy GitOps
+## Versionado
 
-Implementado, no es una opción a futuro: el último step del workflow de arriba clona `oscar-gitops`, actualiza `apps/ci-demo/values.yaml` con el `sha` del commit recién construido, y lo pushea a `main` — sin darle `cluster-admin` ni ninguna credencial de Kubernetes al runner. Argo CD, con `syncPolicy.automated` en la `Application` de `ci-demo`, detecta el cambio y hace la reconciliación solo. Validado con `kubectl exec` contra el pod real, confirmando el código del último commit corriendo — sin ningún `kubectl apply` manual de por medio.
+Los consumidores fijan `@v2.0.0`, nunca `@main`. Para actualizar: preparar una candidata inmutable, probarla con consumidores, publicar el tag estable compartido y después cambiar cada consumidor. `node scripts/version.mjs vX.Y.Z` actualiza coherentemente las referencias internas de `ci-shared`.
+
+v2 cambia el contrato: las aplicaciones que consumían `template-be` deben pasar a `apps-be`, y los steps pasan de `actions/` a `common/`. Los tags v1 permanecen intactos.
+
+## Credenciales y GitOps
+
+Los secretos `NEXUS_USER`, `NEXUS_PASSWORD` y `GITOPS_TOKEN` se pasan por `jobs.<job>.secrets`, desde los [secrets de Forgejo](../servicios/forgejo.md#secrets-y-variables-de-actions-nivel-usuario-no-solo-por-repo). Forgejo 16 no admite declararlos dentro de `on.workflow_call.secrets`. La configuración temporal de Docker se elimina al terminar el push.
+
+El step de GitOps modifica solo `apps/<app>/values.yaml` y publica el tag del commit. Argo CD reconcilia el despliegue; el runner no recibe credenciales de Kubernetes. El job condicional de deploy invoca directamente la composite action: evita un fallo observado de Forgejo al anidar otro reusable workflow bajo `if: inputs.*`.
+
+El runner usa el socket Docker del host (`docker_host: automount`) y el registry HTTP de Nexus. Las composite actions se descargan con URL completa por IP porque el contenedor del runner no resuelve `git.oscar.home`. Ver [incidencias y validación](./revision-pipelines-2026-09-28.md).
