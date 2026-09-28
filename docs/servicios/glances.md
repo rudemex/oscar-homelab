@@ -5,11 +5,17 @@ sidebar_position: 24
 
 # Glances
 
-**Estado:** Actual · Observabilidad — corriendo en `core`
+**Estado:** **Retirado el 2026-09-28** — contenedor y tarjeta eliminados, ver [Retiro](#retiro-2026-09-28). El resto de esta página es historial de por qué se usó y cómo estaba armado.
 **Dónde corre:** Docker Core (`/srv/oscar/apps/glances/`), `network_mode: host` + `pid: host`
 **Sizing inicial:** ~60 MB RAM
 **Red/puertos:** `61208` (API + UI web, modo `-w`)
 **Persistencia:** ninguna — es un monitor en vivo, sin base de datos
+
+## Retiro (2026-09-28)
+
+Se sacó al analizar, junto con el usuario, qué tarjetas de monitoreo seguían siendo necesarias en Homepage (Beszel, ProxMenux Monitor, MySpeed — ver [REORGANIZACION_RACK.md](https://github.com/rudemex/oscar-homelab/blob/develop/REORGANIZACION_RACK.md), sección "Observabilidad"). A diferencia de esas tres, no aplicaba la misma política de "esperar datos reales en Grafana antes de decidir": la propia tarjeta de Glances en `services.yaml` decía textualmente que era *"la fuente del header de arriba de la página"* — pero esas barras de CPU/RAM/disco del header ya se habían sacado en otra tarea (el header se simplificó a clima | título | hora), así que Glances había quedado sin ningún consumidor real, solo una tarjeta decorativa con su propio widget.
+
+Se bajó `docker compose down` en `/srv/oscar/apps/glances/` y se borró la carpeta entera (sin volumen de datos que perder: es un monitor en vivo, sin persistencia). Se sacaron su tarjeta de `services.yaml` y la entrada oculta en `widgets.yaml` (que ya no la usaba nada más). De paso se corrigió la descripción de "Beszel core", que mencionaba a Glances como comparación.
 
 ## Rol dentro de O.S.C.A.R.
 

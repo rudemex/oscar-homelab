@@ -26,7 +26,7 @@ La tabla resume el rol previsto. **Objetivo** no significa “instalar ya”: ca
 | [Beszel](./beszel.md) | **Actual** · Observabilidad | Docker Core | monitoreo liviano de CPU/RAM/disco, alternativa a Prometheus+Grafana |
 | [Home Assistant](./home-assistant.md) | **Actual** · Hogar | VM dedicada (vmid 101) | automatización doméstica |
 | [ProxMenux Monitor](./proxmenux-monitor.md) | **Actual** · Observabilidad | systemd en `oscar-core` | dashboard de CPU/RAM/disco/red del hipervisor, instalado fuera de Docker |
-| [Glances](./glances.md) | **Actual** · Observabilidad | Docker Core | fuente de datos real de CPU/RAM/disco de `core` para el header de Homepage, con tarjeta y UI propia (procesos, red, contenedores) |
+| [Glances](./glances.md) | **Retirado (2026-09-28)** · Observabilidad | — | medía CPU/RAM/disco de `core` para el header de Homepage; quedó sin consumidor real cuando esas barras se sacaron del header, eliminado por decisión del usuario, ver la página |
 | [MySpeed](./myspeed.md) | **Actual** · Observabilidad | Docker Core | historial de velocidad de internet, tests automáticos |
 | [Portainer](./portainer.md) | **Retirado (2026-09-25)** · Infraestructura | — | era una consola de contenedores/logs de `core`+`devops`; eliminado por decisión del usuario ("no nos sirve"), ver la página |
 | [Nginx Proxy Manager](./nginx-proxy-manager.md) | **Actual** · Infraestructura | Docker Core | reverse proxy interno para las apps de Docker Compose (Forgejo); las apps de k3s van directo a Traefik, no por acá |

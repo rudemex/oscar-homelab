@@ -194,10 +194,18 @@ instancias separadas.
 
 ## Observabilidad — sigue la política ya acordada: nada se apaga todavía
 
-La cadena oficial es `node_exporter → Prometheus → Grafana`. Beszel, Glances, ProxMenux Monitor y MySpeed **no se
+La cadena oficial es `node_exporter → Prometheus → Grafana`. Beszel, ProxMenux Monitor y MySpeed **no se
 apagan en esta pasada** — se espera a tener datos reales corriendo en paralelo un tiempo antes de decidir, función
 por función, qué se retira. Uptime Kuma no es redundante con Prometheus/Grafana: responde "¿está arriba?" (Kuma) vs
 "¿cómo está funcionando?" (Prometheus/Grafana), son objetivos distintos y ambos se quedan.
+
+**Excepción — Glances retirado (2026-09-28):** a diferencia de los otros tres, no se esperó a tener datos en
+Grafana para sacarlo, porque no aplicaba el mismo criterio: su única razón de estar en Homepage era alimentar las
+barras de CPU/RAM/disco del header (`"esta es la fuente del header de arriba de la página"`, la descripción de su
+propia tarjeta) — pero esas barras ya se habían sacado del header en otra tarea (simplificado a clima|título|hora),
+así que Glances quedó sin ningún consumidor real, solo una tarjeta decorativa. Se bajó el contenedor (`docker
+compose down` en `/srv/oscar/apps/glances/`) y se borró la carpeta; se sacó su tarjeta de `services.yaml` y la
+entrada oculta de `widgets.yaml`.
 
 ## Presupuesto de recursos (Dell, `oscar-core`)
 
@@ -234,7 +242,7 @@ core
 ├── Cloudflare Tunnel      → network (centralizar ahí, hoy vive en core)
 ├── Portainer Server      → ELIMINAR — ✅ hecho (2026-09-25)
 ├── Beszel Server         → se queda (política de monitoreo: esperar datos)
-├── Glances                → se queda (ídem)
+├── Glances                → ELIMINAR — ✅ hecho (2026-09-28, sin datos que esperar: sin consumidor real)
 └── MySpeed                → se queda en core (corrección respecto al diseño original)
 
 devops
@@ -379,7 +387,7 @@ estado que todavía no existe. Se actualiza en el momento en que cada migración
 
 ## Fuera de alcance, a propósito
 
-- Apagar Beszel, Glances, ProxMenux Monitor o MySpeed — se decide más adelante con datos reales.
+- Apagar Beszel, ProxMenux Monitor o MySpeed — se decide más adelante con datos reales (Glances ya se sacó, ver arriba).
 - ~~La Fase 2 de `apps` (worker de k3s)~~ — ✅ hecha (2026-09-23), ver paso 12 arriba.
 - Reparación/reemplazo del tercer SSD SATA del Dell — pendiente de que el usuario lo conecte.
 - VLANs / re-direccionamiento IP (`docs/red/plan-direccionamiento.md` es un ejemplo futuro, no aplica todavía) —
@@ -469,8 +477,10 @@ Copiar y pegar tal cual como prompt inicial:
 > - Cualquier edicion a `services.yaml` de Homepage: nunca con `sed -i` dentro del contenedor. Traer el archivo,
 >   editar local, validar YAML, subir por `base64 | ssh ... | base64 -d`, reiniciar el contenedor, dejar backup del
 >   archivo anterior en el propio host.
-> - **No apagues las herramientas de monitoreo redundantes** (Beszel, Glances, ProxMenux Monitor, MySpeed) — la
->   politica acordada es esperar datos reales en Grafana antes de decidir, funcion por funcion.
+> - **No apagues las herramientas de monitoreo redundantes** (Beszel, ProxMenux Monitor, MySpeed) — la
+>   politica acordada es esperar datos reales en Grafana antes de decidir, funcion por funcion. Glances es la
+>   excepcion: se retiro el 2026-09-28 sin esperar esos datos porque no aplicaba el mismo criterio (no tenia
+>   consumidor real, solo una tarjeta decorativa en Homepage — ver la seccion de Observabilidad arriba).
 > - La Fase 2 (VM `apps` como worker de k3s) ya esta completa (2026-09-25): `ci-demo` y `oscar-led-controller`
 >   corren en `apps`, `k3s` quedo solo con el control-plane.
 > - La seccion "Documentacion a actualizar" de `REORGANIZACION_RACK.md` dice exactamente que pagina de `docs/`
