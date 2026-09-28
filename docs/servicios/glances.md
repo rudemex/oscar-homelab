@@ -17,6 +17,8 @@ Se sacó al analizar, junto con el usuario, qué tarjetas de monitoreo seguían 
 
 Se bajó `docker compose down` en `/srv/oscar/apps/glances/` y se borró la carpeta entera (sin volumen de datos que perder: es un monitor en vivo, sin persistencia). Se sacaron su tarjeta de `services.yaml` y la entrada oculta en `widgets.yaml` (que ya no la usaba nada más). De paso se corrigió la descripción de "Beszel core", que mencionaba a Glances como comparación.
 
+**Monitor de Uptime Kuma:** mismo cuidado que en el [retiro de Portainer](./portainer.md#retiro-2026-09-25) — sin sacar el monitor "Glances (core01)" (id 22), habría quedado marcado caído para siempre al no existir más el contenedor. No había credenciales de admin de Kuma guardadas en el vault para borrarlo por API (`uptime-kuma-api` necesita login real por socket.io, y la única entrada relacionada, "Uptime Kuma API Key", solo sirve para el endpoint de métricas de Prometheus) — lo borró el usuario directo desde la UI.
+
 ## Rol dentro de O.S.C.A.R.
 
 Fuente de datos real de CPU/RAM/disco del **host `core`**, para el widget de recursos de [Homepage](./homepage.md). No es un reemplazo de Beszel (que también mide el host y además guarda historial) — es específicamente lo que necesita el widget nativo `glances` de Homepage, que solo sabe hablar con esta API puntual.
