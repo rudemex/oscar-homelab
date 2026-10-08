@@ -1,0 +1,26 @@
+{
+  "categories": {
+    "📡 STATUS": [
+      { "name": "status", "topic": "Estado general de O.S.C.A.R. y sus servicios." },
+      { "name": "alerts", "topic": "Alertas operativas que requieren atención." },
+      { "name": "incidents", "topic": "Registro y seguimiento de incidentes." }
+    ],
+    "🖥️ INFRASTRUCTURE": [
+      { "name": "proxmox", "topic": "Eventos y estado de oscar-core y Proxmox." },
+      { "name": "network", "topic": "Red, Internet, DNS, AdGuard y conectividad." },
+      { "name": "raspberry-pi", "topic": "Estado de los nodos Raspberry Pi de O.S.C.A.R." }
+    ],
+    "🚀 OPERATIONS": [
+      { "name": "deployments", "topic": "Deployments, actualizaciones y releases." },
+      { "name": "backups", "topic": "Resultado de backups y tareas de recuperación." },
+      { "name": "automation", "topic": "Automatizaciones y workflows ejecutados por n8n." }
+    ],
+    "🔐 SECURITY": [
+      { "name": "security-alerts", "topic": "Eventos y alertas relacionadas con seguridad." }
+    ],
+    "🤖 O.S.C.A.R.": [
+      { "name": "hermes-agent", "topic": "Interacción con Hermes Agent (ver OSCAR_HERMES_AGENT_SPEC.md)." },
+      { "name": "activity", "topic": "Actividad general y eventos informativos de O.S.C.A.R." }
+    ]
+  }
+}

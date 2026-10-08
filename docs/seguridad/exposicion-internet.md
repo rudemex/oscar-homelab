@@ -38,6 +38,7 @@ La diferencia entre los dos escenarios no es el Tunnel — es si existe una Acce
 | Home Assistant | Tunnel + Access, o VPN; nunca puerto abierto en el router |
 | CCTV / DVR | nunca directo; VLAN aislada + acceso vía VPN/Access, deshabilitar P2P/DDNS del fabricante |
 | Demo web pública (whoami, proyecto de práctica) | reverse proxy/Tunnel, TLS, sin necesidad de Access si el contenido no es sensible |
+| Discord (bot + webhooks) | no aplica Tunnel/Access — el bot se conecta saliente a la API de Discord, y los webhooks de Discord son los que reciben, nunca al revés; ver [Discord](../servicios/discord.md) |
 
 ## Checklist antes de publicar
 

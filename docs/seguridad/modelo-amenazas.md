@@ -16,6 +16,7 @@ O.S.C.A.R. es doméstico, pero ejecuta software real y puede almacenar credencia
 | **Credencial filtrada** | contraseña reutilizada de otro servicio, token de API expuesto en un repo o log | identidad única por servicio, [gestión de secretos](./secretos.md), rotación (ver runbook [rotación de secreto](../runbooks/rotacion-secreto.md)) |
 | **Error humano propio** | token subido a Git por accidente, backup nunca probado, regla de firewall mal escrita | pre-commit hooks / revisión antes de push, [restore drills](../backup-dr/restore-drill.md) periódicos, cambios de firewall documentados y revisados |
 | **Supply chain** | imagen de contenedor comprometida, dependencia npm/pip vulnerable | imágenes oficiales con tag fijo, scan con Trivy (ver [seguridad de contenedores](./contenedores.md)) |
+| **Bot/token de Discord filtrado** | token del bot o URL de un webhook expuestos en un commit/log | nunca en Git/docs/logs (ver [Discord → Seguridad](../servicios/discord.md#seguridad)); permisos mínimos sin `Administrator`; webhook filtrado se borra y se recrea |
 
 La distinción importa porque la mitigación es distinta: un atacante remoto se detiene en el perímetro (no abrir el panel); un dispositivo IoT comprometido se detiene en la segmentación interna (VLAN), no en el firewall perimetral, que ya lo dejó entrar a la LAN.
 

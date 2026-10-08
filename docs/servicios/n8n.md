@@ -23,6 +23,8 @@ sidebar_position: 12
 
 Workflow: Alertmanager → webhook n8n → obtener contexto de Prometheus → enviar resumen con host, métrica y runbook asociado. (Pendiente real — hoy no hay Alertmanager/Prometheus desplegado, ver [observabilidad](../observabilidad/instalacion-stack.md); es el caso de uso objetivo, no uno ya construido.)
 
+**Notificaciones de alertas → Discord:** implementado y en producción (2026-10-03) — workflow real **"OSCAR - Discord Notification Broker"**, con 12 ramas (una por canal de Discord) activas. Alertmanager y Uptime Kuma ya lo usan como receiver. Diseño completo (normalización, severidad, ruteo) en [Discord](./discord.md#integración-con-n8n--diseño-del-notification-broker) — n8n es el único componente que conoce las URLs de los webhooks de Discord, ninguna herramienta se integra directo.
+
 ## Instalación
 
 ```bash
