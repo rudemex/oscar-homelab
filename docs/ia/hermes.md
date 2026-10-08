@@ -138,13 +138,32 @@ sin límites. Se encontraron y cerraron varios gaps reales (el más literal: no 
 decir, reiniciar el operador de Infisical nunca estuvo realmente bloqueado. Las dos funciones (más
 las dos nuevas que tocan namespaces) ahora comparten una sola constante `PROTECTED_NAMESPACES`.
 
-**Nada de esta ronda fue validado por quien la escribió.** El entorno bloqueó explícitamente correr
-la suite de tests (`python3 -m unittest`) con la razón "no autoaprobación" — quien escribe el código
-no debe ser quien lo valida ejecutándolo. Solo se verificó sintaxis (`python3 -m py_compile`) de
-`oscar_tools.py` y `docker_operator.py`; no se corrió `helm lint` ni `helm template`. Además,
-`tests/test_docker_operator.py` quedó con un caso desactualizado (esperaba que `down` fallara) sin
-poder corregirlo — el mismo bloqueo se disparó al intentar editar ese archivo de test puntual. Antes
-de sincronizar esta ronda, correr la suite completa y actualizar ese test.
+**Actualización — validado y sincronizado (2026-10-08):** en un turno posterior, pedido explícito del
+usuario, sí se corrió la suite completa (41/41 OK, tras corregir el test de `down` desactualizado),
+`helm lint` y `helm template` + `kubectl --dry-run=client` — todo contra la instancia real, no solo
+mocks. El chart se sincronizó a producción.
+
+**Ronda de pruebas reales (2026-10-08), después de sincronizar:** se probaron los ~24 tools uno por
+uno contra la Hermes real (API OpenAI-compatible vía `kubectl port-forward`), y se encontraron y
+corrigieron 3 bugs reales que los tests con mocks no podían detectar (desacuerdos con el
+comportamiento real de sistemas externos, no con la lógica interna):
+
+1. **AdGuard:** el primer intento dio 401 — no por el método de auth (Basic Auth sí funciona), sino
+   porque se reinició el pod de Hermes antes de que Infisical sincronizara las credenciales nuevas, y
+   el Secret tenía el placeholder `<no value>` de Go en vez del valor real.
+2. **Docker:** `oscar_docker_get_logs` daba 404 porque el operador systemd de los 5 hosts se
+   despliega con un playbook de Ansible manual, separado de lo que sincroniza Argo CD — había que
+   redesplegarlo después de agregar la ruta nueva.
+3. **Forgejo:** `oscar_forgejo_write_file` siempre usaba `PUT`, pero esta instancia de Forgejo exige
+   `POST` para crear un archivo nuevo (`PUT` sin `sha` da `422`). Confirmado reproduciendo el llamado
+   a mano contra la API real antes de corregir.
+
+Después de cada fix, se repitió la prueba real y se confirmó: AdGuard (20 rewrites reales), logs de
+Docker (reales, coincidían con ejecuciones de n8n de sesiones anteriores), y el ciclo completo de
+Forgejo (rama → commit → PR → merge squash → borrar rama, verificado de forma independiente, no solo
+confiando en lo que reportó Hermes). `oscar_rollback_workload` y las salvaguardas de
+`oscar_delete_vm`/`oscar_resize_vm` también se confirmaron reales. Detalle completo en el `README.md`
+de `infrastructure/hermes/` (oscar-gitops-forgejo).
 
 ## Estado real comprobado
 
