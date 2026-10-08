@@ -296,6 +296,28 @@ CPU  ██████████████████░░  92%   umbral 
 Versión: a1b2c3d → e4f5g6h
 ```
 
+### Deploys reales → Discord
+
+**Fuente real (2026-10-07):** `gitops-set-tag.sh` (repo `mdelgado/ci-shared`, `scripts/cd/gitops-set-tag.sh`) es el único punto real donde un deploy pasa de verdad — el `commit`+`push` a `apps/<app>/values.yaml` en `gitops.git` que Argo CD sincroniza después. Lo usan el job `deploy` de `apps-be.yml` y el workflow reusable `gitops-set-tag.yml`, así que cubre todas las apps que despliegan por este camino (no hace falta tocar cada pipeline por separado).
+
+El script acumula cada etapa real (`resolver-tag`, `verificar-tag`, `verificar-imagen`, `commit`, `push`) y manda **una sola** notificación a `POST http://192.168.0.153:5678/webhook/deployment` al cerrar — éxito o error — con el shape ya usado por `Format deployment`:
+
+```json
+{ "app": "nestjs-api", "status": "success", "from": "5e5a619539d8", "to": "1a6c70109788",
+  "steps": [
+    { "time": "23:59", "name": "resolver-tag", "status": "ok" },
+    { "time": "23:59", "name": "verificar-imagen", "status": "ok" },
+    { "time": "23:59", "name": "commit", "status": "ok" },
+    { "time": "23:59", "name": "push", "status": "ok" }
+  ] }
+```
+
+El caso "gitops ya está en ese tag: nada que hacer" **no notifica** — no es un deploy real, evita ruido por reintentos/no-ops. `notify_deploy()` nunca puede romper un deploy real: `curl` con `timeout 5s` y `|| true` — si n8n no responde, se pierde la notificación, no el deploy. Sin secreto nuevo: el webhook es LAN-only sin auth, mismo criterio que el resto de las fuentes del broker.
+
+Probado con dos `POST` de ejemplo directo al webhook (`status: success` y `status: failed`, con `from`/`to`/`steps` realistas) — confirmado `status: success` en `GET /api/v1/executions` (ejecuciones `7043` y `7044`) y el embed formateado correctamente en ambos casos (verde/rojo, el paso fallido marcado con ❌).
+
+**Pendiente real:** el cambio está commiteado en `main` de `ci-shared`, pero los consumidores (`apps-be.yml` en `nestjs-api`, `ci-demo`, `led-controller`, etc.) siguen pineados a `@v2.0.0` — no tiene efecto en un deploy real todavía. Hace falta cortar un tag nuevo (ej. `v2.1.0` vía `scripts/version.mjs v2.1.0`, ver convención de versionado del propio repo) y actualizar esas referencias en cada repo consumidor — toca varios repos a la vez, no se hizo sin pedirlo explícito.
+
 **Backup (`#backups`):**
 
 ```text
@@ -327,7 +349,7 @@ Incidente más largo: Grafana, 25 min
 **Gaps conocidos y a propósito no inventados:**
 - `warning` queda fijo en `0` — `up`/`probe_success` son binarios (arriba/abajo), no hay una señal real de "degradado" sin las reglas de alerting de Prometheus desplegadas (ver `rules.yml`, borrador ya escrito en `oscar-gitops-forgejo`, pendiente de `ansible-playbook` con vault password).
 - `backups_ok`/`backups_failed` quedan en `0` — no hay todavía ningún backup automatizado que postee a `/webhook/backup` (ver [matriz de backup](../backup-dr/matriz-backup.md): vzdump sigue "pendiente" salvo el drill manual de Hermes).
-- `deploys` queda en `0` — los deploys reales los genera un workflow de Forgejo Actions (`mdelgado/ci-shared`, `template-base.yml`) que hoy no postea a `/webhook/deployment`; ese repo no está clonado localmente en esta sesión, falta decidir el punto exacto donde agregar el `curl`.
+- `deploys` queda en `0` en el resumen diario — el conteo todavía no se agrega ahí (haría falta una fuente de "cuántos deploys hoy", por ejemplo contar ejecuciones del webhook). El webhook `/webhook/deployment` en sí **ya tiene una fuente real** (ver [Deploys reales → Discord](#deploys-reales--discord) abajo).
 - `longest_incident` queda en `null` — no hay todavía un tracker de incidentes que calcule duración; serviría recién cuando exista correlación real de eventos (ver "Correlación de incidentes" arriba).
 
 Todos verificados de punta a punta (webhook real → n8n → Discord) el 2026-10-07.
