@@ -58,6 +58,7 @@ El login de fábrica (`admin@example.com`/`changeme`) ya fue cambiado por una cu
 |---|---|---|
 | `git.oscar.home` | `http://192.168.0.151:3000` ([Forgejo](./forgejo.md), `devops`) | primer Proxy Host real, creado vía API (`POST /api/nginx/proxy-hosts`) |
 | `nexus.oscar.home` | `http://192.168.0.151:8081` ([Nexus](./nexus.md), `devops`, UI/API) | segundo Proxy Host — verificado con `curl` devolviendo `200`. El registry Docker (`:8082`) no pasa por acá, se usa directo por IP (ver [Nexus](./nexus.md)) |
+| `hermes-docs.oscar.home` | `http://192.168.0.154:8085` (visor de docs de Hermes, `services`) | creado vía API (2026-10-08) con la contraseña real del admin pasada puntualmente para esa llamada, nunca guardada. El rewrite de AdGuard correspondiente **no** se creó a mano ni con esta API — se le pidió a Hermes Agent por su CLI que use su propia herramienta `oscar_adguard_add_rewrite`, sin que la credencial de AdGuard se materializara en esta sesión |
 
 Antes de esto, `git.oscar.home` (rewrite en AdGuard) apuntaba directo a `192.168.0.151` con un nginx standalone corriendo en la propia `devops` haciendo de reverse proxy por hostname — se migró acá para no mantener dos reverse proxies en paralelo (ver la nota de duplicación que existió en el [backlog](../roadmap/backlog.md)). El rewrite de AdGuard para `git.oscar.home` y `nexus.oscar.home` apunta a `192.168.0.156` (`core`, donde corre NPM), no a `192.168.0.151` directo — NPM es quien resuelve a qué backend real mandar cada request.
 

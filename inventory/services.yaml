@@ -119,6 +119,11 @@ services:
     criticality: C2
     target: k3s01 (namespace oscar-ai)
     note: "Hermes Agent + Open WebUI; LAN http://ai.oscar.home vía Traefik, sin Cloudflare; Anthropic API; secretos aislados en proyecto Hermes de Infisical; solo consulta Prometheus/SearXNG; health monitor por Prometheus Blackbox"
+  - id: hermes-docs
+    status: current
+    criticality: C4
+    target: services (LXC 108, Docker Compose)
+    note: "visor estático de la documentación de Hermes (README del chart, docs/ia/hermes.md, spec) — nginx:1.27-alpine sirviendo markdown renderizado client-side (marked.js vendorizado, sin CDN); LAN http://hermes-docs.oscar.home vía NPM (-> 192.168.0.154:8085); rewrite de AdGuard creado por el propio Hermes Agent (oscar_adguard_add_rewrite), no a mano; solo LAN, sin Cloudflare"
   - id: ai-operator
     status: future
     criticality: C4
