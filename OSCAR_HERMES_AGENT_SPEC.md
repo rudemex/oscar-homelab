@@ -10,6 +10,42 @@
 
 ---
 
+## Estado de implementación — 2026-10-05
+
+Esta actualización prevalece sobre las ubicaciones, recursos y checklists históricos de abajo.
+El usuario autorizó preparar el piloto: Hermes + proveedor + Open WebUI + búsqueda + estado real.
+
+- **Piloto desplegado:** `infrastructure/hermes/` documenta el chart activo en `gitops/apps/hermes`,
+  con dos PVC, secretos referenciados a Infisical, NetworkPolicies y un servidor MCP de solo lectura.
+  Argo CD `hermes` está Synced/Healthy; Open WebUI es LAN-only en `http://ai.oscar.home`.
+  Login, inferencia Anthropic y consultas MCP a Prometheus/SearXNG verificadas.
+- **Proveedor principal:** Anthropic API, cuenta personal y modelo `claude-sonnet-5-5`, validado en el catálogo
+  autenticado. Los cuatro secretos están migrados a un proyecto Infisical dedicado `Hermes`, ambiente
+  `prod`, raíz `/`; se retiraron de OSCAR Apps después de verificar la copia. `hermes-runtime` tiene
+  rol Viewer solo en el proyecto dedicado y se verificó que no puede leer OSCAR Apps (403).
+  El bootstrap Secret de Kubernetes ya usa esta identidad.
+  La sesión de Claude Code de la PoC no
+  demuestra que Hermes tenga un proveedor funcional. No reutilizar esa sesión como credencial de Hermes.
+  Las conclusiones históricas sobre términos/OAuth no reemplazan una validación de la integración elegida.
+- **Repo real:** Argo CD usa `http://git.oscar.home/mdelgado/gitops.git`, rama `main` (ya no `oscar-gitops`).
+- **Recursos actuales:** `k3s01` tiene 4 GiB nominales, ~2 GiB disponibles según `free`, 25 GiB de disco libre;
+  `apps` tiene 2 GiB y ~57% de memoria según metrics-server. El baseline de 8 GiB de septiembre ya no aplica.
+  Proxmox reporta ~6.6 GiB disponibles, pero no se amplió ninguna VM durante este relevamiento.
+- **Claude PoC:** pod Running, PVC de 2 GiB, 22 reinicios, `claude auth status` reporta sesión válida.
+  No se ejecutó inferencia ni se considera esto una prueba end-to-end de Hermes.
+- **SearXNG:** Docker en `services`, `http://192.168.0.154:8080`; búsqueda JSON comprobada con 20 resultados.
+  El antiguo `searxng.oscar-ai.svc:8080` dejó de ser el endpoint válido tras la migración.
+- **Observabilidad:** Prometheus `192.168.0.214:9090` devuelve 19 series `up` y 10 `probe_success`.
+  `monitor_status` está ausente. El piloto distingue scrape de sonda y datos faltantes de éxito.
+  La disponibilidad inicial es una proporción de muestras exitosas, no SLA ni downtime de ventana completa.
+- **Herramientas iniciales:** `oscar_get_status`, `oscar_get_availability`, `oscar_web_search`.
+  Sin terminal, token Kubernetes, Home Assistant, Forgejo ni acciones n8n en esta primera entrega.
+  n8n está operativo; sus workflows y la delegación a coding agents quedan para la siguiente etapa.
+
+Seguimiento y validación: `docs/ia/hermes.md` e `infrastructure/hermes/README.md`.
+
+---
+
 # 1. Decisión propuesta
 
 Incorporar **Hermes Agent** como el agente principal de O.S.C.A.R.
@@ -1948,8 +1984,8 @@ Pod de prueba desplegado el 2026-09-20 (`hermes-poc/claude-code-poc`, `node:22-s
 
 ## Fase 2 — OpenAI/Codex
 
-- [ ] Configurar OAuth de Codex/ChatGPT.
-- [ ] No crear OpenAI API key salvo necesidad.
+- [ ] Elegir proveedor/modelo principal y cuenta con el usuario; no crear credenciales ni habilitar gasto por inferencia.
+- [ ] Validar la autenticación soportada por esa integración; conservar la credencial en Infisical.
 - [ ] Validar provider de Hermes.
 - [ ] Validar Codex CLI.
 - [ ] Validar workspace aislado.

@@ -11,8 +11,8 @@ services:
   - id: adguard-home
     status: current
     criticality: C1
-    target: oscar-core (lxc 100)
-    note: "router (TP-Link Archer AX55) entrega 192.168.0.93 como DNS primario por DHCP a toda la LAN; rewrites locales para *.oscar.home (led.oscar.home, argocd.oscar.home -> 192.168.0.150). Chrome con DNS seguro (DoH) gestionado por política de empresa lo ignora — workaround: entrada manual en /etc/hosts por dispositivo"
+    target: network01 (Raspberry Pi, 192.168.0.213)
+    note: "AdGuard Home activo en 192.168.0.213:53 con wildcard *.oscar.home -> Traefik 192.168.0.150; no se reparte por DHCP (el router entrega DNS públicos). Los clientes que usen DNS público o DoH corporativo requieren configurar AdGuard por dispositivo o mapear los hosts puntuales en /etc/hosts"
   - id: uptime-kuma
     status: current
     criticality: C2
@@ -114,6 +114,11 @@ services:
     criticality: C4
     target: k3s01 (namespace oscar-lab)
     note: "identidad visual de OSCAR (tira WLED) — primer servicio migrado de Docker Compose (core01) a k3s/Argo CD; antes vivía en core01, ya retirado de ahí. LAN: led.oscar.home (DNS interno via AdGuard) -> Ingress (Traefik). Internet: https://led.oscarlab.com.ar vía Cloudflare Tunnel -> Traefik (Host header override) + Cloudflare Access (solo mdelgado) — la API no tiene auth propia y tiene endpoints de escritura (POST /state/:state)"
+  - id: hermes
+    status: current
+    criticality: C2
+    target: k3s01 (namespace oscar-ai)
+    note: "Hermes Agent + Open WebUI; LAN http://ai.oscar.home vía Traefik, sin Cloudflare; Anthropic API; secretos aislados en proyecto Hermes de Infisical; solo consulta Prometheus/SearXNG; health monitor por Prometheus Blackbox"
   - id: ai-operator
     status: future
     criticality: C4

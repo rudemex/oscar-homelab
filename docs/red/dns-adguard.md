@@ -173,13 +173,22 @@ Deliberadamente **no** se unificó bajo NPM (ej. `*.oscar.home` → NPM → Trae
 
 ## Cómo resuelven hoy los dispositivos
 
-**Wildcard + DNS del dispositivo apuntado a `192.168.0.93`** (+ fallback `1.1.1.1`) es ahora la opción más práctica para cualquier app de k3s — con el wildcard de arriba, resuelve *cualquier* `*.oscar.home` sin mantener una lista a mano y sin tocar nada de nuevo cuando se agrega una app. Sigue dependiendo de que AdGuard esté arriba y manda todo el tráfico DNS del dispositivo por él.
+**Wildcard + DNS del dispositivo apuntado a `192.168.0.213`** es la opción para cualquier app de k3s: resuelve `*.oscar.home` hacia Traefik sin mantener una lista por aplicación. El router no reparte AdGuard por DHCP; el DNS público (`8.8.8.8`/`8.8.4.4`) no conoce el dominio privado. No conviene agregar un DNS público como fallback para resolver dominios locales.
 
 **`/etc/hosts` por hostname puntual** sigue siendo válido para `git.oscar.home`/`nexus.oscar.home` (no cubiertos por el wildcard) o si no se quiere depender de AdGuard en absoluto — apuntan a `192.168.0.156` (NPM en `core`), no a `devops` directo, desde que se migraron detrás de NPM:
 
 ```text
 192.168.0.156 git.oscar.home
 192.168.0.156 nexus.oscar.home
+192.168.0.150 ai.oscar.home
 ```
+
+**Mac de trabajo (2026-10-05):** la interfaz activa usa resolvers públicos (Google/Cloudflare), que
+responden `NXDOMAIN` para `*.oscar.home`. Una consulta TCP directa a AdGuard devuelve
+`ai.oscar.home → 192.168.0.150`, mientras que la consulta UDP desde esta Mac expira; la causa de
+esa diferencia no está confirmada. Se agregó `192.168.0.150 ai.oscar.home` a `/etc/hosts` y se
+limpió la caché local; el health endpoint respondió 200. Para otros equipos, usar el DNS
+`192.168.0.213` si la política de red lo permite o agregar una entrada puntual en el archivo
+`hosts`. El Ingress de Traefik ya funcionaba; el fallo era la resolución en el cliente.
 
 **Descartado a propósito: Tailscale Split DNS.** Resolvería lo mismo para cualquier dispositivo del tailnet sin configurar DNS a mano en cada uno, incluido el acceso remoto desde el celular — pero el objetivo acá es explícitamente **DNS por nombre dentro de la LAN, no acceso desde afuera**, así que no aporta nada sobre el wildcard de arriba para este caso de uso y suma una dependencia (Tailscale) que no hace falta. Queda anotado por si en algún momento sí se busca resolver el acceso remoto (que sigue roto para `*.oscar.home` vía Tailscale, caso reportado con el celular).

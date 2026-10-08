@@ -9,6 +9,9 @@ build/
 .env
 .env.local
 
+# Estado local de Claude Code — puede contener tokens (p. ej. .mcp.json)
+.claude/
+
 # Editor/OS
 .DS_Store
 *.swp

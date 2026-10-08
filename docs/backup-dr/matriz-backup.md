@@ -10,6 +10,7 @@ Completar a medida que se instalan servicios. El destino "NAS" en esta tabla es 
 | Categoría | Servicio/alcance | Estado | RPO | Backup | Destino | Restore probado |
 |---|---|---|---:|---|---|---|
 | VM | core, devops, k3s | pendiente | 24h | Proxmox VM backup (vzdump) | NAS/offsite (futuro) | ☐ |
+| Hermes / Open WebUI | PVC persistentes dentro de VM 103 (k3s) | operativo, fuera del host pendiente | 24h | vzdump snapshot de VM 103; drill 2026-10-05 restauró clon aislado y verificó ambos PVC + hash de config Hermes | `Backups` en Proxmox, mismo host; falta cifrado/off-site | parcial: datos verificados; servicio integral pendiente |
 | LXC | utilidades livianas (DNS, jumpbox) | pendiente | 24h | Proxmox LXC backup (vzdump) | NAS/offsite (futuro) | ☐ |
 | Configuración Proxmox | `/etc/pve`, storage.cfg, red | pendiente | 24h | config/export | NAS/offsite | ☐ |
 | Secrets | `.env` reales, claves SSH, encryption keys | pendiente | al cambiar | copia cifrada separada del backup general | offsite cifrado, acceso restringido | ☐ |
