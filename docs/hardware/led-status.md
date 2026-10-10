@@ -32,7 +32,7 @@ Es un efecto manual como `mirrorBlock`/`mirrorSparkle`: reemplaza lo que se ve e
 
 ## Código fuente y despliegue
 
-El código del controlador vive en Forgejo: **`http://git.oscar.home/mdelgado/led-controller`** (repo privado, rama `main`; NestJS + WLED, ~60 archivos, con su propio README). Hasta el 2026-09-21 estaba **solo en el disco local**, sin ningún respaldo; ahora `apps/` está en el `.gitignore` de este repo de documentación para no mezclar las dos cosas.
+El código del controlador vive en Forgejo: **`http://git.oscar.home/apps/led-controller`** (repo privado, rama `main`; NestJS + WLED, ~60 archivos, con su propio README). Hasta el 2026-09-21 estaba **solo en el disco local**, sin ningún respaldo; ahora `apps/` está en el `.gitignore` de este repo de documentación para no mezclar las dos cosas.
 
 **CI/CD real desde el 2026-09-25** (antes era manual, imagen importada a mano al containerd de `k3s01` con `pullPolicy: Never`): Forgejo Actions construye la imagen, corre `yarn verify` (lint + typecheck + tests unitarios + e2e + build) y la sube a Nexus (`192.168.0.151:8082/oscar-led-controller`, tag = SHA del commit). El deploy sigue siendo manual (`DEPLOY: 'false'` en el workflow): se actualiza `image.tag` en el `values.yaml` de [`gitops`](../servicios/argocd.md) y Argo CD sincroniza. Corre en el worker `apps` (no en el control-plane `k3s`), con `nodeSelector`. Suite de tests: 89/89 verdes.
 

@@ -298,7 +298,7 @@ Versión: a1b2c3d → e4f5g6h
 
 ### Deploys reales → Discord
 
-**Fuente real (2026-10-07):** `gitops-set-tag.sh` (repo `mdelgado/ci-shared`, `scripts/cd/gitops-set-tag.sh`) es el único punto real donde un deploy pasa de verdad — el `commit`+`push` a `apps/<app>/values.yaml` en `gitops.git` que Argo CD sincroniza después. Lo usan el job `deploy` de `apps-be.yml` y el workflow reusable `gitops-set-tag.yml`, así que cubre todas las apps que despliegan por este camino (no hace falta tocar cada pipeline por separado).
+**Fuente real (2026-10-07):** `gitops-set-tag.sh` (repo `platform/ci-shared`, `scripts/cd/gitops-set-tag.sh`) es el único punto real donde un deploy pasa de verdad — el `commit`+`push` a `apps/<app>/values.yaml` en `gitops.git` que Argo CD sincroniza después. Lo usan el job `deploy` de `apps-be.yml` y el workflow reusable `gitops-set-tag.yml`, así que cubre todas las apps que despliegan por este camino (no hace falta tocar cada pipeline por separado).
 
 El script acumula cada etapa real (`resolver-tag`, `verificar-tag`, `verificar-imagen`, `commit`, `push`) y manda **una sola** notificación a `POST http://192.168.0.153:5678/webhook/deployment` al cerrar — éxito o error — con el shape ya usado por `Format deployment`:
 

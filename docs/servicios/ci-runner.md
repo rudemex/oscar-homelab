@@ -74,7 +74,7 @@ El `command` registra solo la primera vez (`if [ ! -f /data/.runner ]`) — rein
 
 **Validado tres veces, cada una más completa:**
 - Smoke test: repo `ci-smoke-test` (borrado después), workflow de un solo step (`echo`), `running` → `success` en ~20s — confirmó el registro básico.
-- **Pipeline real:** repo [`ci-demo`](http://git.oscar.home/mdelgado/ci-demo) (dejado como referencia permanente) — checkout, `setup-node`, `npm install`, lint, test, `docker build`, login e imagen pusheada a Nexus.
+- **Pipeline real:** repo [`ci-demo`](http://git.oscar.home/templates/ci-demo) (dejado como referencia permanente) — checkout, `setup-node`, `npm install`, lint, test, `docker build`, login e imagen pusheada a Nexus.
 - **Loop GitOps completo:** el mismo `ci-demo` ahora además actualiza el tag de imagen en `oscar-gitops` y Argo CD lo despliega solo (`syncPolicy.automated`) — confirmado con `kubectl exec` contra el pod real mostrando el código del último commit, sin ningún `kubectl apply` manual de por medio. Ver [pipeline de referencia](../devops/pipeline-ejemplo.md) para el YAML completo y [Sonatype Nexus Repository](./nexus.md#configuración-para-ci) para la parte de Nexus.
 
 Diez problemas reales encontrados en total entre las tres vueltas de validación — ver "Gotchas reales" abajo.
@@ -103,7 +103,7 @@ Cada uno costó un ciclo completo de push→esperar→fallar→diagnosticar. Que
 
 ## Ejemplo concreto
 
-Pipeline real y funcionando en [`ci-demo`](http://git.oscar.home/mdelgado/ci-demo), loop completo de punta a punta: lint → test → build image → push a Nexus → actualizar tag en `oscar-gitops` → Argo CD sincroniza y despliega solo. Ver [pipeline de referencia](../devops/pipeline-ejemplo.md) para el workflow completo.
+Pipeline real y funcionando en [`ci-demo`](http://git.oscar.home/templates/ci-demo), loop completo de punta a punta: lint → test → build image → push a Nexus → actualizar tag en `oscar-gitops` → Argo CD sincroniza y despliega solo. Ver [pipeline de referencia](../devops/pipeline-ejemplo.md) para el workflow completo.
 
 ## Checklist de despliegue
 

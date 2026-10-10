@@ -6,11 +6,11 @@ sidebar_position: 8
 # O.S.C.A.R. Aurora — NIGHT V1
 
 **Estado (2026-09-27):** V1 nocturna implementada, medida en el Dell (59,5 FPS a 1280×720) y **desplegada como [protector de pantalla del kiosco](./dell-7060.md)** (2 min de inactividad, con el header de Homepage encima; el primer toque la cierra). Pendiente de aprobación visual en la pantalla física.
-**Sin instalar en el kiosco.** Código privado: [aurora](http://git.oscar.home/mdelgado/aurora).
+**Sin instalar en el kiosco.** Código privado: [aurora](http://git.oscar.home/apps/aurora).
 Clon local independiente en `apps/oscar-aurora/`.
 
-Para continuar, leer [HANDOFF.md](http://git.oscar.home/mdelgado/aurora/src/branch/main/HANDOFF.md) y
-[README.md](http://git.oscar.home/mdelgado/aurora/src/branch/main/README.md), ambos en la raíz del repo.
+Para continuar, leer [HANDOFF.md](http://git.oscar.home/apps/aurora/src/branch/main/HANDOFF.md) y
+[README.md](http://git.oscar.home/apps/aurora/src/branch/main/README.md), ambos en la raíz del repo.
 Los enlaces requieren acceso a la red interna.
 
 ## Alcance aprobado para desarrollar

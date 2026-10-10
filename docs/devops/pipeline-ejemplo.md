@@ -5,7 +5,7 @@ sidebar_position: 4
 
 # Pipelines compartidos
 
-O.S.C.A.R. usa [Forgejo Actions](../servicios/ci-runner.md) y el repositorio [ci-shared](http://git.oscar.home/mdelgado/ci-shared). La estructura v2 sigue la referencia `Arquitectura/pipelines/npm`: steps independientes, una plantilla general y dos plantillas consumidoras, para templates y para apps.
+O.S.C.A.R. usa [Forgejo Actions](../servicios/ci-runner.md) y el repositorio [ci-shared](http://git.oscar.home/platform/ci-shared). La estructura v2 sigue la referencia `Arquitectura/pipelines/npm`: steps independientes, una plantilla general y dos plantillas consumidoras, para templates y para apps.
 
 ```mermaid
 flowchart LR
@@ -45,7 +45,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   pipeline:
-    uses: mdelgado/ci-shared/.forgejo/workflows/apps-be.yml@v2.0.0
+    uses: platform/ci-shared/.forgejo/workflows/apps-be.yml@v2.0.0
     with:
       node-version: '20'
       package-manager: npm
