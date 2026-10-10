@@ -124,6 +124,11 @@ services:
     criticality: C4
     target: services (LXC 108, Docker Compose)
     note: "visor estático de la documentación de Hermes (README del chart, docs/ia/hermes.md, spec) — nginx:1.27-alpine sirviendo markdown renderizado client-side (marked.js vendorizado, sin CDN); LAN http://hermes-docs.oscar.home vía NPM (-> 192.168.0.154:8085); rewrite de AdGuard creado por el propio Hermes Agent (oscar_adguard_add_rewrite), no a mano; solo LAN, sin Cloudflare"
+  - id: oscar-idp
+    status: current
+    criticality: C3
+    target: services (LXC 108, Docker Compose)
+    note: "Backstage (catálogo/portal real de OSCAR) — repo propio git.oscar.home/mdelgado/oscar-idp; backend Node single-container + Postgres (oscar-idp-db), catálogo generado desde este mismo inventory/services.yaml vía scripts/generate-catalog.py (no es sync en vivo, hay que correrlo y commitear a mano cuando cambie el inventario); auth guest (dangerouslyAllowOutsideDevelopment, sin sistema de identidad real todavía — fase 1); LAN http://oscar-idp.oscar.home vía NPM (-> 192.168.0.154:8086); imagen no está en Nexus (bloqueado insecure-registries), se transfiere a mano por SSH (docker save | ssh ... docker load); Fase 2 pendiente: Scaffolder actions para disparar register-lan-service.sh y similares desde el portal"
   - id: ai-operator
     status: future
     criticality: C4
