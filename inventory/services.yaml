@@ -141,19 +141,19 @@ services:
     target: k3s01 (namespace oscar-lab)
     note: "identidad visual de OSCAR (tira WLED) — primer servicio migrado de Docker Compose (core01) a k3s/Argo CD; antes vivía en core01, ya retirado de ahí. LAN: led.oscar.home (DNS interno via AdGuard) -> Ingress (Traefik). Internet: https://led.oscarlab.com.ar vía Cloudflare Tunnel -> Traefik (Host header override) + Cloudflare Access (solo mdelgado) — la API no tiene auth propia y tiene endpoints de escritura (POST /state/:state)"
   - id: hermes
-    kind: app
+    kind: platform
     status: current
     criticality: C2
     target: k3s01 (namespace oscar-ai)
     note: "Hermes Agent + Open WebUI; LAN http://ai.oscar.home vía Traefik, sin Cloudflare; Anthropic API; secretos aislados en proyecto Hermes de Infisical; solo consulta Prometheus/SearXNG; health monitor por Prometheus Blackbox"
   - id: hermes-docs
-    kind: app
+    kind: platform
     status: current
     criticality: C4
     target: services (LXC 108, Docker Compose)
     note: "visor estático de la documentación de Hermes (README del chart, docs/ia/hermes.md, spec) — nginx:1.27-alpine sirviendo markdown renderizado client-side (marked.js vendorizado, sin CDN); LAN http://hermes-docs.oscar.home vía NPM (-> 192.168.0.154:8085); rewrite de AdGuard creado por el propio Hermes Agent (oscar_adguard_add_rewrite), no a mano; solo LAN, sin Cloudflare"
   - id: oscar-idp
-    kind: app
+    kind: platform
     status: current
     criticality: C3
     target: services (LXC 108, Docker Compose)
