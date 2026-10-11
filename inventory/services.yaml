@@ -22,17 +22,17 @@ services:
     criticality: C2
     target: core01
   - id: n8n
-    kind: app
+    kind: thirdparty
     status: current
     criticality: C2
     target: core01
   - id: vaultwarden
-    kind: app
+    kind: thirdparty
     status: current
     criticality: C1
     target: core01
   - id: homepage
-    kind: app
+    kind: thirdparty
     status: current
     criticality: C3
     target: core01
@@ -112,12 +112,12 @@ services:
     target: k3s01
     note: "v3.5.2; app-of-apps desde github.com/rudemex/oscar-gitops (privado, deploy key de solo lectura); primer servicio migrado: oscar-led-controller (retirado de core01). LAN: argocd.oscar.home (Ingress/Traefik, server.insecure=true — HTTP plano, sin TLS propio); no expuesto a internet (ADR-005)"
   - id: home-assistant
-    kind: app
+    kind: thirdparty
     status: current
     criticality: C2
     target: oscar-core (vm 101, haos-18.2)
   - id: dvr-dahua
-    kind: app
+    kind: thirdparty
     status: current
     criticality: C3
     target: "192.168.0.224 (LAN, hardware propio)"
