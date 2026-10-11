@@ -16,7 +16,7 @@ flowchart LR
 
 ## Repo real
 
-`http://git.oscar.home/mdelgado/gitops.git` — Forgejo, origen real desde [ADR-012](../arquitectura/decisiones-arquitectonicas.md#adr-012--forgejo-como-mirror-de-solo-lectura-de-oscar-gitops-no-origen) (arrancó como mirror de `github.com/rudemex/oscar-gitops` con deploy key SSH; hoy Argo CD lee de Forgejo vía credencial HTTP, ver [instalación de Argo CD](./instalacion-argocd.md)). GitHub queda como copia secundaria, actualizada a mano:
+`http://git.oscar.home/apps/gitops.git` — Forgejo, origen real desde [ADR-012](../arquitectura/decisiones-arquitectonicas.md#adr-012--forgejo-como-mirror-de-solo-lectura-de-oscar-gitops-no-origen) (arrancó como mirror de `github.com/rudemex/oscar-gitops` con deploy key SSH; hoy Argo CD lee de Forgejo vía credencial HTTP, ver [instalación de Argo CD](./instalacion-argocd.md)). GitHub queda como copia secundaria, actualizada a mano:
 
 ```text
 oscar-gitops/

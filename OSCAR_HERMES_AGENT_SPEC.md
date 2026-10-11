@@ -27,7 +27,7 @@ El usuario autorizó preparar el piloto: Hermes + proveedor + Open WebUI + búsq
   La sesión de Claude Code de la PoC no
   demuestra que Hermes tenga un proveedor funcional. No reutilizar esa sesión como credencial de Hermes.
   Las conclusiones históricas sobre términos/OAuth no reemplazan una validación de la integración elegida.
-- **Repo real:** Argo CD usa `http://git.oscar.home/mdelgado/gitops.git`, rama `main` (ya no `oscar-gitops`).
+- **Repo real:** Argo CD usa `http://git.oscar.home/apps/gitops.git`, rama `main` (ya no `oscar-gitops`).
 - **Recursos actuales:** `k3s01` tiene 4 GiB nominales, ~2 GiB disponibles según `free`, 25 GiB de disco libre;
   `apps` tiene 2 GiB y ~57% de memoria según metrics-server. El baseline de 8 GiB de septiembre ya no aplica.
   Proxmox reporta ~6.6 GiB disponibles, pero no se amplió ninguna VM durante este relevamiento.
