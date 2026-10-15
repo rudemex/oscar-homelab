@@ -39,6 +39,36 @@ proxmox:
 homeAssistant:
   enabled: true
   api: http://192.168.0.195:80
+forgejo:
+  enabled: true
+dockerOperator:
+  # Five scoped HTTPS operators are installed; tokens live in Infisical.
+  # The public CA certificate is versioned with the chart.
+  enabled: true
+adguard:
+  # Dedicated restricted AdGuard Home user (HTTP Basic Auth); credentials in Infisical.
+  # Not yet tested against the real instance -- verify the auth method before relying on it.
+  enabled: true
+kuma:
+  # Read-only public status page, no credentials. Pause/resume/create monitor is not
+  # implemented: Kuma has no stable REST API for mutations, only socket.io.
+  enabled: true
+n8n:
+  # Dedicated n8n API key (X-N8N-API-KEY) in Infisical; LAN-only, same host as the
+  # Discord Notification Broker. List/activate/deactivate workflows only.
+  enabled: true
 led:
   enabled: true
   api: http://oscar-led-controller.oscar-lab.svc.cluster.local:8080
+proxmenux:
+  # ProxMenux Monitor on oscar-core: disk SMART/temperature/alerts. Read-only API token in
+  # Infisical as OSCAR_PROXMENUX_TOKEN.
+  enabled: true
+  api: http://192.168.0.233:8008
+paperless:
+  # Dedicated, limited Paperless-ngx user "hermes": add/view/edit documents and manage folders
+  # (storage paths), tags, document types and correspondents; cannot delete documents or
+  # administer). Its API token lives in Infisical as OSCAR_PAPERLESS_TOKEN. Documents the owner
+  # sends through Discord are uploaded from the gateway's document cache.
+  enabled: true
+  api: http://192.168.0.154:8000

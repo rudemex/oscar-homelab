@@ -14,7 +14,7 @@ async def check_tools():
   async with ClientSession(read,write) as session:
    await session.initialize()
    names=[x.name for x in (await session.list_tools()).tools]
-   assert set(names)=={'oscar_get_status','oscar_get_availability','oscar_web_search','oscar_list_vms','oscar_vm_power','oscar_create_vm','oscar_restart_workload','oscar_ha_get_state','oscar_ha_list_entities','oscar_ha_call_service','oscar_led_get_state','oscar_led_set_state','oscar_led_power'}, names
+   assert set(names)=={'oscar_get_status','oscar_get_availability','oscar_web_search','oscar_list_vms','oscar_vm_power','oscar_create_vm','oscar_restart_workload','oscar_list_workloads','oscar_scale_workload','oscar_argocd_list_applications','oscar_argocd_sync_application','oscar_ha_get_state','oscar_ha_list_entities','oscar_ha_call_service','oscar_led_get_state','oscar_led_set_state','oscar_led_power','oscar_forgejo_list_repositories','oscar_forgejo_list_pull_requests','oscar_forgejo_read_file','oscar_forgejo_create_branch','oscar_forgejo_write_file','oscar_forgejo_create_pull_request'}, names
    print('MCP_TOOLS',names,flush=True)
    for name,args in [('oscar_get_status',{}),('oscar_get_availability',{'window':'24h'}),('oscar_web_search',{'query_text':'Hermes Agent Nous Research'})]:
     result=await session.call_tool(name,args)

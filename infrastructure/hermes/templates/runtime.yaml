@@ -13,7 +13,10 @@ metadata:
 rules:
   - apiGroups: [apps]
     resources: [deployments, statefulsets]
-    verbs: [get, list, patch]
+    verbs: [get, list, patch, delete]
+  - apiGroups: [apps]
+    resources: [replicasets]
+    verbs: [get, list]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -23,6 +26,30 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: hermes-agent-operator
+subjects:
+  - kind: ServiceAccount
+    name: hermes-agent
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: hermes-argocd-operator
+  namespace: argocd
+rules:
+  - apiGroups: [argoproj.io]
+    resources: [applications]
+    verbs: [get, list, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: hermes-argocd-operator
+  namespace: argocd
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: hermes-argocd-operator
 subjects:
   - kind: ServiceAccount
     name: hermes-agent
@@ -114,6 +141,18 @@ spec:
             - {name: API_SERVER_PORT, value: "8642"}
             - {name: OSCAR_PROMETHEUS_URL, value: "http://192.168.0.214:9090"}
             - {name: OSCAR_SEARXNG_URL, value: "http://192.168.0.154:8080"}
+            {{- if $.Values.forgejo.enabled }}
+            - {name: OSCAR_FORGEJO_API, value: "http://192.168.0.151:3000"}
+            {{- end }}
+            {{- if $.Values.adguard.enabled }}
+            - {name: OSCAR_ADGUARD_API, value: "http://192.168.0.213:3000"}
+            {{- end }}
+            {{- if $.Values.kuma.enabled }}
+            - {name: OSCAR_KUMA_URL, value: "http://192.168.0.214:3001"}
+            {{- end }}
+            {{- if $.Values.n8n.enabled }}
+            - {name: OSCAR_N8N_API, value: "http://192.168.0.153:5678"}
+            {{- end }}
             {{- if $.Values.proxmox.enabled }}
             - {name: OSCAR_PROXMOX_API, value: "https://oscar-core:8006/api2/json"}
             {{- end }}

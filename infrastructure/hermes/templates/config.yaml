@@ -34,19 +34,118 @@ data:
         args: [/etc/oscar/oscar_tools.py]
         timeout: 240
         connect_timeout: 20
+        env:
+          KUBERNETES_SERVICE_HOST: "192.168.0.150"
+          KUBERNETES_SERVICE_PORT_HTTPS: "6443"
+          {{ if .Values.proxmox.enabled }}
+          OSCAR_PROXMOX_TOKEN_ID: "${OSCAR_PROXMOX_TOKEN_ID}"
+          OSCAR_PROXMOX_TOKEN_SECRET: "${OSCAR_PROXMOX_TOKEN_SECRET}"
+          OSCAR_PROXMOX_CA_PEM_BASE64: "${OSCAR_PROXMOX_CA_PEM_BASE64}"
+          {{ end }}
+          {{ if .Values.homeAssistant.enabled }}
+          OSCAR_HOME_ASSISTANT_TOKEN: "${OSCAR_HOME_ASSISTANT_TOKEN}"
+          {{- end }}
+          {{- if .Values.forgejo.enabled }}
+          HERMES_FORGEJO_TOKEN: "${HERMES_FORGEJO_TOKEN}"
+          {{- end }}
+          {{- if .Values.adguard.enabled }}
+          OSCAR_ADGUARD_USER: "${OSCAR_ADGUARD_USER}"
+          OSCAR_ADGUARD_PASSWORD: "${OSCAR_ADGUARD_PASSWORD}"
+          {{- end }}
+          {{- if .Values.n8n.enabled }}
+          OSCAR_N8N_API_KEY: "${OSCAR_N8N_API_KEY}"
+          {{- end }}
+          {{- if .Values.proxmenux.enabled }}
+          OSCAR_PROXMENUX_TOKEN: "${OSCAR_PROXMENUX_TOKEN}"
+          OSCAR_PROXMENUX_API: {{ .Values.proxmenux.api | quote }}
+          {{- end }}
+          {{- if .Values.paperless.enabled }}
+          OSCAR_PAPERLESS_TOKEN: "${OSCAR_PAPERLESS_TOKEN}"
+          OSCAR_PAPERLESS_API: {{ .Values.paperless.api | quote }}
+          {{- end }}
+          {{- if .Values.dockerOperator.enabled }}
+          OSCAR_DOCKER_OPERATOR_TOKEN_CORE: "${OSCAR_DOCKER_OPERATOR_TOKEN_CORE}"
+          OSCAR_DOCKER_OPERATOR_TOKEN_DEVOPS: "${OSCAR_DOCKER_OPERATOR_TOKEN_DEVOPS}"
+          OSCAR_DOCKER_OPERATOR_TOKEN_AUTOMATION: "${OSCAR_DOCKER_OPERATOR_TOKEN_AUTOMATION}"
+          OSCAR_DOCKER_OPERATOR_TOKEN_MONITOR: "${OSCAR_DOCKER_OPERATOR_TOKEN_MONITOR}"
+          OSCAR_DOCKER_OPERATOR_TOKEN_NETWORK: "${OSCAR_DOCKER_OPERATOR_TOKEN_NETWORK}"
+          OSCAR_DOCKER_OPERATOR_CA: {{ .Files.Get "files/docker_operator_ca.crt" | trim | quote }}
+          {{- end }}
         sampling:
           enabled: false
         tools:
-          include: [oscar_get_status, oscar_get_availability, oscar_web_search, oscar_restart_workload
+          include:
+            - oscar_get_status
+            - oscar_get_availability
+            - oscar_web_search
+            - oscar_restart_workload
+            - oscar_list_workloads
+            - oscar_scale_workload
+            - oscar_delete_workload
+            - oscar_get_rollout_history
+            - oscar_rollback_workload
+            - oscar_argocd_list_applications
+            - oscar_argocd_sync_application
           {{- if .Values.proxmox.enabled }}
-          , oscar_list_vms, oscar_vm_power, oscar_create_vm
+            - oscar_list_vms
+            - oscar_vm_power
+            - oscar_create_vm
+            - oscar_delete_vm
+            - oscar_resize_vm
           {{- end }}
           {{- if .Values.homeAssistant.enabled }}
-          , oscar_ha_get_state, oscar_ha_list_entities, oscar_ha_call_service
-          {{- end }}
-          {{- if .Values.led.enabled }}
-          , oscar_led_get_state, oscar_led_set_state, oscar_led_power
-          {{- end }}]
+            - oscar_ha_get_state
+            - oscar_ha_list_entities
+            - oscar_ha_call_service
+          {{ end }}
+          {{ if .Values.led.enabled }}
+            - oscar_led_get_state
+            - oscar_led_set_state
+            - oscar_led_power
+          {{ end }}
+          {{ if .Values.forgejo.enabled }}
+            - oscar_forgejo_list_repositories
+            - oscar_forgejo_list_pull_requests
+            - oscar_forgejo_read_file
+            - oscar_forgejo_create_branch
+            - oscar_forgejo_write_file
+            - oscar_forgejo_create_pull_request
+            - oscar_forgejo_merge_pull_request
+            - oscar_forgejo_delete_branch
+            - oscar_forgejo_list_workflow_runs
+          {{ end }}
+          {{ if .Values.dockerOperator.enabled }}
+            - oscar_docker_list_services
+            - oscar_docker_service_action
+            - oscar_docker_get_logs
+          {{ end }}
+          {{ if .Values.adguard.enabled }}
+            - oscar_adguard_get_status
+            - oscar_adguard_list_rewrites
+            - oscar_adguard_add_rewrite
+            - oscar_adguard_remove_rewrite
+          {{ end }}
+          {{ if .Values.kuma.enabled }}
+            - oscar_kuma_get_status_page
+          {{ end }}
+          {{ if .Values.n8n.enabled }}
+            - oscar_n8n_list_workflows
+            - oscar_n8n_set_workflow_active
+          {{ end }}
+          {{ if .Values.paperless.enabled }}
+            - oscar_paperless_upload
+            - oscar_paperless_search
+            - oscar_paperless_get_document
+            - oscar_paperless_list_organization
+            - oscar_paperless_manage
+            - oscar_paperless_list_documents
+            - oscar_paperless_organize
+          {{ end }}
+          {{ if .Values.proxmenux.enabled }}
+            - oscar_disks_status
+            - oscar_disks_smart_test
+          {{ end }}
+            - oscar_chart
     terminal:
       cwd: /opt/data/workspace
   SOUL.md: |
