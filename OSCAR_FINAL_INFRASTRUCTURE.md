@@ -212,11 +212,12 @@ core01 → network01
 ## Servicios a revisar más adelante
 
 ```text
-Beszel Hub
-Glances
+Glances (retirado 2026-09-28)
 MySpeed
 ProxMenux Monitor
 ```
+
+Beszel se retiró el 2026-10-15 (ver `docs/servicios/beszel.md`).
 
 No eliminar ningún servicio hasta validar su reemplazo.
 
@@ -250,8 +251,7 @@ Servicios:
 devops01
 ├── Forgejo
 ├── Forgejo Runner
-├── Nexus
-└── Beszel Agent
+└── Nexus
 ```
 
 Flujo objetivo:
@@ -315,7 +315,6 @@ Traefik
 Argo CD
 oscar-led-controller
 ci-demo
-Beszel Agent
 ```
 
 Namespaces sugeridos:
@@ -1178,29 +1177,16 @@ Solo incorporar según casos de uso concretos.
 
 ## Beszel
 
-Mantener inicialmente.
+Retirado el 2026-10-15: `node_exporter → Prometheus → Grafana` ya cubría todos sus hosts y no tenía alertas. Ver `docs/servicios/beszel.md`.
 
-Separación conceptual:
+Separación conceptual vigente:
 
 ```text
-Beszel
-→ estado rápido
-
 Prometheus + Grafana
-→ histórico y análisis
+→ estado, histórico y análisis
 
 Uptime Kuma
 → disponibilidad
-```
-
-Agentes sugeridos:
-
-```text
-core01
-devops01
-k3s01
-monitor01
-network01
 ```
 
 Mover el Hub a `monitor01` solo si existe beneficio real.
@@ -1333,7 +1319,7 @@ AdGuard Primary / Pi 3
 AdGuard Secondary / Dell
 
 8. OBSERVABILITY
-monitor01 + Prometheus + Grafana + Blackbox + Internet Monitoring + Beszel
+monitor01 + Prometheus + Grafana + Blackbox + Internet Monitoring
 
 9. AUTOMATION
 n8n + Home Assistant
@@ -1412,7 +1398,7 @@ Evaluar:
 - [ ] MySpeed.
 - [ ] Glances.
 - [ ] ProxMenux Monitor.
-- [ ] Beszel Hub location.
+- [x] Beszel: retirado (2026-10-15).
 - [ ] duplicaciones.
 
 ## Fase 7 — Kubernetes

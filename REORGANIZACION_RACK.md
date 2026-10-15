@@ -155,7 +155,7 @@ Estado real hoy, por servicio (ver también la tabla de "Redundancias"/inventari
 | Homepage | ✅ `:3005` | — | ✅ `home.oscarlab.com.ar` | — |
 | Vaultwarden | — | — | ✅ `vault.oscarlab.com.ar` | — |
 | n8n | — | — | ✅ `n8n.oscarlab.com.ar` | — |
-| Beszel | — | — | ✅ `beszel.oscarlab.com.ar` | — |
+| Beszel (retirado 2026-10-15) | — | — | — | — |
 | ProxMenux Monitor | ✅ `:8008` | — | ✅ `monitor.oscarlab.com.ar` | — |
 | Home Assistant | — | — | ✅ `ha.oscarlab.com.ar` | — |
 | oscar-led-controller | ✅ (Traefik, `apps`) | ✅ `led.oscar.home` | ✅ `led.oscarlab.com.ar` | — |
@@ -252,14 +252,14 @@ core
 ├── Minecraft             → games (nueva VM) — ✅ hecho (2026-09-23)
 ├── Cloudflare Tunnel      → network (centralizar ahí, hoy vive en core)
 ├── Portainer Server      → ELIMINAR — ✅ hecho (2026-09-25)
-├── Beszel Server         → se queda (política de monitoreo: esperar datos)
+├── Beszel Server         → retirado 2026-10-15
 ├── Glances                → ELIMINAR — ✅ hecho (2026-09-28, sin datos que esperar: sin consumidor real)
 └── MySpeed                → se queda en core (corrección respecto al diseño original)
 
 devops
 ├── Forgejo / Nexus / Infisical → devops (sin cambios funcionales, solo rename)
 ├── Portainer Agent              → ELIMINAR — ✅ hecho (2026-09-25)
-└── Beszel Agent                  → se queda (política de monitoreo)
+└── Beszel Agent                  → retirado 2026-10-15
 
 k3s
 ├── Argo CD / Traefik / Headlamp / Infisical Operator → k3s (sin cambios funcionales, solo rename)

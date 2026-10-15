@@ -60,7 +60,7 @@ Laboratorio: configurar npm proxy, apuntar un proyecto Node al registry interno,
 - [x] `.env.example` sin secretos en Git — no aplica, nada de esto vive en un repo Git, solo en la VM;
 - [x] credenciales reales fuera de Git (admin real creado, en Vaultwarden);
 - [ ] backup definido antes de cargar datos importantes — pendiente, hoy no hay artefactos reales cargados todavía;
-- [x] healthcheck o monitor de disponibilidad — "Nexus (devops)" en Uptime Kuma, más `beszel-agent` para CPU/RAM/disco del host;
+- [x] healthcheck o monitor de disponibilidad — "Nexus (devops)" en Uptime Kuma, más `node_exporter` (Prometheus) para CPU/RAM/disco del host;
 - [ ] métricas/logs incorporados cuando sea razonable;
 - [ ] procedimiento de actualización y rollback documentado;
 - [x] **cleanup policy del repo Docker** — creada y asignada por UI (bloqueada por API, ver arriba).

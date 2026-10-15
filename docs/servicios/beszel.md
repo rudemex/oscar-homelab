@@ -5,11 +5,34 @@ sidebar_position: 22
 
 # Beszel
 
-**Estado:** Actual — hub en `core`, agentes en **3 hosts** (`core`, `devops`, `k3s`), los tres `up` y reportando CPU/RAM/disco en tiempo real
+**Estado:** **Retirado el 2026-10-15** — hub, agentes, tarjetas, túnel e imágenes eliminados, ver [Retiro](#retiro-2026-10-15). El resto de esta página es historial de cómo estaba armado.
 **Dónde corre:** hub en Docker Core (`/srv/oscar/apps/beszel/`); agentes en `/srv/oscar/apps/beszel-agent/` en cada host adicional
 **Sizing inicial:** ~50 MB hub + ~30 MB por agente
 **Red/puertos:** `8090` (hub, UI/API), cada agente en modo `network_mode: host` puerto `45876`
 **Persistencia:** SQLite del hub en `./hub-data`
+
+
+## Retiro (2026-10-15)
+
+Pasadas las semanas de espera que se habían fijado el 2026-09-28 para comparar herramientas de monitoreo, se revisó qué aportaba Beszel y no aportaba nada que no estuviera cubierto:
+
+- medía solo `core`, `devops` y `k3s`, y `node_exporter → Prometheus → Grafana` ya mide esos tres más el host de Proxmox, `monitor01` y `network01`;
+- no tenía ninguna alerta configurada (las alertas son de Prometheus/Alertmanager y Uptime Kuma);
+- en Homepage solo quedaba como acceso directo: sus tarjetas ya no las usaba el panel de monitoreo desde el 2026-10-01;
+- el agente de `k3s` seguía en 0.19.0 bajado de Docker Hub, fuera de Nexus y del circuito de actualizaciones.
+
+Lo único que se pierde es CPU/RAM **por contenedor** en `core` y `devops`; si hace falta, se suma cAdvisor a Prometheus.
+
+Qué se sacó, por decisión del usuario ("sacá beszel de todos lados"):
+
+- hub y agente en `core`, agentes en `devops` y `k3s` (`docker compose down`, carpetas e imágenes borradas);
+- tarjetas y acceso directo en las dos instancias de Homepage (`services.yaml`, `custom.js`, comentarios de `custom.css`);
+- hostname `beszel.oscarlab.com.ar` del túnel `core01`, su registro DNS y la app de Cloudflare Access;
+- familias `beszel` y `beszelagent` de `platform/image-mirror`, del vetting semanal y del workflow de actualización de n8n, sus confs en `/etc/oscar-tool-update.d/` y las imágenes en Nexus;
+- proyectos `beszel`/`beszel-agent` del operador Docker de Hermes (`/etc/hermes-docker-operator/projects.json` y `ansible/host_vars` en `apps/gitops`);
+- monitor "Beszel hub (core01)" de Uptime Kuma (lo borra el usuario desde la UI, igual que con Glances y Portainer).
+
+Respaldo para volver atrás: `/mnt/pve/Backups/retirados/beszel-2026-10-15/` en `oscar-core` (datos del hub y de los agentes, confs de actualización y la configuración del túnel antes del cambio).
 
 ## Agentes registrados
 

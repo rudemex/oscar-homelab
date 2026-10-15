@@ -75,6 +75,7 @@ El 2026-09-21/22 el Dell (`oscar-core`) tuvo un cuelgue completo de red (no solo
 - [x] **Desplegar el Speedtest exporter en `core` y Blackbox ICMP acá** (2026-09-28).
 - [x] **Uptime Kuma migrado desde `network`** (2026-09-22).
 - [x] Provisionar los siete dashboards de Panorama, Internet, disponibilidad, hosts, Kubernetes, Proxmox y observabilidad (2026-09-30; validado contra Grafana y Prometheus).
-- [ ] Con Beszel/ProxMenux Monitor/MySpeed ya comparables en Grafana (dashboards *Infraestructura* y *Proxmox*), decidir con el usuario, herramienta por herramienta, cuál se retira — ver [REORGANIZACION_RACK.md](https://github.com/rudemex/oscar-homelab/blob/develop/REORGANIZACION_RACK.md), sección "Observabilidad". Conviene dejar pasar un tiempo real corriendo en paralelo antes de decidir, no comparar el mismo día del despliegue.
+- [x] Beszel retirado el 2026-10-15 (ver [Beszel](../servicios/beszel.md#retiro-2026-10-15)).
+- [ ] Con ProxMenux Monitor/MySpeed ya comparables en Grafana (dashboards *Infraestructura* y *Proxmox*), decidir con el usuario, herramienta por herramienta, cuál se retira — ver [REORGANIZACION_RACK.md](https://github.com/rudemex/oscar-homelab/blob/develop/REORGANIZACION_RACK.md), sección "Observabilidad". Conviene dejar pasar un tiempo real corriendo en paralelo antes de decidir, no comparar el mismo día del despliegue.
 - [ ] Reserva DHCP en el router para `192.168.0.214` (mismo pendiente que `network`).
 - [ ] Documentar el control node de Ansible en su propia página, si crece más allá de este stack.

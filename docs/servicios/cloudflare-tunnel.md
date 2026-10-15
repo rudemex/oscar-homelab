@@ -13,7 +13,7 @@ sidebar_position: 14
 
 ## Rol dentro de O.S.C.A.R.
 
-- publicar Vaultwarden, n8n, Uptime Kuma, Homepage y Beszel sin abrir puertos ni depender de certificados self-signed
+- publicar Vaultwarden, n8n, Uptime Kuma y Homepage sin abrir puertos ni depender de certificados self-signed
 - reemplaza el intento anterior con Caddy + `tls internal` para Vaultwarden, que nunca terminó de funcionar bien en el navegador
 - acceder con identidad (Cloudflare Access) en vez de VPN para lo administrativo
 
@@ -28,7 +28,6 @@ flowchart LR
   TUNNEL --> VAULT["vault<br/>services:8082"]
   TUNNEL --> N8N["n8n<br/>automation:5678"]
   TUNNEL --> HOME["home<br/>:3005"]
-  TUNNEL --> BESZEL["beszel<br/>:8090"]
   TUNNEL --> MONITOR["monitor<br/>oscar-core:8008"]
   TUNNEL --> HA["ha<br/>:80"]
   TUNNEL --> LED["led<br/>k3s:80"]
@@ -43,7 +42,7 @@ El único tramo de red real hacia afuera es `cloudflared` iniciando la conexión
 
 ## Estado real del despliegue
 
-`network_mode: host` es deliberado (mismo criterio que [Beszel](./beszel.md)): así el túnel llega a cada servicio vía `http://localhost:<puerto>` sin importar en qué red Docker viva cada compose por separado.
+`network_mode: host` es deliberado (mismo criterio que tenía [Beszel](./beszel.md), ya retirado): así el túnel llega a cada servicio vía `http://localhost:<puerto>` sin importar en qué red Docker viva cada compose por separado.
 
 Ingress del túnel `core` (vía API, `config_src: cloudflare`) — **ya no incluye `kuma`**, ver la sección de abajo:
 
@@ -52,7 +51,6 @@ Ingress del túnel `core` (vía API, `config_src: cloudflare`) — **ya no inclu
 | `vault.oscarlab.com.ar` | `http://192.168.0.154:8082` — Vaultwarden, migrado a `services` |
 | `n8n.oscarlab.com.ar` | `http://192.168.0.153:5678` — migrado a `automation` |
 | `home.oscarlab.com.ar` | `http://localhost:3005` |
-| `beszel.oscarlab.com.ar` | `http://localhost:8090` |
 | `monitor.oscarlab.com.ar` | `http://192.168.0.233:8008` — [ProxMenux Monitor](./proxmenux-monitor.md), corre en `oscar-core` (el hipervisor), no en `core` (la VM) |
 | `ha.oscarlab.com.ar` | `http://192.168.0.195:80` — [Home Assistant](./home-assistant.md), VM 106 |
 | `led.oscarlab.com.ar` | `http://192.168.0.150:80` (`httpHostHeader: led.oscar.home`) — Ingress de Traefik en `k3s` |

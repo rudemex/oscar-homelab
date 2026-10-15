@@ -34,7 +34,7 @@ Las tres VMs de aplicación se crearon con el mismo procedimiento, solo cambia V
 
 | VM | VMID | IP | vCPU | RAM | Rol |
 |---|---|---|---|---|---|
-| `core` | 102 | `192.168.0.156/24` | 2 | 4 GB | Docker — servicios base (Homepage, NPM, Beszel hub, Cloudflare Tunnel, MySpeed, Glances) |
+| `core` | 102 | `192.168.0.156/24` | 2 | 4 GB | Docker — servicios base (Homepage, NPM, Cloudflare Tunnel, MySpeed) |
 | `k3s` | 103 | `192.168.0.150/24` | 4 | 4 GB | k3s — Argo CD, apps desplegadas por GitOps. `cpu: host` (AVX, para Hermes/Claude Code) |
 | `devops` | 104 | `192.168.0.151/24` | 6 | 6 GB | Docker — Forgejo, Nexus, CI Runner |
 | `lab` | 105 | `192.168.0.152/24` | 4 | 2 GB | Docker — vacía desde que CS2 migró a `games` (2026-09-23), pendiente reutilizar como `lab` |

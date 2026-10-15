@@ -23,7 +23,7 @@ La tabla resume el rol previsto. **Objetivo** no significa “instalar ya”: ca
 | [n8n](./n8n.md) | **Actual** · Automatización | Docker Core | backups coordinados |
 | [Vaultwarden](./vaultwarden.md) | **Actual** · Seguridad | Docker `services` (migrado de Core el 2026-09-23) | gestor de contraseñas propio (Bitwarden-compatible) |
 | [Homepage](./homepage.md) | **Actual** · Dashboard | Docker Core | landing con links/estado de todos los servicios |
-| [Beszel](./beszel.md) | **Actual** · Observabilidad | Docker Core | monitoreo liviano de CPU/RAM/disco, alternativa a Prometheus+Grafana |
+| [Beszel](./beszel.md) | **Retirado (2026-10-15)** · Observabilidad | — | monitoreo liviano de CPU/RAM/disco; Prometheus+Grafana ya cubría todos sus hosts y no tenía alertas, eliminado por decisión del usuario, ver la página |
 | [Home Assistant](./home-assistant.md) | **Actual** · Hogar | VM dedicada (vmid 101) | automatización doméstica |
 | [ProxMenux Monitor](./proxmenux-monitor.md) | **Actual** · Observabilidad | systemd en `oscar-core` | dashboard de CPU/RAM/disco/red del hipervisor, instalado fuera de Docker |
 | [Glances](./glances.md) | **Retirado (2026-09-28)** · Observabilidad | — | medía CPU/RAM/disco de `core` para el header de Homepage; quedó sin consumidor real cuando esas barras se sacaron del header, eliminado por decisión del usuario, ver la página |
@@ -31,7 +31,7 @@ La tabla resume el rol previsto. **Objetivo** no significa “instalar ya”: ca
 | [Portainer](./portainer.md) | **Retirado (2026-09-25)** · Infraestructura | — | era una consola de contenedores/logs de `core`+`devops`; eliminado por decisión del usuario ("no nos sirve"), ver la página |
 | [Nginx Proxy Manager](./nginx-proxy-manager.md) | **Actual** · Infraestructura | Docker Core | reverse proxy interno para las apps de Docker Compose (Forgejo); las apps de k3s van directo a Traefik, no por acá |
 | [Relay SMTP (Brevo)](./smtp-relay.md) | **Actual** · Infraestructura | Docker Core | `boky/postfix` relay-only, para que otros servicios (ej. Vaultwarden) puedan mandar mail sin exponer credenciales SMTP reales a cada uno |
-| [Cloudflare Tunnel + Access](./cloudflare-tunnel.md) | **Actual** · Acceso remoto | Docker Core | publica Vaultwarden/n8n/Kuma/Homepage/Beszel/ProxMenux Monitor/Home Assistant sin abrir puertos, cada uno con Access delante (7 hostnames reales) |
+| [Cloudflare Tunnel + Access](./cloudflare-tunnel.md) | **Actual** · Acceso remoto | Docker Core | publica Vaultwarden/n8n/Kuma/Homepage/ProxMenux Monitor/Home Assistant sin abrir puertos, cada uno con Access delante (7 hostnames reales) |
 | [Eclipse Mosquitto MQTT](./mosquitto.md) | Laboratorio / Hogar | Raspberry Pi o VM Core | sensores Pi Zero |
 | [Ollama](./ollama.md) | Laboratorio · IA local | Dell/VM solo para modelos compatibles con recursos; hardware futuro para cargas mayores | probar LLM local |
 | [Open WebUI](./open-webui.md) | Laboratorio · IA | Docker Core conectado a proveedor/modelo permitido | UI para Ollama |
@@ -58,7 +58,6 @@ flowchart TB
   KUMA[Uptime Kuma]
   VAULT[Vaultwarden]
   HOME[Homepage]
-  BESZEL[Beszel]
 
   subgraph AUTOM["Automatización / Hogar"]
     N8N[n8n] --> PGN8N[(Postgres)]
@@ -76,13 +75,11 @@ flowchart TB
   DOCKER --> OLLAMA
   DOCKER --> VAULT
   DOCKER --> HOME
-  DOCKER --> BESZEL
 
   PROM -.observa.-> DOCKER
   PROM -.observa.-> K3S
   KUMA -.chequea.-> DOCKER
   KUMA -.chequea.-> N8N
-  BESZEL -.observa.-> DOCKER
   HOME -.muestra.-> KUMA
 
   TUNNEL[Cloudflare Tunnel + Access] --> GRAF

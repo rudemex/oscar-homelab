@@ -36,11 +36,6 @@ services:
     status: current
     criticality: C3
     target: core01
-  - id: beszel
-    kind: infra
-    status: current
-    criticality: C3
-    target: core01
   - id: proxmenux-monitor
     kind: infra
     status: current

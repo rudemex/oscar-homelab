@@ -115,7 +115,7 @@ Pipeline real y funcionando en [`ci-demo`](http://git.oscar.home/templates/ci-de
 - [x] `.env.example` sin secretos en Git — no aplica, nada de esto vive en un repo Git, solo en la VM;
 - [ ] credenciales reales fuera de Git — el `RUNNER_TOKEN` vive en `.env` de la VM, no en Git, pero falta confirmarlo en Vaultwarden;
 - [ ] backup definido antes de cargar datos importantes;
-- [x]/[ ] healthcheck o monitor de disponibilidad — parcial: `beszel-agent` ya corre en `devops` y cubre CPU/RAM/disco del host (tarjeta "Beszel devops" en Homepage), pero no hay un chequeo específico del proceso del runner ni de la tasa de éxito de los jobs — falta sumarlo a Uptime Kuma si se quiere ese nivel de detalle;
+- [x]/[ ] healthcheck o monitor de disponibilidad — parcial: `node_exporter` en `devops` cubre CPU/RAM/disco del host (Prometheus/Grafana), pero no hay un chequeo específico del proceso del runner ni de la tasa de éxito de los jobs — falta sumarlo a Uptime Kuma si se quiere ese nivel de detalle;
 - [ ] métricas/logs incorporados cuando sea razonable;
 - [ ] procedimiento de actualización y rollback documentado.
 

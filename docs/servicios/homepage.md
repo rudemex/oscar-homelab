@@ -93,23 +93,6 @@ mkdir -p /srv/oscar/apps/homepage/config
           version: 4
           metric: info
           chart: false
-    - Beszel core:
-        href: https://beszel.oscarlab.com.ar
-        description: Solo core — mismo alcance que Glances, agente distinto
-        icon: beszel.png
-        siteMonitor: http://<IP-de-core>:8090
-        widget:
-          type: beszel
-          url: http://<IP-de-core>:8090
-          username: <secret, fuera de Git>
-          password: <secret, fuera de Git>
-          version: 2
-          systemId: <id de core en Beszel>
-          fields: ["cpu", "memory", "disk", "network"]
-    - Beszel devops:
-        # mismo widget que arriba, systemId de devops — sin equivalente en Glances/Proxmox
-    - Beszel k3s:
-        # mismo widget, systemId de k3s — sin equivalente en Glances/Proxmox
 - Servicios:
     - Uptime Kuma:
         href: https://kuma.oscarlab.com.ar
@@ -171,8 +154,8 @@ Antes de esta reorganización, las tarjetas de recursos (Proxmox, ProxMenux, Gla
 |---|---|---|
 | Proxmox (oscar-core) | El hipervisor completo — CPU/RAM/disco de las 4 VMs/LXC sumadas | ProxMenux (mismo dato, otra UI) |
 | ProxMenux Monitor | Exactamente lo mismo que Proxmox de arriba, herramienta distinta | Proxmox |
-| Glances | Solo `core`, en detalle (también alimenta el header de arriba de la página) | Beszel core (mismo alcance, agente distinto) |
-| Beszel core/devops/k3s | Una tarjeta por VM, agente propio — `devops` y `k3s` no tienen equivalente en Glances ni en Proxmox/ProxMenux | Beszel core duplica a Glances; los otros dos no duplican nada |
+| Glances | Solo `core`, en detalle (también alimenta el header de arriba de la página) | — |
+| ~~Beszel core/devops/k3s~~ | Retirado el 2026-10-15, ver [Beszel](./beszel.md#retiro-2026-10-15) | — |
 
 La solución no fue borrar tarjetas (ProxMenux sigue siendo redundante con Proxmox, pero sacarla es una decisión de la [Fase 9 del plan de reorganización](../roadmap/roadmap-general.md), no de esta reorganización visual) — fue agruparlas todas bajo un único nombre que dice qué son ("Monitoreo") y ponerle a cada tarjeta una `description` que aclara su alcance real (qué mide, y con qué otra tarjeta se superpone), para que la superposición sea visible en vez de confusa.
 
@@ -208,7 +191,6 @@ Cada widget necesitó su propia credencial, todas de solo lectura donde el servi
 | AdGuard Home | usuario/password real del panel | no tiene modelo de tokens/roles, solo un admin |
 | Cloudflare Tunnel | el mismo token de la cuenta (ya tiene `Tunnel:Edit`, que cubre lectura) | reutilizado, no se creó uno nuevo solo para esto |
 | Uptime Kuma | ninguna — lee de la status page pública `/status/oscar` | — |
-| Beszel | superusuario dedicado `homepage@oscar.home` | creado por CLI, mismo patrón que en su momento para el agente — ver [Beszel](./beszel.md) |
 | Home Assistant | long-lived access token | generado a mano desde el perfil de HA (Seguridad → Tokens de acceso de larga duración) |
 
 ```yaml
@@ -242,15 +224,6 @@ widget:
   key: <token de Cloudflare, fuera de Git>
   fields: ["status", "origin_ip"]
 
-# Beszel — pide un superusuario (no alcanza con la cuenta normal); se creó uno dedicado
-widget:
-  type: beszel
-  url: http://<IP-de-core>:8090
-  username: homepage@oscar.home
-  password: <secret, fuera de Git>
-  version: 2   # Beszel >= 0.9.0
-  systemId: <id del sistema en Beszel>   # sin esto, "overview" en vez de las métricas reales
-  fields: ["cpu", "memory", "disk", "network"]
 
 # Home Assistant — long-lived access token generado a mano desde el perfil de HA
 widget:
@@ -301,7 +274,7 @@ Esta tarjeta pasó por varias versiones — un `<img>` construido a mano con fot
 
 Sin `widget:` ni `siteMonitor` — el click en la tarjeta lleva directo a la interfaz web nativa del DVR (HTTP redirige a HTTPS, certificado propio del equipo). El `siteMonitor` se sacó (2026-09-15): el DVR mostraba `500` de forma permanente aunque el equipo estuviera sano, por una incompatibilidad real entre su servidor HTTP embebido y el parser estricto de Node — ver el [troubleshooting](#troubleshooting) para el detalle.
 
-### El bug de Beszel: "overview" en vez de las métricas reales
+### El bug de Beszel: "overview" en vez de las métricas reales (historial — Beszel se retiró el 2026-10-15)
 
 El widget de Beszel llevaba semanas configurado sin `systemId` — sin ese dato, Homepage lo pone en modo "overview" (`fields` disponibles: `systems`, `up` — solo cuenta cuántos sistemas hay conectados y cuántos están arriba), en vez de modo "sistema puntual" (`fields`: `name`, `status`, `updated`, `cpu`, `memory`, `disk`, `network` — las métricas reales de `core`). La tarjeta nunca mostró un error, simplemente mostraba información **real pero irrelevante** ("1 sistema, 1 arriba" en vez de "CPU 4.6%, RAM 19%, disco 21%") — el tipo de bug que no salta a la vista si no se sabe qué buscar.
 

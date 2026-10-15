@@ -16,7 +16,7 @@ Una cosa es el mínimo técnico para correr algo (ver [requisitos mínimos](../r
 | Registry/artefactos | [Nexus Repository](../servicios/nexus.md) | **Actual** — `devops`, usado por el CI real | un solo servicio para imágenes OCI + proxy npm |
 | Git | [Forgejo](../servicios/forgejo.md) | **Actual** (ADR-010) | self-hosted, liviano, corriendo en `devops`; CI con Forgejo Actions ya desplegado y validado end-to-end |
 | Observabilidad completa | [Prometheus + Grafana + Loki](../observabilidad/arquitectura.md) | Objetivo | métricas, logs y disponibilidad con el ecosistema más adoptado |
-| Observabilidad liviana | [Uptime Kuma](../servicios/uptime-kuma.md) + [Beszel](../servicios/beszel.md) | **Actual** — ambos completos (hub + agente) | disponibilidad + CPU/RAM/disco sin el setup de exporters de Prometheus |
+| Observabilidad liviana | [Uptime Kuma](../servicios/uptime-kuma.md) (Beszel se retiró el 2026-10-15) | **Actual** — ambos completos (hub + agente) | disponibilidad + CPU/RAM/disco sin el setup de exporters de Prometheus |
 | Automatización | [n8n](../servicios/n8n.md) | **Actual** — `core`, n8n 2.38.7 + Postgres 17 | workflows visuales, conecta el resto de los servicios |
 | Gestor de contraseñas | [Vaultwarden](../servicios/vaultwarden.md) | **Actual** — `core`, Vaultwarden 1.37.2 | Bitwarden-compatible, propio; resuelve la reutilización de contraseñas detectada durante el build |
 | Dashboard de servicios | [Homepage](../servicios/homepage.md) | **Actual** — `core`, Homepage v2.3.0 | landing con links y estado; candidato para la pantalla táctil |
