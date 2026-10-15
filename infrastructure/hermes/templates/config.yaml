@@ -16,6 +16,13 @@ data:
       gateway_timeout: 300
       reasoning_effort: low
     max_concurrent_sessions: 1
+    # Acciones delicadas: el plugin oscar-approvals las manda a la aprobación nativa con botones
+    # en Discord. Sin respuesta en 10 minutos, no se ejecutan.
+    plugins:
+      enabled: [oscar-approvals]
+    approvals:
+      mode: manual
+      timeout: 600
     group_sessions_per_user: true
     auxiliary:
       title_generation:
@@ -152,4 +159,8 @@ data:
 {{ .Files.Get "files/SOUL.md" | indent 4 }}
   oscar_tools.py: |
 {{ .Files.Get "files/oscar_tools.py" | indent 4 }}
+  oscar_approvals_plugin.yaml: |
+{{ .Files.Get "files/oscar_approvals/plugin.yaml" | indent 4 }}
+  oscar_approvals_init.py: |
+{{ .Files.Get "files/oscar_approvals/__init__.py" | indent 4 }}
 {{- end }}

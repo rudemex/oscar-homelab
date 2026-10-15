@@ -1,0 +1,6 @@
+name: oscar-approvals
+version: "1.0.0"
+description: "Pide aprobación con botones en Discord antes de las acciones delicadas de O.S.C.A.R."
+author: "O.S.C.A.R."
+provides_hooks:
+  - pre_tool_call

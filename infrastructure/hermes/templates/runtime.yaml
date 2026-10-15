@@ -119,6 +119,10 @@ spec:
               mkdir -p /opt/data/workspace
               cp /etc/oscar/config.yaml /opt/data/config.yaml
               cp /etc/oscar/SOUL.md /opt/data/SOUL.md
+              rm -rf /opt/data/plugins/oscar-approvals
+              mkdir -p /opt/data/plugins/oscar-approvals
+              cp /etc/oscar/oscar_approvals_plugin.yaml /opt/data/plugins/oscar-approvals/plugin.yaml
+              cp /etc/oscar/oscar_approvals_init.py /opt/data/plugins/oscar-approvals/__init__.py
               exec /opt/hermes/.venv/bin/hermes gateway run --no-supervise --external-supervisor
           {{- end }}
           ports:
