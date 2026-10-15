@@ -21,6 +21,7 @@ La tabla resume el rol previsto. **Objetivo** no significa “instalar ya”: ca
 | [Loki](./loki.md) | Objetivo · Logs | VM observabilidad o k3s | logs de contenedores |
 | [Uptime Kuma](./uptime-kuma.md) | **Actual** · Disponibilidad | Docker Core | HTTP checks |
 | [n8n](./n8n.md) | **Actual** · Automatización | Docker Core | backups coordinados |
+| [oscar-discord](./oscar-discord.md) | **Actual** · Automatización / ChatOps | k3s (`oscar-lab`) | bot de Discord propio: tarjetas del Broker, aprobaciones y acciones con botones, panel `#estado`, comandos de barra |
 | [Vaultwarden](./vaultwarden.md) | **Actual** · Seguridad | Docker `services` (migrado de Core el 2026-09-23) | gestor de contraseñas propio (Bitwarden-compatible) |
 | [Homepage](./homepage.md) | **Actual** · Dashboard | Docker Core | landing con links/estado de todos los servicios |
 | [Beszel](./beszel.md) | **Retirado (2026-10-15)** · Observabilidad | — | monitoreo liviano de CPU/RAM/disco; Prometheus+Grafana ya cubría todos sus hosts y no tenía alertas, eliminado por decisión del usuario, ver la página |

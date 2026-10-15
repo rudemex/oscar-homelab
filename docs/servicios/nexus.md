@@ -92,6 +92,10 @@ Restore: levantar una instancia nueva con volumen vacío, restaurar ahí el árb
 
 Si Nexus se usa solo como proxy/cache de npm, es razonablemente recreable: se repuebla re-descargando. Pero si aloja artefactos propios (imágenes internas, builds), esos datos no son recreables y hay que tratarlos como críticos.
 
+## Limpieza de disco: compactar el blob store
+
+Borrar una imagen (lo hace el pipeline de image-mirror al rotar versiones) **no libera el disco**: Nexus solo marca los blobs como borrados. El 2026-10-15 devops llegó al 98 % con un blob store de 86,5 GB del que solo ~43 GB eran imágenes vigentes. Se creó la tarea **"OSCAR - Compactar blob store (domingos 03:00)"** (`blobstore.compact` sobre `default`, cron `0 0 6 ? * SUN`: Nexus usa UTC, así que son las 03:00 de Argentina, lejos del backup de las 00:00). La primera corrida liberó ~39 GB. El disco de devops lo vigila la alerta `HostDiskHigh`.
+
 ## Observabilidad
 
 - endpoint de salud `/service/rest/v1/status`;

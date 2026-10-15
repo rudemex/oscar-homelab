@@ -27,17 +27,38 @@ Los valores se ajustan cuando conozcamos volumen y NAS.
 
 ```text
 vzdump: backup-94c323b5-388e
-    schedule mon..fri 00:00
     all 1
     compress zstd
     enabled 1
+    exclude 9000
+    fleecing 0
     mode snapshot
-    prune-backups keep-last=5,keep-monthly=1,keep-yearly=6
+    notes-template {{guestname}}
+    notification-mode notification-system
+    prune-backups keep-last=2,keep-monthly=1,keep-yearly=6
+    repeat-missed 0
+    schedule mon..fri 00:00
     script /var/lib/vz/snippets/oscar-led-vzdump-hook.sh
     storage Backups
 ```
 
-Corre de lunes a viernes a medianoche, backupea **todas** las VMs/LXC (`all 1`, no una lista puntual) en modo `snapshot`, comprimido `zstd`, hacia el storage `Backups` (`dir`, montado en `/mnt/pve/Backups`, **no** `backup-local` como decía esta página antes — ese nombre nunca existió, era un placeholder que quedó como si fuera real). Retención: últimos 5 + 1 mensual + 6 anuales — más agresiva que la "política inicial" de la tabla de arriba, que quedó como referencia conceptual sin actualizar contra lo que realmente se configuró.
+(Revisado 2026-10-15.) Corre de lunes a viernes a medianoche y backupea **todas** las VMs/LXC (`all 1`) menos la plantilla `9000`, en modo `snapshot`, comprimido `zstd`, hacia el storage `Backups` (`dir`, `/mnt/pve/Backups`). Retención: últimos 2 + 1 mensual + 6 anuales.
+
+**Disco de backups:** desde el 2026-10-13, `/mnt/pve/Backups` es un **SanDisk SSD Plus de 2 TB** interno por SATA (label `Backups2T`), con mount unit `/etc/systemd/system/mnt-pve-Backups.mount`. Reemplazó al SSD de 1 TB anterior (`FTM1TN325H`, retirado); los 602 GB que había se copiaron y se verificaron por checksum. En reposo está a ~45 °C y bajo carga llegó a 69 °C: conviene que tenga ventilación.
+
+## Segunda copia de los backups (WD Green)
+
+Desde el 2026-10-14, el **WD Green de 1 TB por USB** (label `BackupsCopia`, montado en `/mnt/storage` por fstab con `nofail`) guarda una segunda copia:
+
+- `/usr/local/bin/oscar-backup-copy.sh`, disparado por `oscar-backup-copy.timer` **todos los días a las 04:00** (después del backup y de la limpieza).
+- Copia `/mnt/pve/Backups/dump/` a `/mnt/storage/dump/` con `rsync -a --delete`. Si alguno de los dos discos no está montado, o hay un `vzdump` corriendo, no hace nada.
+- **Modo automático según espacio:** si todos los backups entran en el 90 % del disco, copia exacta; si no, guarda solo el backup más reciente de cada VM/LXC y borra el resto de la copia.
+- Logs: `journalctl -u oscar-backup-copy`.
+- El disco tuvo reinicios de enlace USB en una prueba de lectura sostenida (sin errores de datos), por eso es la segunda copia y no la principal. Desde el reinicio del 14/10 no repitió errores.
+
+La alerta `HostDiskCritical` (más del 95 %) también vigila `/mnt/storage`; `HostDiskHigh` (85 %) lo excluye porque está pensado para llenarse hasta el 90 %.
+
+Para consultar el estado: `/backups` en Discord (bot [oscar-discord](../servicios/oscar-discord.md)) o `oscar_disks_status` de Hermes.
 
 ### Hookscript: el backup se ve en la tira LED (2026-09-25)
 

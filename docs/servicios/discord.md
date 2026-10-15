@@ -6,7 +6,8 @@ sidebar_position: 29
 # Discord
 
 **Estado:** Fase 1 en producción (2026-10-03) — servidor y bot creados, estructura de categorías/canales gestionada como IaC (`setup-oscar-discord.sh` + `discord-channels.json`, raíz del repo). El Notification Broker corre como un único workflow real en n8n (**"OSCAR - Discord Notification Broker"**), con las 12 ramas (una por canal) activas y probadas de punta a punta. Alertmanager ya tiene un receiver real apuntando a él; Uptime Kuma se conecta igual, vía su notificación tipo Webhook (paso manual de configuración, no versionado).
-**Dónde corre:** el bot vive en la infraestructura de Discord (no hay proceso propio que mantener); lo único que corre en OSCAR es el workflow de n8n que consume los webhooks (`core`, ver [n8n](./n8n.md)).
+**Actualización 2026-10-15:** los avisos ya no salen por webhooks de Discord. El Broker sigue normalizando cada evento en n8n, pero lo publica a través del bot propio [oscar-discord](./oscar-discord.md) (Application **O.S.C.A.R.**), que suma tarjetas que se actualizan sobre el mismo mensaje, botones (silenciar, visto, reiniciar), aprobaciones reales, el panel fijo en `#estado` y comandos de barra. La "fase futura" de abajo quedó implementada ahí, con el mismo principio: solo el dueño puede apretar los botones que actúan.
+**Dónde corre (fase 1, histórico):** el bot vive en la infraestructura de Discord (no hay proceso propio que mantener); lo único que corre en OSCAR es el workflow de n8n que consume los webhooks (`core`, ver [n8n](./n8n.md)).
 **Persistencia:** el bot token y el Guild ID son secretos/configuración — nunca en Git, ver [Variables de entorno](#variables-de-entorno).
 
 ## Rol dentro de O.S.C.A.R.
@@ -50,7 +51,7 @@ flowchart LR
 
 Ninguna de las fuentes de arriba tiene, ni debe tener, un webhook de Discord configurado directamente — todas pasan por n8n.
 
-### Fase futura (no implementada) — interacción bidireccional con aprobación humana
+### Fase futura (implementada en 2026-10-15 por [oscar-discord](./oscar-discord.md)) — interacción bidireccional con aprobación humana
 
 ```mermaid
 flowchart LR

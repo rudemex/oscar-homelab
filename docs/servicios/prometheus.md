@@ -50,6 +50,15 @@ Como baseline:
 - revisar mounts privilegiados;
 - separar secretos de la configuración versionada.
 
+## Alertas de disco (2026-10-15)
+
+En `ansible/roles/monitoring_stack/files/rules.yml` de `apps/gitops`, grupo `flota`:
+
+- **HostDiskHigh** (warning): cualquier filesystem ext4/xfs/btrfs de cualquier máquina por encima del 85 % durante 15 minutos (excluye `/boot*` y `/mnt/storage`, la copia de backups, que está pensada para llenarse hasta el 90 %).
+- **HostDiskCritical** (critical): por encima del 95 % durante 5 minutos, incluida `/mnt/storage`.
+
+Antes solo se vigilaba el storage de oscar-core, y devops llegó al 98 % sin avisar. En monitor01, `rules.yml` está montado como archivo suelto en el contenedor: reemplazarlo no lo actualiza adentro y `/-/reload` está deshabilitado, así que hay que `docker restart monitoring-prometheus-1`.
+
 ## Backup y restore
 
 El TSDB en `/prometheus` es una serie temporal recreable: se vuelve a poblar scrapeando desde cero. Según la [estrategia 3-2-1](../backup-dr/estrategia-321.md) se clasifica como **no crítico** — perder el histórico duele pero no es una pérdida de datos irreemplazable.
