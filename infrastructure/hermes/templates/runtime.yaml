@@ -1,0 +1,215 @@
+{{- if .Values.enabled }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: hermes-agent
+automountServiceAccountToken: true
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: hermes-agent-operator
+rules:
+  - apiGroups: [apps]
+    resources: [deployments, statefulsets]
+    verbs: [get, list, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: hermes-agent-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: hermes-agent-operator
+subjects:
+  - kind: ServiceAccount
+    name: hermes-agent
+    namespace: {{ .Release.Namespace }}
+{{- range $component := list "hermes" "webui" }}
+{{- $isHermes := eq $component "hermes" }}
+{{- $name := ternary "hermes-agent" "hermes-webui" $isHermes }}
+{{- $settings := index $.Values $component }}
+{{- $port := ternary 8642 8080 $isHermes }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $name }}-data
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: {{ $settings.storage }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: {app: {{ $name }}}
+  template:
+    metadata:
+      labels: {app: {{ $name }}}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/config.yaml") $ | sha256sum }}
+    spec:
+      automountServiceAccountToken: {{ $isHermes }}
+      {{- if $isHermes }}
+      serviceAccountName: hermes-agent
+      {{- end }}
+      terminationGracePeriodSeconds: 45
+      nodeSelector:
+{{ toYaml $.Values.nodeSelector | indent 8 }}
+      {{- if and $isHermes $.Values.proxmox.enabled }}
+      hostAliases:
+        - ip: 192.168.0.233
+          hostnames: [oscar-core]
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: {{ ternary 10000 1000 $isHermes }}
+        runAsGroup: {{ ternary 10000 1000 $isHermes }}
+        fsGroup: {{ ternary 10000 1000 $isHermes }}
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: {{ $component }}
+          image: {{ $settings.image }}
+          imagePullPolicy: IfNotPresent
+          {{- if $isHermes }}
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              mkdir -p /opt/data/workspace
+              cp /etc/oscar/config.yaml /opt/data/config.yaml
+              cp /etc/oscar/SOUL.md /opt/data/SOUL.md
+              exec /opt/hermes/.venv/bin/hermes gateway run --no-supervise --external-supervisor
+          {{- end }}
+          ports:
+            - {name: http, containerPort: {{ $port }}}
+          securityContext:
+            allowPrivilegeEscalation: false
+            {{- if $isHermes }}
+            readOnlyRootFilesystem: true
+            {{- end }}
+            capabilities: {drop: [ALL]}
+          envFrom:
+            - secretRef:
+                name: {{ ternary "hermes-runtime" "hermes-webui" $isHermes }}
+          env:
+          {{- if $isHermes }}
+            - {name: HOME, value: /opt/data}
+            - {name: HERMES_HOME, value: /opt/data}
+            - {name: API_SERVER_ENABLED, value: "true"}
+            - {name: API_SERVER_HOST, value: "0.0.0.0"}
+            - {name: API_SERVER_PORT, value: "8642"}
+            - {name: OSCAR_PROMETHEUS_URL, value: "http://192.168.0.214:9090"}
+            - {name: OSCAR_SEARXNG_URL, value: "http://192.168.0.154:8080"}
+            {{- if $.Values.proxmox.enabled }}
+            - {name: OSCAR_PROXMOX_API, value: "https://oscar-core:8006/api2/json"}
+            {{- end }}
+            {{- if $.Values.homeAssistant.enabled }}
+            - {name: OSCAR_HOME_ASSISTANT_API, value: {{ $.Values.homeAssistant.api | quote }}}
+            {{- end }}
+            {{- if $.Values.led.enabled }}
+            - {name: OSCAR_LED_API, value: {{ $.Values.led.api | quote }}}
+            {{- end }}
+            {{- if $.Values.discord.enabled }}
+            - {name: DISCORD_REQUIRE_MENTION, value: "true"}
+            - {name: DISCORD_AUTO_THREAD, value: "false"}
+            - {name: DISCORD_ALLOW_MENTION_EVERYONE, value: "false"}
+            - {name: DISCORD_ALLOW_MENTION_ROLES, value: "false"}
+            {{- end }}
+          {{- else }}
+            - {name: HOME, value: /app/backend/data}
+            - {name: STATIC_DIR, value: /app/backend/data/static}
+            - {name: WEBUI_NAME, value: "OSCAR AI"}
+            - {name: WEBUI_ADMIN_EMAIL, value: {{ $.Values.webui.adminEmail | quote }}}
+            - {name: ENABLE_SIGNUP, value: "false"}
+            - {name: WEBUI_AUTH, value: "true"}
+            - {name: ENABLE_OLLAMA_API, value: "false"}
+            - {name: OPENAI_API_BASE_URL, value: "http://hermes-agent:8642/v1"}
+            - {name: OFFLINE_MODE, value: "true"}
+            - {name: HF_HUB_OFFLINE, value: "1"}
+            - {name: ENABLE_VERSION_UPDATE_CHECK, value: "false"}
+            - {name: ENABLE_OPENAI_API, value: "true"}
+            - {name: ENABLE_DIRECT_CONNECTIONS, value: "false"}
+            - {name: ENABLE_CODE_EXECUTION, value: "false"}
+            - {name: ENABLE_CODE_INTERPRETER, value: "false"}
+            - {name: ENABLE_EVALUATION_ARENA_MODELS, value: "false"}
+            - {name: ENABLE_COMMUNITY_SHARING, value: "false"}
+            - {name: ENABLE_PERSISTENT_CONFIG, value: "false"}
+            - {name: ENABLE_TITLE_GENERATION, value: "false"}
+            - {name: ENABLE_TAGS_GENERATION, value: "false"}
+            - {name: ENABLE_FOLLOW_UP_GENERATION, value: "false"}
+            - {name: CORS_ALLOW_ORIGIN, value: "http://localhost:8080;http://127.0.0.1:8080;http://ai.oscar.home"}
+          {{- end }}
+          resources:
+{{ toYaml $settings.resources | indent 12 }}
+          startupProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 30
+            failureThreshold: 3
+          volumeMounts:
+            - name: data
+              mountPath: {{ ternary "/opt/data" "/app/backend/data" $isHermes }}
+            - {name: tmp, mountPath: /tmp}
+            {{- if $isHermes }}
+            - {name: config, mountPath: /etc/oscar, readOnly: true}
+            {{- end }}
+      volumes:
+        - name: data
+          persistentVolumeClaim: {claimName: {{ $name }}-data}
+        - name: tmp
+          emptyDir: {sizeLimit: 256Mi}
+        {{- if $isHermes }}
+        - name: config
+          configMap: {name: hermes-config}
+        {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+spec:
+  type: ClusterIP
+  selector: {app: {{ $name }}}
+  ports:
+    - {name: http, port: {{ $port }}, targetPort: http}
+{{- end }}
+{{- if .Values.webui.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hermes-webui
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: {{ .Values.webui.ingress.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hermes-webui
+                port: {number: 8080}
+{{- end }}
+{{- end }}

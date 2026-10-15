@@ -1,0 +1,4 @@
+.gitignore
+tests/
+files/__pycache__/
+README.md

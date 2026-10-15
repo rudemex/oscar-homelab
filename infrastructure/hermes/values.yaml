@@ -1,0 +1,44 @@
+# Piloto autorizado, clave administrada en Infisical /hermes.
+enabled: true
+nodeSelector:
+  kubernetes.io/hostname: k3s01
+model:
+  provider: anthropic
+  name: claude-sonnet-5-5
+  baseUrl: https://api.anthropic.com
+hermes:
+  image: nousresearch/hermes-agent@sha256:fca358f12efd65bfaaca05884166f15c0e2788375ca30d77061ac1ebc96452b7
+  storage: 5Gi
+  resources:
+    requests: {cpu: 250m, memory: 512Mi}
+    limits: {cpu: "1", memory: 1536Mi}
+webui:
+  image: ghcr.io/open-webui/open-webui@sha256:0487ad4a5a4b986062dedace806c3ef1e88fec38c10d1e64d6a5501c66671e5e
+  storage: 5Gi
+  adminEmail: mdelgado@tresdoce.com.ar
+  resources:
+    requests: {cpu: 100m, memory: 512Mi}
+    limits: {cpu: "1", memory: 1536Mi}
+  # Acceso solo LAN mediante Traefik; sin rutas de Cloudflare.
+  ingress:
+    enabled: true
+    host: ai.oscar.home
+secrets:
+  projectId: 3ff70b49-4ae2-4cb7-9f0e-2465925f8d6a
+  environment: prod
+  path: /
+  # Identidad Viewer limitada al proyecto Hermes, que solo contiene secretos de Hermes.
+  credentialsSecret: hermes-infisical-auth
+  providerKeyEnv: ANTHROPIC_API_KEY
+discord:
+  # Dedicated bot token and owner allowlist are stored in Infisical.
+  enabled: true
+proxmox:
+  # Dedicated HermesOperator API token and public CA are stored in Infisical.
+  enabled: true
+homeAssistant:
+  enabled: true
+  api: http://192.168.0.195:80
+led:
+  enabled: true
+  api: http://oscar-led-controller.oscar-lab.svc.cluster.local:8080

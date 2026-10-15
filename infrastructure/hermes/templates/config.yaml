@@ -1,0 +1,56 @@
+{{- if .Values.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hermes-config
+data:
+  config.yaml: |
+    model:
+      provider: {{ required "model.provider is required" .Values.model.provider | quote }}
+      default: {{ required "model.name is required" .Values.model.name | quote }}
+      {{- if .Values.model.baseUrl }}
+      base_url: {{ .Values.model.baseUrl | quote }}
+      {{- end }}
+    agent:
+      max_turns: 12
+      gateway_timeout: 300
+      reasoning_effort: low
+    max_concurrent_sessions: 1
+    group_sessions_per_user: true
+    auxiliary:
+      title_generation:
+        enabled: false
+        model_upgrade_enabled: false
+    gateway:
+      api_server:
+        max_concurrent_runs: 1
+    platform_toolsets:
+      api_server: [oscar]
+      cli: [oscar]
+      discord: [oscar]
+    mcp_servers:
+      oscar:
+        command: /opt/hermes/.venv/bin/python
+        args: [/etc/oscar/oscar_tools.py]
+        timeout: 240
+        connect_timeout: 20
+        sampling:
+          enabled: false
+        tools:
+          include: [oscar_get_status, oscar_get_availability, oscar_web_search, oscar_restart_workload
+          {{- if .Values.proxmox.enabled }}
+          , oscar_list_vms, oscar_vm_power, oscar_create_vm
+          {{- end }}
+          {{- if .Values.homeAssistant.enabled }}
+          , oscar_ha_get_state, oscar_ha_list_entities, oscar_ha_call_service
+          {{- end }}
+          {{- if .Values.led.enabled }}
+          , oscar_led_get_state, oscar_led_set_state, oscar_led_power
+          {{- end }}]
+    terminal:
+      cwd: /opt/data/workspace
+  SOUL.md: |
+{{ .Files.Get "files/SOUL.md" | indent 4 }}
+  oscar_tools.py: |
+{{ .Files.Get "files/oscar_tools.py" | indent 4 }}
+{{- end }}

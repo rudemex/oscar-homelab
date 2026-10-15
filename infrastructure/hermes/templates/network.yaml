@@ -1,0 +1,75 @@
+{{- if .Values.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: hermes-agent
+spec:
+  podSelector:
+    matchLabels: {app: hermes-agent}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: {app: hermes-webui}
+      ports: [{protocol: TCP, port: 8642}]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: kube-system}
+          podSelector:
+            matchLabels: {k8s-app: kube-dns}
+      ports: [{protocol: UDP, port: 53}, {protocol: TCP, port: 53}]
+    - to: [{ipBlock: {cidr: 192.168.0.214/32}}]
+      ports: [{protocol: TCP, port: 9090}]
+    - to: [{ipBlock: {cidr: 192.168.0.154/32}}]
+      ports: [{protocol: TCP, port: 8080}]
+    {{- if .Values.proxmox.enabled }}
+    - to: [{ipBlock: {cidr: 192.168.0.233/32}}]
+      ports: [{protocol: TCP, port: 8006}]
+    {{- end }}
+    {{- if .Values.homeAssistant.enabled }}
+    - to: [{ipBlock: {cidr: 192.168.0.195/32}}]
+      ports: [{protocol: TCP, port: 80}]
+    {{- end }}
+    {{- if .Values.led.enabled }}
+    - to:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: oscar-lab}
+          podSelector:
+            matchLabels: {app: oscar-led-controller}
+      ports: [{protocol: TCP, port: 8080}]
+    {{- end }}
+    # HTTPS/WSS público para Anthropic y adaptadores como Discord. Sin acceso a APIs privadas del rack.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16, 127.0.0.0/8, 100.64.0.0/10]
+      ports: [{protocol: TCP, port: 443}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: hermes-webui
+spec:
+  podSelector:
+    matchLabels: {app: hermes-webui}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: kube-system}
+          podSelector:
+            matchLabels: {app.kubernetes.io/name: traefik}
+      ports: [{protocol: TCP, port: 8080}]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels: {kubernetes.io/metadata.name: kube-system}
+          podSelector:
+            matchLabels: {k8s-app: kube-dns}
+      ports: [{protocol: UDP, port: 53}, {protocol: TCP, port: 53}]
+    - to:
+        - podSelector:
+            matchLabels: {app: hermes-agent}
+      ports: [{protocol: TCP, port: 8642}]
+{{- end }}

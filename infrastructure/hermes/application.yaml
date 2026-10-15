@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hermes
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: http://git.oscar.home/apps/gitops.git
+    targetRevision: main
+    path: apps/hermes
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: oscar-ai
+  syncPolicy:
+    syncOptions: [CreateNamespace=true]
+    # Primera sincronización manual, después de validar secretos y recursos.
