@@ -11,12 +11,35 @@ kind: ClusterRole
 metadata:
   name: hermes-agent-operator
 rules:
+  # Lectura en todo el cluster; la escritura va por namespace (hermes-agent-workload-writer).
+  - apiGroups: [apps]
+    resources: [deployments, statefulsets, replicasets]
+    verbs: [get, list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: hermes-agent-workload-writer
+rules:
   - apiGroups: [apps]
     resources: [deployments, statefulsets]
-    verbs: [get, list, patch, delete]
-  - apiGroups: [apps]
-    resources: [replicasets]
-    verbs: [get, list]
+    verbs: [patch, delete]
+{{- range .Values.kubernetes.writableNamespaces }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: hermes-agent-workload-writer
+  namespace: {{ . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: hermes-agent-workload-writer
+subjects:
+  - kind: ServiceAccount
+    name: hermes-agent
+    namespace: {{ $.Release.Namespace }}
+{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

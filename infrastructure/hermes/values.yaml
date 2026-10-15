@@ -33,6 +33,10 @@ secrets:
 discord:
   # Dedicated bot token and owner allowlist are stored in Infisical.
   enabled: true
+kubernetes:
+  # Namespaces donde Hermes puede reiniciar, escalar, hacer rollback o borrar workloads. Fuera de
+  # estos solo lee. Un namespace nuevo que deba operar hay que sumarlo acá.
+  writableNamespaces: [oscar-lab, hermes-poc]
 proxmox:
   # Dedicated HermesOperator API token and public CA are stored in Infisical.
   enabled: true

@@ -39,7 +39,9 @@ FORGEJO_READ_ONLY_REPOS = {"nestjs-starter"}
 ADGUARD_API = os.environ.get("OSCAR_ADGUARD_API", "http://192.168.0.213:3000")
 N8N_API = os.environ.get("OSCAR_N8N_API", "http://192.168.0.153:5678")
 KUMA_URL = os.environ.get("OSCAR_KUMA_URL", "http://192.168.0.214:3001")
-PROTECTED_NAMESPACES = {"kube-system", "argocd", "infisical-operator-system"}
+# oscar-ai (el propio Hermes) y headlamp se suman el 2026-10-15; en Kubernetes, además, solo tiene
+# permiso de escritura en los namespaces de kubernetes.writableNamespaces (values.yaml).
+PROTECTED_NAMESPACES = {"kube-system", "argocd", "infisical-operator-system", "oscar-ai", "headlamp"}
 OSCAR_STATES = {"healthy", "thinking", "deploying", "success", "warning", "degraded", "critical",
                 "recovering", "backup", "maintenance", "booting", "night", "aurora", "argentina", "gamer", "offline"}
 TARGET_NAMES = {
