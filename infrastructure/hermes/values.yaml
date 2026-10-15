@@ -36,6 +36,9 @@ discord:
 proxmox:
   # Dedicated HermesOperator API token and public CA are stored in Infisical.
   enabled: true
+  # Infraestructura: Hermes no puede borrarlas ni redimensionarlas (además, en Proxmox el token
+  # tiene en esas VMs el rol HermesOperatorProtected, sin VM.Allocate ni VM.Config.*).
+  protectedVmids: "102,103,104,106,107,108,109,110,9000"
 homeAssistant:
   enabled: true
   api: http://192.168.0.195:80

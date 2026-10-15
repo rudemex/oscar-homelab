@@ -473,6 +473,18 @@ class OscarToolsTests(unittest.TestCase):
                     tools.oscar_disks_smart_test(*bad)
         self.assertIn(("/api/storage/smart/sdc/test", {"test_type": "long"}), calls)
 
+    def test_protected_infrastructure_vms_cannot_be_destroyed_or_resized(self):
+        with patch.object(tools, "_pve_request") as request:
+            for vmid in (102, 103, 108, 9000):
+                with self.assertRaisesRegex(ValueError, "protected"):
+                    tools.oscar_delete_vm(vmid, confirm=True)
+                with self.assertRaisesRegex(ValueError, "protected"):
+                    tools.oscar_resize_vm(vmid, cores=2)
+            request.assert_not_called()
+        with patch.object(tools, "_find_guest", return_value={"type": "qemu", "status": "stopped"}), \
+                patch.object(tools, "_pve_request", return_value="UPID:x"):
+            self.assertEqual(tools.oscar_delete_vm(105, confirm=True)["status"], "submitted")
+
     def test_chart_validates_input_before_rendering(self):
         good = dict(title="t", categories=["a", "b"], series=[{"name": "x", "values": [1, 2]}])
         for change in (dict(title=""), dict(title="x" * 121), dict(kind="pie"), dict(unit="pesos largos"),

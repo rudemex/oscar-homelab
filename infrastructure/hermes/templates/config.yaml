@@ -48,6 +48,7 @@ data:
           OSCAR_PROXMOX_TOKEN_ID: "${OSCAR_PROXMOX_TOKEN_ID}"
           OSCAR_PROXMOX_TOKEN_SECRET: "${OSCAR_PROXMOX_TOKEN_SECRET}"
           OSCAR_PROXMOX_CA_PEM_BASE64: "${OSCAR_PROXMOX_CA_PEM_BASE64}"
+          OSCAR_PROXMOX_PROTECTED_VMIDS: {{ .Values.proxmox.protectedVmids | quote }}
           {{ end }}
           {{ if .Values.homeAssistant.enabled }}
           OSCAR_HOME_ASSISTANT_TOKEN: "${OSCAR_HOME_ASSISTANT_TOKEN}"

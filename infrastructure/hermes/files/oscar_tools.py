@@ -16,6 +16,10 @@ MAX_BYTES = 2_000_000
 PVE_API = os.environ.get("OSCAR_PROXMOX_API", "https://oscar-core:8006/api2/json")
 PVE_NODE = os.environ.get("OSCAR_PROXMOX_NODE", "oscar-core")
 PVE_TEMPLATE = int(os.environ.get("OSCAR_PROXMOX_TEMPLATE", "9000"))
+# VMs de infraestructura: nunca se borran ni se redimensionan desde Hermes, ni con aprobación
+# (decisión del dueño, 2026-10-15). Proxmox además les quita esos permisos al token de Hermes.
+PVE_PROTECTED_VMIDS = frozenset(int(v) for v in re.findall(r"\d+", os.environ.get(
+    "OSCAR_PROXMOX_PROTECTED_VMIDS", "102,103,104,106,107,108,109,110,9000")))
 K8S_API = os.environ.get("KUBERNETES_SERVICE_HOST", "kubernetes.default.svc")
 K8S_PORT = os.environ.get("KUBERNETES_SERVICE_PORT_HTTPS", "443")
 HA_API = os.environ.get("OSCAR_HOME_ASSISTANT_API", "http://192.168.0.195:80")
@@ -282,6 +286,12 @@ def oscar_create_vm(vmid: int, name: str, cores: int = 2, memory_mib: int = 2048
             "note": "VM remains stopped. Review the inherited Cloud-Init network, credentials and disk size before starting."}
 
 
+def _refuse_protected(vmid: int, action: str):
+    if vmid in PVE_PROTECTED_VMIDS:
+        raise ValueError(f"VM {vmid} is protected O.S.C.A.R. infrastructure: {action} is not allowed from Hermes; "
+                         "the owner has to do it directly in Proxmox")
+
+
 def _find_guest(vmid: int):
     resources = _pve_request("GET", "/cluster/resources", {"type": "vm"})
     guest = next((item for item in resources if isinstance(item, dict)
@@ -299,6 +309,7 @@ def oscar_delete_vm(vmid: int, confirm: bool = False) -> dict:
         raise ValueError("vmid must be an integer >= 100")
     if not confirm:
         raise ValueError("destroying a guest requires confirm=True")
+    _refuse_protected(vmid, "destroying it")
     guest = _find_guest(vmid)
     if guest.get("status") != "stopped":
         raise ValueError("guest must be stopped before it can be destroyed")
@@ -318,6 +329,7 @@ def oscar_resize_vm(vmid: int, cores: int = None, memory_mib: int = None) -> dic
     if memory_mib is not None and (isinstance(memory_mib, bool) or not isinstance(memory_mib, int)
                                     or not 512 <= memory_mib <= 16384):
         raise ValueError("memory_mib must be between 512 and 16384")
+    _refuse_protected(vmid, "resizing it")
     guest = _find_guest(vmid)
     if guest["type"] != "qemu":
         raise ValueError("resizing is only supported for QEMU VMs")
