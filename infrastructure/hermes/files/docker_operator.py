@@ -19,6 +19,10 @@ KEY = os.environ.get("HERMES_DOCKER_OPERATOR_KEY", "/etc/hermes-docker-operator/
 MAX_BODY = 8192
 MAX_LOG_CHARS = 200_000
 ALLOWED_ACTIONS = {"start", "stop", "restart", "up", "down"}
+# Proyectos críticos (cloudflared, Infisical, Forgejo, Nexus, n8n): se pueden reiniciar pero nunca
+# detener ni bajar desde Hermes, aunque el pedido venga aprobado.
+NO_STOP_FILE = os.environ.get("HERMES_DOCKER_OPERATOR_NO_STOP_FILE", "/etc/hermes-docker-operator/no-stop.json")
+NO_STOP = set(json.loads(Path(NO_STOP_FILE).read_text())) if Path(NO_STOP_FILE).is_file() else set()
 
 
 def compose(project, args):
@@ -73,6 +77,8 @@ def perform_action(request):
         raise ValueError("unknown Compose project")
     if action not in ALLOWED_ACTIONS:
         raise ValueError("action must be start, stop, restart or up")
+    if action in {"stop", "down"} and project in NO_STOP:
+        raise ValueError("protected project: stop/down are not allowed")
     args = ["up", "-d"] if action == "up" else [action]
     if service is not None:
         if not isinstance(service, str) or service not in project_services(project):

@@ -34,6 +34,16 @@ class DockerOperatorTests(unittest.TestCase):
                         operator.perform_action(request)
                     compose.assert_not_called()
 
+    def test_protected_projects_can_restart_but_never_stop_or_go_down(self):
+        with patch.object(operator, "NO_STOP", {"n8n"}):
+            with patch.object(operator, "compose", return_value="") as compose:
+                for action in ("stop", "down"):
+                    with self.assertRaisesRegex(ValueError, "protected"):
+                        operator.perform_action({"project": "n8n", "service": None, "action": action})
+                compose.assert_not_called()
+                self.assertEqual(operator.perform_action({"project": "n8n", "service": None, "action": "restart"})["status"],
+                                 "accepted")
+
     def test_down_is_allowed_and_never_passes_volume_removal_flags(self):
         with patch.object(operator, "compose", return_value="") as compose:
             result = operator.perform_action({"project": "n8n", "service": None, "action": "down"})

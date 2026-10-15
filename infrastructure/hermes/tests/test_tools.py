@@ -485,6 +485,18 @@ class OscarToolsTests(unittest.TestCase):
                 patch.object(tools, "_pve_request", return_value="UPID:x"):
             self.assertEqual(tools.oscar_delete_vm(105, confirm=True)["status"], "submitted")
 
+    def test_critical_compose_projects_refuse_stop_and_down_but_allow_restart(self):
+        with patch.object(tools, "_docker_operator_request", return_value={"status": "accepted"}) as request:
+            for host, project in (("core", "cloudflared"), ("devops", "infisical"), ("automation", "n8n"),
+                                  ("network", "cloudflared"), ("devops", "nexus"), ("devops", "forgejo")):
+                for action in ("stop", "down"):
+                    with self.assertRaisesRegex(ValueError, "critical"):
+                        tools.oscar_docker_service_action(host, project, action)
+            request.assert_not_called()
+            tools.oscar_docker_service_action("devops", "infisical", "restart")
+            tools.oscar_docker_service_action("core", "myspeed", "stop")
+            self.assertEqual(request.call_count, 2)
+
     def test_chart_validates_input_before_rendering(self):
         good = dict(title="t", categories=["a", "b"], series=[{"name": "x", "values": [1, 2]}])
         for change in (dict(title=""), dict(title="x" * 121), dict(kind="pie"), dict(unit="pesos largos"),

@@ -32,6 +32,10 @@ DOCKER_OPERATORS = {
     "monitor": ("192.168.0.214", "OSCAR_DOCKER_OPERATOR_TOKEN_MONITOR"),
     "network": ("192.168.0.213", "OSCAR_DOCKER_OPERATOR_TOKEN_NETWORK"),
 }
+# Críticos: restart sí, stop/down nunca desde Hermes (2026-10-15). El operador de cada host tiene
+# la misma lista en /etc/hermes-docker-operator/no-stop.json.
+DOCKER_NO_STOP = {"core": {"cloudflared"}, "network": {"cloudflared"},
+                  "devops": {"forgejo", "infisical", "nexus"}, "automation": {"n8n"}}
 FORGEJO_OWNER = "mdelgado"
 FORGEJO_REPOS = {"aurora", "ci-demo", "ci-shared", "compose", "core", "gitops",
                  "kiosk", "led-controller", "nestjs-api", "nestjs-starter"}
@@ -793,6 +797,9 @@ def oscar_docker_service_action(host: str, project: str, action: str, service: s
         raise ValueError("invalid Compose project")
     if action not in {"start", "stop", "restart", "up", "down"}:
         raise ValueError("action must be start, stop, restart, up or down")
+    if action in {"stop", "down"} and project in DOCKER_NO_STOP.get(host, set()):
+        raise ValueError(f"{project} on {host} is critical O.S.C.A.R. infrastructure: {action} is not allowed "
+                         "from Hermes (restart is); the owner has to do it directly on the host")
     if service and (not isinstance(service, str) or not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]{0,62}", service)):
         raise ValueError("invalid Compose service")
     payload = {"project": project, "action": action, "service": service or None}
