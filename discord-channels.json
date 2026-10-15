@@ -1,6 +1,7 @@
 {
   "categories": {
     "📡 STATUS": [
+      { "name": "estado", "topic": "Panel en vivo de O.S.C.A.R. (lo actualiza el bot oscar-discord cada minuto). Solo lectura." },
       { "name": "status", "topic": "Estado general de O.S.C.A.R. y sus servicios." },
       { "name": "alerts", "topic": "Alertas operativas que requieren atención." },
       { "name": "incidents", "topic": "Registro y seguimiento de incidentes." }
