@@ -47,6 +47,8 @@ homeAssistant:
   enabled: true
   api: http://192.168.0.195:80
 forgejo:
+  # Token del usuario de Forgejo "hermes" (sin admin; escritura solo en los 10 repos de
+  # FORGEJO_REPOS, lectura en nestjs-starter), en Infisical como HERMES_FORGEJO_TOKEN.
   enabled: true
 dockerOperator:
   # Five scoped HTTPS operators are installed; tokens live in Infisical.

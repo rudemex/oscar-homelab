@@ -36,9 +36,12 @@ DOCKER_OPERATORS = {
 # la misma lista en /etc/hermes-docker-operator/no-stop.json.
 DOCKER_NO_STOP = {"core": {"cloudflared"}, "network": {"cloudflared"},
                   "devops": {"forgejo", "infisical", "nexus"}, "automation": {"n8n"}}
-FORGEJO_OWNER = "mdelgado"
-FORGEJO_REPOS = {"aurora", "ci-demo", "ci-shared", "compose", "core", "gitops",
-                 "kiosk", "led-controller", "nestjs-api", "nestjs-starter"}
+# Repo -> organización desde la reorganización del 2026-10-10 (Forgejo responde con redirect a las
+# rutas viejas de mdelgado/ y Hermes no sigue redirects). El token es del usuario "hermes", sin
+# admin, colaborador con escritura solo en estos repos (lectura en nestjs-starter).
+FORGEJO_REPOS = {"aurora": "apps", "core": "apps", "gitops": "apps", "kiosk": "apps",
+                 "led-controller": "apps", "nestjs-api": "apps", "ci-shared": "platform",
+                 "compose": "platform", "ci-demo": "templates", "nestjs-starter": "templates"}
 FORGEJO_READ_ONLY_REPOS = {"nestjs-starter"}
 ADGUARD_API = os.environ.get("OSCAR_ADGUARD_API", "http://192.168.0.213:3000")
 N8N_API = os.environ.get("OSCAR_N8N_API", "http://192.168.0.153:5678")
@@ -621,7 +624,7 @@ def _forgejo_repo(repo: str, write: bool = False) -> str:
         raise ValueError("repository is not in the OSCAR repository allowlist")
     if write and repo in FORGEJO_READ_ONLY_REPOS:
         raise ValueError("this repository is read-only")
-    return f"{FORGEJO_OWNER}/{repo}"
+    return f"{FORGEJO_REPOS[repo]}/{repo}"
 
 
 def oscar_forgejo_list_repositories() -> dict:

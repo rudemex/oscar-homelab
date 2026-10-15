@@ -197,7 +197,7 @@ class OscarToolsTests(unittest.TestCase):
         self.assertEqual(result["entities"], [{"entity_id": "light.office", "name": "Office", "state": "on"}])
 
     def test_forgejo_repository_allowlist_and_write_protection(self):
-        self.assertEqual(tools._forgejo_repo("gitops"), "mdelgado/gitops")
+        self.assertEqual(tools._forgejo_repo("gitops"), "apps/gitops")
         with self.assertRaises(ValueError):
             tools._forgejo_repo("unknown")
         with self.assertRaisesRegex(ValueError, "read-only"):
