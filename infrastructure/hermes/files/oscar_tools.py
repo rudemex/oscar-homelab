@@ -862,23 +862,35 @@ def oscar_adguard_list_rewrites() -> dict:
     return {"status": "ok", "rewrites": result if isinstance(result, list) else []}
 
 
+# DNS (2026-10-15): solo nombres internos .oscar.home hacia la LAN o hacia otro .oscar.home. Así una
+# instrucción escondida en un documento o una web no puede redirigir un dominio público (un banco,
+# Google) a otra IP. Las reescrituras de infraestructura no se pueden borrar desde Hermes.
+ADGUARD_PROTECTED_REWRITES = {"*.oscar.home", "git.oscar.home", "nexus.oscar.home", "infisical.oscar.home",
+                              "proxmox.oscar.home", "adguard.oscar.home", "npm.oscar.home"}
+
+
+def _adguard_validate(domain, answer):
+    if not isinstance(domain, str) or not re.fullmatch(r"([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+oscar\.home", domain):
+        raise ValueError("only internal names under .oscar.home can be rewritten (no wildcards)")
+    lan = re.fullmatch(r"192\.168\.0\.(\d{1,3})", answer or "")
+    internal = re.fullmatch(r"([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+oscar\.home", answer or "")
+    if not isinstance(answer, str) or not ((lan and 1 <= int(lan.group(1)) <= 254) or internal):
+        raise ValueError("answer must be a LAN IP (192.168.0.x) or another .oscar.home name")
+
+
 def oscar_adguard_add_rewrite(domain: str, answer: str) -> dict:
-    """Add a DNS rewrite (domain to an IP or CNAME) in AdGuard Home."""
-    if not isinstance(domain, str) or not re.fullmatch(
-            r"(\*\.)?[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+", domain):
-        raise ValueError("invalid domain")
-    if not isinstance(answer, str) or not 1 <= len(answer) <= 255:
-        raise ValueError("invalid answer")
+    """Add a DNS rewrite in AdGuard Home: a name under .oscar.home to a LAN IP (192.168.0.x) or to
+    another .oscar.home name. Public domains and wildcards are refused."""
+    _adguard_validate(domain, answer)
     _adguard_request("POST", "/control/rewrite/add", {"domain": domain, "answer": answer})
     return {"status": "added", "domain": domain, "answer": answer}
 
 
 def oscar_adguard_remove_rewrite(domain: str, answer: str) -> dict:
-    """Remove an existing DNS rewrite rule in AdGuard Home."""
-    if not isinstance(domain, str) or not 1 <= len(domain) <= 255:
-        raise ValueError("invalid domain")
-    if not isinstance(answer, str) or not 1 <= len(answer) <= 255:
-        raise ValueError("invalid answer")
+    """Remove a DNS rewrite under .oscar.home from AdGuard Home (infrastructure names are protected)."""
+    if domain in ADGUARD_PROTECTED_REWRITES:
+        raise ValueError(f"{domain} is protected O.S.C.A.R. infrastructure DNS; the owner has to change it in AdGuard")
+    _adguard_validate(domain, answer)
     _adguard_request("POST", "/control/rewrite/delete", {"domain": domain, "answer": answer})
     return {"status": "removed", "domain": domain, "answer": answer}
 
@@ -925,10 +937,17 @@ def oscar_n8n_list_workflows() -> dict:
     ]}
 
 
+# Workflows que Hermes puede prender o apagar (2026-10-15). Los que existen hoy son críticos (Broker de
+# Discord, circuito de actualizaciones, vetting del mirror): la lista arranca vacía y se suman a mano.
+N8N_TOGGLEABLE_WORKFLOWS = set(re.findall(r"[A-Za-z0-9_-]+", os.environ.get("OSCAR_N8N_TOGGLEABLE_WORKFLOWS", "")))
+
+
 def oscar_n8n_set_workflow_active(workflow_id: str, active: bool) -> dict:
-    """Activate or deactivate one n8n workflow by id."""
+    """Activate or deactivate one n8n workflow by id (only the ones the owner allowlisted)."""
     if not isinstance(workflow_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", workflow_id):
         raise ValueError("invalid workflow id")
+    if workflow_id not in N8N_TOGGLEABLE_WORKFLOWS:
+        raise ValueError("this n8n workflow is not in the list Hermes may toggle; the owner has to do it in n8n")
     if not isinstance(active, bool):
         raise ValueError("active must be a boolean")
     path = f"/workflows/{quote(workflow_id, safe='')}/{'activate' if active else 'deactivate'}"

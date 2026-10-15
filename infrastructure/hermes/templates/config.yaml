@@ -62,6 +62,7 @@ data:
           {{- end }}
           {{- if .Values.n8n.enabled }}
           OSCAR_N8N_API_KEY: "${OSCAR_N8N_API_KEY}"
+          OSCAR_N8N_TOGGLEABLE_WORKFLOWS: {{ .Values.n8n.toggleableWorkflows | default "" | quote }}
           {{- end }}
           {{- if .Values.proxmenux.enabled }}
           OSCAR_PROXMENUX_TOKEN: "${OSCAR_PROXMENUX_TOKEN}"

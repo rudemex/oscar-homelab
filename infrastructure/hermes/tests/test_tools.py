@@ -255,7 +255,8 @@ class OscarToolsTests(unittest.TestCase):
         self.assertEqual(req.call_args.args, ("GET", "/workflows?limit=100"))
 
     def test_n8n_set_workflow_active_validates_id_and_calls_correct_endpoint(self):
-        with patch.dict("os.environ", {"OSCAR_N8N_API_KEY": "test-key"}):
+        with patch.dict("os.environ", {"OSCAR_N8N_API_KEY": "test-key"}), \
+                patch.object(tools, "N8N_TOGGLEABLE_WORKFLOWS", {"abc123"}):
             with patch.object(tools, "_n8n_request", return_value={"active": True}) as req:
                 result = tools.oscar_n8n_set_workflow_active("abc123", True)
         self.assertEqual(result["active"], True)
@@ -265,6 +266,29 @@ class OscarToolsTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     tools.oscar_n8n_set_workflow_active("../etc", True)
                 req.assert_not_called()
+
+    def test_n8n_refuses_workflows_outside_the_allowlist(self):
+        with patch.object(tools, "N8N_TOGGLEABLE_WORKFLOWS", set()), \
+                patch.object(tools, "_n8n_request") as req:
+            with self.assertRaisesRegex(ValueError, "not in the list"):
+                tools.oscar_n8n_set_workflow_active("Vs66rgJi1QtRJ6PJ", False)
+            req.assert_not_called()
+
+    def test_adguard_only_rewrites_internal_names_to_the_lan(self):
+        with patch.object(tools, "_adguard_request", return_value={}) as req:
+            tools.oscar_adguard_add_rewrite("prueba.oscar.home", "192.168.0.150")
+            tools.oscar_adguard_add_rewrite("otra.oscar.home", "prueba.oscar.home")
+            tools.oscar_adguard_remove_rewrite("prueba.oscar.home", "192.168.0.150")
+            self.assertEqual(req.call_count, 3)
+            for domain, answer in (("bancogalicia.com", "192.168.0.10"), ("*.oscar.home", "192.168.0.10"),
+                                   ("x.oscar.home", "8.8.8.8"), ("x.oscar.home", "192.168.0.0"),
+                                   ("x.oscar.home", "evil.com"), ("oscar.home.evil.com", "192.168.0.10")):
+                with self.assertRaises(ValueError):
+                    tools.oscar_adguard_add_rewrite(domain, answer)
+            for protected in ("*.oscar.home", "git.oscar.home", "infisical.oscar.home"):
+                with self.assertRaisesRegex(ValueError, "protected"):
+                    tools.oscar_adguard_remove_rewrite(protected, "192.168.0.156")
+            self.assertEqual(req.call_count, 3)
 
     def test_paperless_upload_only_accepts_files_from_the_gateway_document_cache(self):
         import os

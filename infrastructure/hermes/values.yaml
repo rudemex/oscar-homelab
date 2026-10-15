@@ -66,6 +66,9 @@ n8n:
   # Dedicated n8n API key (X-N8N-API-KEY) in Infisical; LAN-only, same host as the
   # Discord Notification Broker. List/activate/deactivate workflows only.
   enabled: true
+  # IDs de workflows que Hermes puede prender/apagar, separados por coma. Vacío a propósito: los
+  # que existen (Broker, actualizaciones, vetting) son críticos.
+  toggleableWorkflows: ""
 led:
   enabled: true
   api: http://oscar-led-controller.oscar-lab.svc.cluster.local:8080
