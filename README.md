@@ -1,7 +1,4 @@
 # O.S.C.A.R. HomeLab
-claude --resume 4ef1f1ed-4342-41a2-8a81-20b43b5a97c1
-
-codex resume 01a0fc5c-6159-7c70-a098-04bd29b48242
 
 Documentación viva para construir, operar y evolucionar **O.S.C.A.R.**: rack, red, Proxmox, Docker, Kubernetes, GitOps, observabilidad, backups, automatización y capa de IA.
 
