@@ -7,13 +7,13 @@ model:
   name: claude-sonnet-5-5
   baseUrl: https://api.anthropic.com
 hermes:
-  image: nousresearch/hermes-agent@sha256:fca358f12efd65bfaaca05884166f15c0e2788375ca30d77061ac1ebc96452b7
+  image: 192.168.0.151:8082/hermesagent:v2026.9.24   # mismo digest que nousresearch/hermes-agent@sha256:fca358f1…
   storage: 5Gi
   resources:
     requests: {cpu: 250m, memory: 512Mi}
     limits: {cpu: "1", memory: 1536Mi}
 webui:
-  image: ghcr.io/open-webui/open-webui@sha256:0487ad4a5a4b986062dedace806c3ef1e88fec38c10d1e64d6a5501c66671e5e
+  image: 192.168.0.151:8082/openwebui:v0.11.4-slim   # mismo digest que open-webui@sha256:0487ad4a…
   storage: 5Gi
   adminEmail: mdelgado@tresdoce.com.ar
   resources:

@@ -92,6 +92,14 @@ Restore: levantar una instancia nueva con volumen vacío, restaurar ahí el árb
 
 Si Nexus se usa solo como proxy/cache de npm, es razonablemente recreable: se repuebla re-descargando. Pero si aloja artefactos propios (imágenes internas, builds), esos datos no son recreables y hay que tratarlos como críticos.
 
+## Todo OSCAR baja de Nexus (2026-10-16)
+
+Regla: toda imagen que corre en OSCAR sale de `192.168.0.151:8082` con **versión exacta** (nada de `latest` ni tags sueltos como `16-alpine`). Se espeja con `platform/image-mirror`; la versión desplegada queda en `pinned` de `config/_policy.yaml` para que el vetting semanal nunca la borre. Se respeta la variante que corre (Alpine/Debian/slim): cambiarla no es una actualización segura (por ejemplo, la collation de Postgres).
+
+- **Hosts Docker**: la sesión de Docker con Nexus es la de root en devops, automation, core y services (`sudo docker compose pull`), y la del usuario `pi` en las dos Raspberry. Los compose están en `platform/compose`.
+- **k3s**: los dos nodos (`k3s01`, `apps`) tienen usuario y contraseña de Nexus en `/etc/rancher/k3s/registries.yaml` (root, 600). Cualquier namespace baja de Nexus sin `imagePullSecrets`; el `nexus-pull` de las apps de oscar-lab sigue funcionando igual.
+- **Excepciones**: Nexus mismo (`sonatype/nexus3`, no puede depender de sí mismo para arrancar), Argo CD (instalado con el manifiesto oficial) y los componentes que trae k3s en `kube-system` (se actualizan con k3s).
+
 ## Limpieza de disco: compactar el blob store
 
 Borrar una imagen (lo hace el pipeline de image-mirror al rotar versiones) **no libera el disco**: Nexus solo marca los blobs como borrados. El 2026-10-15 devops llegó al 98 % con un blob store de 86,5 GB del que solo ~43 GB eran imágenes vigentes. Se creó la tarea **"OSCAR - Compactar blob store (domingos 03:00)"** (`blobstore.compact` sobre `default`, cron `0 0 6 ? * SUN`: Nexus usa UTC, así que son las 03:00 de Argentina, lejos del backup de las 00:00). La primera corrida liberó ~39 GB. El disco de devops lo vigila la alerta `HostDiskHigh`.
