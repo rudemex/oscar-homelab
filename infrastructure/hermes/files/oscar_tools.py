@@ -1356,7 +1356,7 @@ DISK_ROLES = {
     "50026B7283D8C7F1": "Sistema y VMs (NVMe interno): Proxmox y el storage local-lvm de las VMs",
     "2529E3D00443": "Backups (SSD SATA interno, /mnt/pve/Backups): backups nocturnos de Proxmox a las 00:00",
     "2527VDD02140": "BackupsCopia (WD Green USB, /mnt/storage): segunda copia de los backups, diaria a las 04:00",
-    "2530Q8D10724": "Documentos (SanDisk USB, /mnt/documentos): reservado para documentos",
+    "2530Q8D10724": "Documentos (SanDisk USB, /mnt/documentos): copia nocturna de Paperless (export oficial, 03:30, 30 días de historial)",
 }
 # smartd repite este aviso en discos USB que no informan reposo: no es una falla del disco.
 DISK_BENIGN = ("no ATA CHECK POWER STATUS support",)

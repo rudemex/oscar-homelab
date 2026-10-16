@@ -38,7 +38,7 @@ sdc (WD Green SATA SSD 1TB, por USB)                  externo
 └── /mnt/storage (label BackupsCopia) → segunda copia de los backups, diaria 04:00
 
 sdb (SanDisk SSD PLUS 1TB, por USB)                   externo
-└── /mnt/documentos (label Documentos) → reservado para documentos, vacío
+└── /mnt/documentos (label Documentos) → copia nocturna de Paperless (03:30), ver backups.md
 ```
 
 El SSD SATA de 1 TB original (`FTM1TN325H`) se retiró el 2026-10-13. Los externos se montan por UUID con `nofail` y tienen reglas udev en `/etc/udev/rules.d/99-oscar-external-disks.rules`. Salud, temperatura y alertas de cada disco: ProxMenux Monitor, el panel `#estado` de Discord y `oscar_disks_status` de Hermes.

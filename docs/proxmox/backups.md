@@ -70,6 +70,22 @@ Se asoció al job por la API, no editando `jobs.cfg` a mano: `pvesh set /cluster
 
 **Validado con corridas reales de `vzdump`** (VM `apps`, 39,5 GiB, ~40 s, vía `pvesh create /nodes/oscar-core/vzdump`): la tira quedó en `backup` durante todo el backup (observado cada 3 s) y volvió a `healthy` sola al terminar. **Pendiente de confirmar:** la primera corrida programada de verdad (lunes a las 00:00) — se probó por la misma API que usa el scheduler, pero no se observó todavía disparada por `pvescheduler`.
 
+## Copia de Paperless en el disco "Documentos" (2026-10-15)
+
+Además del backup de la VM `services` (que incluye Paperless), el **SanDisk de 1 TB por USB** (`/mnt/documentos`) guarda una copia en un formato independiente de la VM:
+
+- `/usr/local/bin/oscar-paperless-export.sh` en `oscar-core`, disparado por `oscar-paperless-export.timer` **todos los días a las 03:30**.
+- Le pide a Paperless un export oficial (`document_exporter`): originales, archivos con OCR, miniaturas y `manifest.json` con tags, carpetas, tipos, remitentes y permisos.
+- Lo guarda en `/mnt/documentos/paperless/<fecha>/` con `rsync --link-dest`: cada día es una copia completa, pero lo que no cambió se enlaza con el día anterior y no ocupa espacio de nuevo. `latest` apunta a la última. Se guardan 30 días.
+- Si el disco no está montado o `services` no corre, no hace nada. Logs: `journalctl -u oscar-paperless-export`.
+
+Restaurar (en un Paperless nuevo o vacío):
+
+```bash
+# copiar /mnt/documentos/paperless/<fecha>/ a la carpeta export de Paperless y después:
+docker compose exec -T webserver document_importer ../export
+```
+
 ## Comandos de referencia (vzdump)
 
 Backup manual de una VM/LXC puntual, fuera del job programado, en modo `snapshot` (no detiene el guest):
