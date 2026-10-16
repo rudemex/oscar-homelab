@@ -46,6 +46,16 @@ vzdump: backup-94c323b5-388e
 
 **Disco de backups:** desde el 2026-10-13, `/mnt/pve/Backups` es un **SanDisk SSD Plus de 2 TB** interno por SATA (label `Backups2T`), con mount unit `/etc/systemd/system/mnt-pve-Backups.mount`. Reemplazó al SSD de 1 TB anterior (`FTM1TN325H`, retirado); los 602 GB que había se copiaron y se verificaron por checksum. En reposo está a ~45 °C y bajo carga llegó a 69 °C: conviene que tenga ventilación.
 
+## Avisos (2026-10-16)
+
+Antes de esta fecha, un backup que fallaba no avisaba en ningún lado (solo la tira LED si abortaba el job entero). Ahora:
+
+- **#backups**: el hookscript de vzdump publica una tarjeta al arrancar el job y la actualiza VM por VM (✅/❌, tamaño, duración); al final queda el resumen. Las dos copias (WD Green y Paperless) mandan su propia tarjeta con duración y espacio usado.
+- **#incidents**: si una VM falla, el job se aborta o una copia falla o se omite (disco desmontado, VM apagada).
+- **#alerts** (Prometheus, con botones de silenciar): `BackupAtrasado` si una VM pasa más de 26 h sin backup de martes a viernes (74 h el resto de la semana, por el hueco del fin de semana) y `CopiaDeBackupAtrasada` si una copia pasa más de 26 h sin completarse.
+
+Scripts y servicios versionados en `platform/compose`, carpeta `hosts/oscar-core/`. Métricas en `/var/lib/node_exporter/textfile_collector/oscar_backup*.prom` de oscar-core.
+
 ## Segunda copia de los backups (WD Green)
 
 Desde el 2026-10-14, el **WD Green de 1 TB por USB** (label `BackupsCopia`, montado en `/mnt/storage` por fstab con `nofail`) guarda una segunda copia:
