@@ -107,3 +107,22 @@ Cada trimestre, como mínimo para servicios importantes:
 6. destruir restore de prueba.
 
 Un backup que nunca se restauró es una hipótesis.
+
+### Registro de pruebas
+
+| Fecha | Qué se restauró | Resultado | Tiempos |
+|---|---|---|---|
+| 2026-10-15 | VM 105 `lab`, backup del 15/10 00:19 (81 GB comprimido, disco de 109 GB) como VM 905 en `local-lvm` | ✅ Arrancó, sistema `running` sin servicios fallidos, datos presentes (`/srv/oscar/apps`), agente QEMU respondiendo | Restauración 14,5 min · arranque 19 s · total ~15 min |
+
+Cómo se hizo, sin chocar con producción:
+
+```bash
+qmrestore /mnt/pve/Backups/dump/vzdump-qemu-105-<fecha>.vma.zst 905 --storage local-lvm --unique 1
+qm set 905 --name restore-drill-lab --onboot 0 --net0 "<net0 actual>,link_down=1"   # red desconectada
+qm start 905 && qm agent 905 ping
+qm guest exec 905 -- sh -c 'systemctl is-system-running; systemctl --failed'
+qm stop 905 && qm destroy 905 --purge 1 --destroy-unreferenced-disks 1
+```
+
+`--unique` regenera la MAC y `link_down=1` evita que la copia tome la IP de la original (la configuración de cloud-init se restaura igual). Referencia para estimar: ~95 MB/s leyendo del disco de backups, así que una VM de 80 GB comprimidos tarda unos 15 minutos.
+
